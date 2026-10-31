@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../game/engine/board_utils.dart';
+
 /// 中国红 + 宣纸底色的视觉基调。
 const Color appRed = Color(0xFFA63A2B);
+const Color appBlack = Color(0xFF39433F);
 const Color appWood = Color(0xFF8B6239);
+
+/// 红黑双方在界面上的代表色。
+Color sideColorOf(int side) => side == red ? appRed : appBlack;
 
 ThemeData buildLightTheme({String? fontFamily}) {
   const scheme = ColorScheme.light(

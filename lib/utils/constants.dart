@@ -1,8 +1,17 @@
+/// 界面共用的中文书法字体回退链：优先楷体，其次各平台常见的中文字体。
+const List<String> kKaiFontFallback = [
+  'STKaiti',
+  'Microsoft YaHei UI',
+  'SimSun',
+  'Noto Serif CJK SC',
+  'Noto Sans CJK SC',
+];
+
 class AppConstants {
   AppConstants._();
 
   static const String appName = '中国象棋';
-  static const String version = '0.1.1';
+  static const String version = '0.1.2';
 
   static const String prefKeyDarkMode = 'dark_mode';
   static const String prefKeyDifficulty = 'difficulty';

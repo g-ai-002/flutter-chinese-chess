@@ -8,6 +8,7 @@ import '../services/log_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/constants.dart';
 import '../utils/platform_info.dart';
+import 'widgets/choice_pill.dart';
 import 'widgets/section_card.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -43,7 +44,7 @@ class SettingsPage extends StatelessWidget {
                       runSpacing: 8,
                       children: [
                         for (final difficulty in Difficulty.values)
-                          _OptionChip(
+                          ChoicePill(
                             label: difficulty.label,
                             selected: settings.difficulty == difficulty,
                             accent: colors.primary,
@@ -63,16 +64,16 @@ class SettingsPage extends StatelessWidget {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        _OptionChip(
+                        ChoicePill(
                           label: '执红先行',
                           selected: settings.humanSide == 0,
                           accent: appRed,
                           onTap: () => settings.setHumanSide(0),
                         ),
-                        _OptionChip(
+                        ChoicePill(
                           label: '执黑后行',
                           selected: settings.humanSide == 1,
-                          accent: const Color(0xFF4A5550),
+                          accent: appBlack,
                           onTap: () => settings.setHumanSide(1),
                         ),
                       ],
@@ -242,48 +243,6 @@ class SettingsPage extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _OptionChip extends StatelessWidget {
-  const _OptionChip({
-    required this.label,
-    required this.selected,
-    required this.accent,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final Color accent;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(
-          color: selected ? accent.withValues(alpha: 0.10) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? accent.withValues(alpha: 0.55) : colors.outline,
-          ),
-        ),
-        child: Text(
-          label,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: selected ? accent : colors.onSurfaceVariant,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
           ),
         ),
       ),

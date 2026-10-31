@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../game/engine/board_utils.dart';
 import '../../game/game_controller.dart';
 import '../../models/game_models.dart';
+import '../../theme/app_theme.dart';
 
 /// 对局状态条：行棋方、AI 思考中、将军提示与执子信息。
 class GameStatusBar extends StatelessWidget {
@@ -20,9 +21,7 @@ class GameStatusBar extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final side = controller.board.sideToMove;
-    final sideColor = side == red
-        ? const Color(0xFFA63A2B)
-        : const Color(0xFF39433F);
+    final sideColor = sideColorOf(side);
     final isAiMode = controller.mode == GameMode.vsAi;
 
     return Row(

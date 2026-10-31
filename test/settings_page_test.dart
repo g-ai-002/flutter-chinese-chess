@@ -2,6 +2,7 @@ import 'package:chinese_chess/pages/settings_page.dart';
 import 'package:chinese_chess/providers/settings_provider.dart';
 import 'package:chinese_chess/services/storage_service.dart';
 import 'package:chinese_chess/theme/app_theme.dart';
+import 'package:chinese_chess/utils/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -40,6 +41,6 @@ void main() {
     await tester.drag(find.byType(ListView), const Offset(0, -700));
     await tester.pumpAndSettle();
     expect(find.text('关于'), findsOneWidget);
-    expect(find.text('v0.1.1'), findsOneWidget);
+    expect(find.text('v${AppConstants.version}'), findsOneWidget);
   });
 }

@@ -2,6 +2,7 @@ import 'package:chinese_chess/pages/home_page.dart';
 import 'package:chinese_chess/providers/settings_provider.dart';
 import 'package:chinese_chess/services/storage_service.dart';
 import 'package:chinese_chess/theme/app_theme.dart';
+import 'package:chinese_chess/utils/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -30,7 +31,7 @@ void main() {
     expect(find.text('双人对弈'), findsOneWidget);
     expect(find.text('AI 难度'), findsOneWidget);
     expect(find.text('执红先行'), findsOneWidget);
-    expect(find.textContaining('v0.1.1'), findsOneWidget);
+    expect(find.textContaining('v${AppConstants.version}'), findsOneWidget);
   });
 
   testWidgets('切换先后手会持久化到设置', (tester) async {

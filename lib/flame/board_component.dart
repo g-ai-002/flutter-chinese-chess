@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../game/engine/board_utils.dart';
 import '../game/game_controller.dart';
+import '../utils/constants.dart';
 
 const Color _boardLight = Color(0xFFF4E3C1);
 const Color _boardDark = Color(0xFFE3C795);
@@ -167,13 +168,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
       fontWeight: FontWeight.w600,
       color: _lineColor.withValues(alpha: 0.62),
       fontFamily: 'KaiTi',
-      fontFamilyFallback: const [
-        'STKaiti',
-        'Microsoft YaHei UI',
-        'SimSun',
-        'Noto Serif CJK SC',
-        'Noto Sans CJK SC',
-      ],
+      fontFamilyFallback: kKaiFontFallback,
       height: 1,
     );
     _drawText(
@@ -450,13 +445,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
           fontWeight: FontWeight.w600,
           color: color.withValues(alpha: opacity),
           fontFamily: 'KaiTi',
-          fontFamilyFallback: const [
-            'STKaiti',
-            'Microsoft YaHei UI',
-            'SimSun',
-            'Noto Serif CJK SC',
-            'Noto Sans CJK SC',
-          ],
+          fontFamilyFallback: kKaiFontFallback,
           height: 1,
         ),
       ),

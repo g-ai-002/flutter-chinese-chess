@@ -10,6 +10,7 @@ import '../game/game_controller.dart';
 import '../models/game_models.dart';
 import '../providers/settings_provider.dart';
 import '../services/log_service.dart';
+import 'widgets/game_dialogs.dart';
 import 'widgets/game_status_bar.dart';
 import 'widgets/move_list.dart';
 
@@ -61,83 +62,22 @@ class _GamePageState extends State<GamePage> {
     if (result != null && !_resultShown) {
       _resultShown = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _showResult(result);
+        if (!mounted) return;
+        showGameResultDialog(
+          context,
+          result: result,
+          moveCount: _controller.history.length,
+          onRestart: () {
+            _resultShown = false;
+            _controller.restart();
+          },
+        );
       });
     }
   }
 
-  Future<void> _showResult(GameResult result) async {
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        final colors = Theme.of(dialogContext).colorScheme;
-        return PopScope(
-          canPop: false,
-          child: AlertDialog(
-            icon: Icon(
-              result.isDraw
-                  ? Icons.handshake_outlined
-                  : Icons.emoji_events_outlined,
-              size: 36,
-              color: colors.primary,
-            ),
-            title: Text(result.title),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(result.reason),
-                const SizedBox(height: 6),
-                Text(
-                  '共 ${_controller.history.length} 手',
-                  style: Theme.of(dialogContext).textTheme.bodySmall,
-                ),
-              ],
-            ),
-            actionsAlignment: MainAxisAlignment.center,
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(dialogContext).pop();
-                  Navigator.of(context).pop();
-                },
-                child: const Text('返回首页'),
-              ),
-              FilledButton(
-                onPressed: () {
-                  Navigator.of(dialogContext).pop();
-                  _resultShown = false;
-                  _controller.restart();
-                },
-                child: const Text('再来一局'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   Future<void> _confirmResign() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('认输'),
-        content: const Text('确认认输并结束本局吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('继续对局'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('认输'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) _controller.resign();
+    if (await confirmResign(context)) _controller.resign();
   }
 
   void _showMoveSheet() {
@@ -159,34 +99,7 @@ class _GamePageState extends State<GamePage> {
     );
   }
 
-  void _showRules() {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('行棋规则'),
-        content: const SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _RuleLine('马走日、相飞田，炮隔一子吃子，车走直线。'),
-              _RuleLine('仕、帅只能在九宫内活动，将帅不可照面。'),
-              _RuleLine('兵、卒过河前只能向前，过河后可左右移动，永不后退。'),
-              _RuleLine('被将军时必须应将；将死或困毙均判负。'),
-              _RuleLine('连续六十回合无吃子判和。'),
-              _RuleLine('点击己方棋子选中，再点目标位置落子。'),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('知道了'),
-          ),
-        ],
-      ),
-    );
-  }
+  void _showRules() => showRulesDialog(context);
 
   @override
   void dispose() {
@@ -443,39 +356,6 @@ class _ActionButton extends StatelessWidget {
             style: theme.textTheme.labelSmall?.copyWith(
               color: enabled ? colors.onSurface : colors.onSurfaceVariant,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RuleLine extends StatelessWidget {
-  const _RuleLine(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Container(
-              width: 4,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
           ),
         ],
       ),

@@ -9,6 +9,8 @@ import '../theme/app_theme.dart';
 import '../utils/constants.dart';
 import 'game_page.dart';
 import 'settings_page.dart';
+import 'widgets/board_preview.dart';
+import 'widgets/choice_pill.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -175,11 +177,7 @@ class _TopBar extends StatelessWidget {
               fontWeight: FontWeight.w700,
               color: colors.primary,
               fontFamily: 'KaiTi',
-              fontFamilyFallback: const [
-                'STKaiti',
-                'SimSun',
-                'Noto Serif CJK SC',
-              ],
+              fontFamilyFallback: kKaiFontFallback,
             ),
           ),
         ),
@@ -231,7 +229,7 @@ class _Hero extends StatelessWidget {
     final colors = theme.colorScheme;
     return Column(
       children: [
-        const _BoardPreview(),
+        const BoardPreview(),
         const SizedBox(height: 20),
         Text(
           '中国象棋',
@@ -406,7 +404,7 @@ class _OptionsPanel extends StatelessWidget {
             runSpacing: 8,
             children: [
               for (final difficulty in Difficulty.values)
-                _Pill(
+                ChoicePill(
                   label: difficulty.label,
                   selected: settings.difficulty == difficulty,
                   accent: colors.primary,
@@ -426,16 +424,16 @@ class _OptionsPanel extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _Pill(
+              ChoicePill(
                 label: '执红先行',
                 selected: settings.humanSide == 0,
                 accent: appRed,
                 onTap: () => settings.setHumanSide(0),
               ),
-              _Pill(
+              ChoicePill(
                 label: '执黑后行',
                 selected: settings.humanSide == 1,
-                accent: const Color(0xFF4A5550),
+                accent: appBlack,
                 onTap: () => settings.setHumanSide(1),
               ),
             ],
@@ -444,227 +442,4 @@ class _OptionsPanel extends StatelessWidget {
       ),
     );
   }
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({
-    required this.label,
-    required this.selected,
-    required this.accent,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final Color accent;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-          decoration: BoxDecoration(
-            color: selected
-                ? accent.withValues(alpha: 0.10)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: selected ? accent.withValues(alpha: 0.55) : colors.outline,
-            ),
-          ),
-          child: Text(
-            label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: selected ? accent : colors.onSurfaceVariant,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 首页装饰：一张缩小的木纹棋盘，黑白双方各立一子。
-class _BoardPreview extends StatelessWidget {
-  const _BoardPreview();
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.16),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: CustomPaint(
-        size: const Size(158, 174),
-        painter: _BoardPreviewPainter(
-          lineColor: appWood,
-          redColor: appRed,
-          blackColor: const Color(0xFF333A36),
-          surfaceColor: colors.surface,
-        ),
-      ),
-    );
-  }
-}
-
-class _BoardPreviewPainter extends CustomPainter {
-  const _BoardPreviewPainter({
-    required this.lineColor,
-    required this.redColor,
-    required this.blackColor,
-    required this.surfaceColor,
-  });
-
-  final Color lineColor;
-  final Color redColor;
-  final Color blackColor;
-  final Color surfaceColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(12));
-    canvas.drawRRect(
-      rrect,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFF6E6C6), Color(0xFFE2C592)],
-        ).createShader(rect),
-    );
-
-    const pad = 16.0;
-    final cell = (size.width - pad * 2) / 8;
-    final top = (size.height - cell * 9) / 2;
-    const left = pad;
-
-    final linePaint = Paint()
-      ..color = lineColor.withValues(alpha: 0.55)
-      ..strokeWidth = 0.9
-      ..style = PaintingStyle.stroke;
-
-    for (var row = 0; row < 10; row++) {
-      final y = top + row * cell;
-      canvas.drawLine(Offset(left, y), Offset(left + cell * 8, y), linePaint);
-    }
-    for (var col = 0; col < 9; col++) {
-      final x = left + col * cell;
-      if (col == 0 || col == 8) {
-        canvas.drawLine(Offset(x, top), Offset(x, top + cell * 9), linePaint);
-      } else {
-        canvas.drawLine(Offset(x, top), Offset(x, top + cell * 4), linePaint);
-        canvas.drawLine(
-          Offset(x, top + cell * 5),
-          Offset(x, top + cell * 9),
-          linePaint,
-        );
-      }
-    }
-
-    for (final row in [0, 7]) {
-      final y0 = top + row * cell;
-      final y1 = y0 + cell * 2;
-      canvas.drawLine(
-        Offset(left + cell * 3, y0),
-        Offset(left + cell * 5, y1),
-        linePaint,
-      );
-      canvas.drawLine(
-        Offset(left + cell * 5, y0),
-        Offset(left + cell * 3, y1),
-        linePaint,
-      );
-    }
-
-    canvas.drawRect(
-      Rect.fromLTWH(left, top, cell * 8, cell * 9),
-      linePaint..strokeWidth = 1.6,
-    );
-
-    _drawPiece(
-      canvas,
-      Offset(left + cell * 4, top + cell * 9),
-      '帅',
-      redColor,
-      cell,
-    );
-    _drawPiece(canvas, Offset(left + cell * 4, top), '将', blackColor, cell);
-  }
-
-  void _drawPiece(
-    Canvas canvas,
-    Offset center,
-    String text,
-    Color color,
-    double cell,
-  ) {
-    final radius = cell * 0.52;
-    canvas.drawCircle(
-      center.translate(0, 1.5),
-      radius,
-      Paint()
-        ..color = Colors.black.withValues(alpha: 0.16)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
-    );
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..shader = RadialGradient(
-          center: const Alignment(-0.35, -0.4),
-          colors: [surfaceColor, const Color(0xFFEBD6AD)],
-        ).createShader(Rect.fromCircle(center: center, radius: radius)),
-    );
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.6
-        ..color = color.withValues(alpha: 0.85),
-    );
-    final painter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(
-          fontSize: cell * 0.72,
-          fontWeight: FontWeight.w700,
-          color: color,
-          fontFamily: 'KaiTi',
-          fontFamilyFallback: const ['STKaiti', 'SimSun', 'Noto Serif CJK SC'],
-          height: 1,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    painter.paint(
-      canvas,
-      center - Offset(painter.width / 2, painter.height / 2),
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _BoardPreviewPainter oldDelegate) =>
-      oldDelegate.lineColor != lineColor ||
-      oldDelegate.redColor != redColor ||
-      oldDelegate.blackColor != blackColor ||
-      oldDelegate.surfaceColor != surfaceColor;
 }
