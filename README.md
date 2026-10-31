@@ -9,7 +9,7 @@
 - 👥 双人同屏对弈，适合面对面手谈
 - 📜 中文棋谱：炮二平五、马8进7，实时记录并可随时查看
 - ↩️ 悔棋、重开、认输，落子后自动切换行棋方
-- ✨ Flame 木纹棋盘、棋子渐变、落子滑动动画、将军呼吸提示
+- ✨ Flame 木纹棋盘、红黑棋面分色、落子滑动动画、将军呼吸提示
 - 🎯 选中高亮、合法落点提示（可在设置中关闭）
 - 📱 响应式布局：手机 / 折叠屏 / 平板 / Windows 窗口自适应
 - 🌓 深色模式、简体中文、Windows 优先使用 Microsoft YaHei UI
@@ -17,13 +17,13 @@
 
 ## 下载
 
-v0.1.2（当前版本）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.1.2)
+v0.1.3（当前版本）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.1.3)
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64) | `flutter-chinese-chess-0.1.2-android-aarch64.apk` |
-| Windows (x64, Win10+) | `flutter-chinese-chess-0.1.2-windows-x86_64.zip` |
-| Web | `flutter-chinese-chess-0.1.2-web.zip`（解压后起静态服务器） |
+| Android (arm64) | `flutter-chinese-chess-0.1.3-android-aarch64.apk` |
+| Windows (x64, Win10+) | `flutter-chinese-chess-0.1.3-windows-x86_64.zip` |
+| Web | `flutter-chinese-chess-0.1.3-web.zip`（解压后起静态服务器） |
 
 ## 开发
 
@@ -60,6 +60,7 @@ lib/
 
 | 版本 | 说明 |
 | --- | --- |
+| v0.1.3 | 棋子按阵营分色，红方暖象牙、黑方冷灰绿，提升辨识度 |
 | v0.1.2 | 重构引擎与界面重复实现，收敛规则判定、棋子排序与共用组件 |
 | v0.1.1 | AI 增加静态搜索，消除地平线效应导致的亏子交换 |
 | v0.1.0 | 首个版本：完整规则、三档 AI、双人对弈、中文棋谱与三端发布 |
