@@ -1,0 +1,291 @@
+name: 🀄 构建与发布
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+run-name: 🀄 构建 ${{ github.ref_name }}
+
+concurrency:
+  group: build-${{ github.sha }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: '21'
+  FLUTTER_VERSION: '3.47.8'
+  APP_NAME: ${{ github.event.repository.name }}
+
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    name: 📋 准备包元数据
+    outputs:
+      app_version: ${{ steps.version.outputs.jversion }}
+      project_name: ${{ steps.project.outputs.project_name }}
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v6
+
+      - name: 🔢 解析包版本号
+        id: version
+        shell: bash
+        run: |
+          jversion=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            version=$(echo "${{ github.ref_name }}" | sed -E 's/^[vV]//')
+            parsed=$(echo "$version" | sed -E 's/^([0-9]+\.[0-9]+(\.[0-9]+)?).*/\1/')
+            if [ -n "$parsed" ]; then jversion="$parsed"; fi
+          fi
+          echo "jversion=$jversion" >> $GITHUB_OUTPUT
+          echo "📌 使用的版本号: $jversion"
+
+      - name: 🏷️ 解析 Flutter 项目名
+        id: project
+        shell: bash
+        run: |
+          projectName=$(grep '^name:' pubspec.yaml | awk '{print $2}' | tr '-' '_')
+          echo "project_name=$projectName" >> $GITHUB_OUTPUT
+
+  test:
+    needs: [ metadata ]
+    runs-on: ubuntu-latest
+    name: 🧪 静态分析与测试
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v6
+
+      - name: 🦋 配置 Flutter 环境
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 安装依赖
+        run: flutter pub get
+
+      - name: 🔍 静态分析
+        run: flutter analyze
+
+      - name: ✅ 运行测试
+        run: flutter test --concurrency=2
+
+  build-android:
+    needs: [ metadata, test ]
+    runs-on: ubuntu-latest
+    name: 🤖 构建 Android APK
+    permissions:
+      contents: read
+    timeout-minutes: 30
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v6
+
+      - name: ☕ 配置 JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+
+      - name: 🦋 配置 Flutter 环境
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 安装依赖
+        run: flutter pub get
+
+      - name: 🔨 构建 Android APK
+        run: flutter build apk --release --target-platform android-arm64
+
+      - name: 📝 重命名 Android APK
+        run: |
+          mv build/app/outputs/flutter-apk/app-release.apk ./${{ env.APP_NAME }}-${{ needs.metadata.outputs.app_version }}-android-aarch64.apk
+
+      - name: ⬆️ 上传 Android 产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-${{ needs.metadata.outputs.app_version }}-android-aarch64.apk
+          path: ${{ env.APP_NAME }}-${{ needs.metadata.outputs.app_version }}-android-aarch64.apk
+          retention-days: 1
+
+  build-windows:
+    needs: [ metadata, test ]
+    runs-on: windows-latest
+    name: 🪟 构建 Windows EXE
+    permissions:
+      contents: read
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: C:\w
+        shell: bash
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v6
+
+      - name: 📂 复制工程到短路径
+        shell: bash
+        working-directory: C:/
+        run: |
+          set -euo pipefail
+          src=$(cygpath -u "$GITHUB_WORKSPACE")
+          rm -rf /c/w
+          mkdir -p /c/w
+          cp -a "$src"/. /c/w/
+          echo "✅ 工程已复制: $src -> C:\\w"
+
+      - name: ☕ 配置 JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+
+      - name: 🦋 配置 Flutter 环境
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 安装依赖
+        run: flutter pub get
+
+      - name: 🏗️ 生成 Windows 平台文件
+        run: flutter create --platforms=windows --project-name ${{ needs.metadata.outputs.project_name }} .
+
+      - name: 🩹 CMakeLists 启用 CMP0091 策略
+        shell: bash
+        run: |
+          sed -i -E 's|^(cmake_minimum_required\(VERSION [0-9.]+\))$|\1\ncmake_policy(SET CMP0091 NEW)|' windows/CMakeLists.txt
+          grep -n 'CMP0091' windows/CMakeLists.txt
+
+      - name: 🔨 构建 Windows
+        env:
+          CMAKE_BUILD_PARALLEL_LEVEL: 2
+        run: flutter build windows --release
+
+      - name: 🗜️ 打包 Windows ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath windows.zip -Force
+
+      - name: 📝 重命名 Windows ZIP
+        shell: bash
+        run: |
+          mv -f windows.zip "./${{ env.APP_NAME }}-${{ needs.metadata.outputs.app_version }}-windows-x86_64.zip"
+
+      - name: ⬆️ 上传 Windows 产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-${{ needs.metadata.outputs.app_version }}-windows-x86_64.zip
+          path: C:/w/${{ env.APP_NAME }}-${{ needs.metadata.outputs.app_version }}-windows-x86_64.zip
+          retention-days: 1
+
+  build-web:
+    needs: [ metadata, test ]
+    runs-on: ubuntu-latest
+    name: 🌐 构建 Web 产物
+    permissions:
+      contents: read
+    timeout-minutes: 30
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v6
+
+      - name: 🦋 配置 Flutter 环境
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 安装依赖
+        run: flutter pub get
+
+      - name: 🌐 生成并汉化 Web 平台文件
+        run: |
+          set -euo pipefail
+          flutter create --platforms=web --project-name ${{ needs.metadata.outputs.project_name }} .
+
+          app_desc=$(grep '^description:' pubspec.yaml | sed -E 's/^description:[[:space:]]*//')
+          app_title=$(echo "$app_desc" | sed -E 's/[[:space:]]*-.*$//')
+
+          sed -i "s|<title>.*</title>|<title>${app_title}</title>|" web/index.html
+          sed -i "s|<meta name=\"description\" content=\"[^\"]*\">|<meta name=\"description\" content=\"${app_desc}\">|" web/index.html
+          sed -i "s|<meta name=\"apple-mobile-web-app-title\" content=\"[^\"]*\">|<meta name=\"apple-mobile-web-app-title\" content=\"${app_title}\">|" web/index.html
+          sed -i "s|<meta name=\"theme-color\" content=\"[^\"]*\">|<meta name=\"theme-color\" content=\"#A63A2B\">|" web/index.html
+
+          jq --arg name "$app_title" --arg desc "$app_desc" \
+            '.name = $name | .short_name = $name | .description = $desc | .theme_color = "#A63A2B" | .background_color = "#F7F1E4"' \
+            web/manifest.json > web/manifest.json.tmp
+          mv web/manifest.json.tmp web/manifest.json
+
+      - name: 🔨 构建 Web 产物
+        run: flutter build web --release
+
+      - name: 🗜️ 打包 Web 产物
+        run: |
+          zip_name="${{ env.APP_NAME }}-${{ needs.metadata.outputs.app_version }}-web.zip"
+          rm -f "$zip_name"
+          ( cd build/web && zip -qr "$GITHUB_WORKSPACE/$zip_name" . )
+
+      - name: ⬆️ 上传 Web 产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-${{ needs.metadata.outputs.app_version }}-web.zip
+          path: ${{ env.APP_NAME }}-${{ needs.metadata.outputs.app_version }}-web.zip
+          retention-days: 1
+
+  release:
+    needs: [ metadata, build-android, build-windows, build-web ]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    name: 🚀 发布 GitHub Release
+    permissions:
+      contents: write
+    steps:
+      - name: 📥 检出代码（用于生成更新日志）
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: ⬇️ 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: 📝 生成发布说明
+        id: notes
+        run: |
+          current_tag=${GITHUB_REF#refs/tags/}
+          prev_tag=$(git tag --sort=-version:refname | grep -v "^$current_tag$" | head -1)
+          if [[ -n "$prev_tag" ]]; then
+            body_content=$(git log --pretty=format:"* %s (%h)" "$prev_tag".."$current_tag" -- . ":(exclude)docs" ":(exclude).github" ":(exclude).gitea")
+          else
+            body_content="首个版本。"
+          fi
+          {
+            echo "body<<EOF"
+            echo "$body_content"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: 🚀 发布 GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: artifacts/*
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body: ${{ steps.notes.outputs.body }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
