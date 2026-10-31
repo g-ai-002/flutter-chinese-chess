@@ -176,8 +176,19 @@ class XiangqiRules {
 
   /// 将帅照面（同列且中间无子）。
   static bool kingsFacing(Uint8List cells) {
-    final redKing = findKing(cells, red);
-    final blackKing = findKing(cells, black);
+    final redPiece = pieceOf(red, typeKing);
+    final blackPiece = pieceOf(black, typeKing);
+    int? redKing;
+    int? blackKing;
+    for (var index = 0; index < cellCount; index++) {
+      final piece = cells[index];
+      if (piece == redPiece) {
+        redKing = index;
+      } else if (piece == blackPiece) {
+        blackKing = index;
+      }
+      if (redKing != null && blackKing != null) break;
+    }
     if (redKing == null || blackKing == null) return false;
     if (colOf(redKing) != colOf(blackKing)) return false;
     final col = colOf(redKing);
@@ -251,13 +262,19 @@ class XiangqiRules {
     return false;
   }
 
+  /// 走子后的局面是否对 [side] 安全：不将帅照面，也不被将军。
+  ///
+  /// 搜索在落子后、恢复棋盘前调用它，避免重复实现同一套判定。
+  static bool isPositionSafe(Uint8List cells, int side) =>
+      !kingsFacing(cells) && !isKingInCheck(cells, side);
+
   /// 试走一步并判断是否合法（不送将、不对脸），结束后恢复棋盘。
   static bool isLegalMove(Uint8List cells, int side, int from, int to) {
     final piece = cells[from];
     final captured = cells[to];
     cells[to] = piece;
     cells[from] = 0;
-    final legal = !kingsFacing(cells) && !isKingInCheck(cells, side);
+    final legal = isPositionSafe(cells, side);
     cells[from] = piece;
     cells[to] = captured;
     return legal;

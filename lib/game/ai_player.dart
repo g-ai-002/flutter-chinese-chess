@@ -3,20 +3,8 @@ import 'package:flutter/foundation.dart';
 import '../models/game_models.dart';
 import 'engine/search.dart';
 
-/// 一次 AI 搜索的结果，供控制器记录日志。
-class AiReply {
-  const AiReply({
-    required this.move,
-    required this.score,
-    required this.nodes,
-    required this.depth,
-  });
-
-  final int move;
-  final int score;
-  final int nodes;
-  final int depth;
-}
+/// AI 搜索回包直接复用引擎结果，避免两套同构类型。
+typedef AiReply = SearchResult;
 
 typedef AiMoveProvider = Future<AiReply> Function(
   Uint8List cells,
@@ -32,7 +20,7 @@ class AiPlayer {
     Uint8List cells,
     int side,
     Difficulty difficulty,
-  ) async {
+  ) {
     final request = _AiRequest(
       Uint8List.fromList(cells),
       side,
@@ -58,20 +46,12 @@ class _AiRequest {
   final int randomness;
 }
 
-AiReply _runSearch(_AiRequest request) {
-  final result = XiangqiSearch.bestMove(
-    cells: request.cells,
-    side: request.side,
-    depth: request.depth,
-    randomness: request.randomness,
-  );
-  return AiReply(
-    move: result.move,
-    score: result.score,
-    nodes: result.nodes,
-    depth: result.depth,
-  );
-}
+SearchResult _runSearch(_AiRequest request) => XiangqiSearch.bestMove(
+  cells: request.cells,
+  side: request.side,
+  depth: request.depth,
+  randomness: request.randomness,
+);
 
 /// 供界面显示 AI 搜索深度。
 int effectiveDepthFor(Difficulty difficulty) =>

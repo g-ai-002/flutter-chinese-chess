@@ -51,13 +51,7 @@ class MoveNotation {
     }
     if (rows.length != 2) return null;
     final isFront = side == red ? fromRow == rows.first : fromRow == rows.last;
-    return '${isFront ? '前' : '后'}${_typeName(side, type)}';
-  }
-
-  static String _typeName(int side, int type) {
-    const redNames = ['', '帅', '仕', '相', '马', '车', '炮', '兵'];
-    const blackNames = ['', '将', '士', '象', '马', '车', '炮', '卒'];
-    return side == red ? redNames[type] : blackNames[type];
+    return '${isFront ? '前' : '后'}${pieceName(pieceOf(side, type))}';
   }
 
   /// 红方从右向左数（一至九），黑方从左向右数（1 至 9）。

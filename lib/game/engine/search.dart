@@ -55,12 +55,7 @@ class XiangqiSearch {
     var bestScore = -_infinity;
 
     for (final move in moves) {
-      final from = moveFrom(move);
-      final to = moveTo(move);
-      final piece = board[from];
-      final captured = board[to];
-      board[to] = piece;
-      board[from] = 0;
+      final captured = _applyMove(board, move);
       final int score;
       if (randomness > 0) {
         score = -_negamax(
@@ -83,8 +78,7 @@ class XiangqiSearch {
           context,
         );
       }
-      board[from] = piece;
-      board[to] = captured;
+      _restoreMove(board, move, captured);
       if (context.aborted) break;
 
       scores[move] = score;
@@ -145,16 +139,9 @@ class XiangqiSearch {
     var legalCount = 0;
     final enemy = opponentOf(side);
     for (final move in moves) {
-      final from = moveFrom(move);
-      final to = moveTo(move);
-      final piece = cells[from];
-      final captured = cells[to];
-      cells[to] = piece;
-      cells[from] = 0;
-      if (XiangqiRules.kingsFacing(cells) ||
-          XiangqiRules.isKingInCheck(cells, side)) {
-        cells[from] = piece;
-        cells[to] = captured;
+      final captured = _applyMove(cells, move);
+      if (!XiangqiRules.isPositionSafe(cells, side)) {
+        _restoreMove(cells, move, captured);
         continue;
       }
       legalCount++;
@@ -167,8 +154,7 @@ class XiangqiSearch {
         ply + 1,
         context,
       );
-      cells[from] = piece;
-      cells[to] = captured;
+      _restoreMove(cells, move, captured);
       if (context.aborted) return best == -_infinity ? score : best;
       if (score > best) best = score;
       if (score > alpha) alpha = score;
@@ -222,16 +208,9 @@ class XiangqiSearch {
     final enemy = opponentOf(side);
     var best = -_infinity;
     for (final move in candidates) {
-      final from = moveFrom(move);
-      final to = moveTo(move);
-      final piece = cells[from];
-      final captured = cells[to];
-      cells[to] = piece;
-      cells[from] = 0;
-      if (XiangqiRules.kingsFacing(cells) ||
-          XiangqiRules.isKingInCheck(cells, side)) {
-        cells[from] = piece;
-        cells[to] = captured;
+      final captured = _applyMove(cells, move);
+      if (!XiangqiRules.isPositionSafe(cells, side)) {
+        _restoreMove(cells, move, captured);
         continue;
       }
       final score = -_quiescence(
@@ -243,8 +222,7 @@ class XiangqiSearch {
         context,
         qdepth + 1,
       );
-      cells[from] = piece;
-      cells[to] = captured;
+      _restoreMove(cells, move, captured);
       if (context.aborted) return inCheck && best > -_infinity ? best : alpha;
       if (score > best) best = score;
       if (score > alpha) alpha = score;
@@ -254,9 +232,36 @@ class XiangqiSearch {
     return inCheck ? best : alpha;
   }
 
+  /// 搜索中落子，返回被吃的棋子，供 [_restoreMove] 还原。
+  static int _applyMove(Uint8List cells, int move) {
+    final from = moveFrom(move);
+    final to = moveTo(move);
+    final captured = cells[to];
+    cells[to] = cells[from];
+    cells[from] = 0;
+    return captured;
+  }
+
+  static void _restoreMove(Uint8List cells, int move, int captured) {
+    final from = moveFrom(move);
+    final to = moveTo(move);
+    cells[from] = cells[to];
+    cells[to] = captured;
+  }
+
   /// 吃子优先排序：被吃子价值越高、己方棋子价值越低，越先搜索。
+  /// 全为静默着法时保留生成顺序，避免无意义的排序开销。
   static void _orderMoves(Uint8List cells, List<int> moves) {
-    moves.sort((a, b) => _movePriority(cells, b) - _movePriority(cells, a));
+    if (moves.length < 2) return;
+    final priorities = <int, int>{};
+    var hasCapture = false;
+    for (final move in moves) {
+      final priority = _movePriority(cells, move);
+      priorities[move] = priority;
+      if (priority > 0) hasCapture = true;
+    }
+    if (!hasCapture) return;
+    moves.sort((a, b) => priorities[b]! - priorities[a]!);
   }
 
   static int _movePriority(Uint8List cells, int move) {

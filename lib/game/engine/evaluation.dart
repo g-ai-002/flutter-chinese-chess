@@ -23,6 +23,7 @@ class XiangqiEvaluation {
       final type = typeOf(piece);
       final row = rowOf(index);
       final col = colOf(index);
+      final centrality = 4 - (col - 4).abs();
       var value = pieceValues[type];
 
       switch (type) {
@@ -31,16 +32,16 @@ class XiangqiEvaluation {
             value += 90;
             final advancement = side == red ? 4 - row : row - 5;
             value += advancement * 12;
-            value += (4 - (col - 4).abs()) * 4;
+            value += centrality * 4;
           }
         case typeHorse:
-          value += (4 - (col - 4).abs()) * 8;
+          value += centrality * 8;
           value += side == red ? (6 - row) * 4 : (row - 3) * 4;
         case typeCannon:
-          value += (4 - (col - 4).abs()) * 6;
+          value += centrality * 6;
           if (hasCrossedRiver(side, row)) value += 12;
         case typeRook:
-          value += (4 - (col - 4).abs()) * 4;
+          value += centrality * 4;
           value += side == red ? (8 - row) * 3 : (row - 1) * 3;
         case typeAdvisor:
           if (side == red) {

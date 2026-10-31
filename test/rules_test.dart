@@ -215,4 +215,24 @@ void main() {
       expect(XiangqiRules.isKingInCheck(cells, black), isTrue);
     });
   });
+
+  group('局面安全判定', () {
+    test('未被将军且不对脸时安全', () {
+      final cells = initialCells();
+      expect(XiangqiRules.isPositionSafe(cells, red), isTrue);
+      expect(XiangqiRules.isPositionSafe(cells, black), isTrue);
+    });
+
+    test('将帅对脸时双方都不安全', () {
+      final cells = boardWith([('K', 9, 4), ('k', 0, 4)]);
+      expect(XiangqiRules.isPositionSafe(cells, red), isFalse);
+      expect(XiangqiRules.isPositionSafe(cells, black), isFalse);
+    });
+
+    test('被将军的一方不安全，另一方不受影响', () {
+      final cells = boardWith([('K', 9, 4), ('k', 0, 3), ('r', 0, 4)]);
+      expect(XiangqiRules.isPositionSafe(cells, red), isFalse);
+      expect(XiangqiRules.isPositionSafe(cells, black), isTrue);
+    });
+  });
 }
