@@ -7,15 +7,13 @@ import 'package:flutter/services.dart';
 
 import '../game/engine/board_utils.dart';
 import '../game/game_controller.dart';
+import '../theme/app_theme.dart';
 import '../utils/constants.dart';
 
 const Color _boardLight = Color(0xFFF4E3C1);
 const Color _boardDark = Color(0xFFE3C795);
 const Color _lineColor = Color(0xFF8A6337);
 const Color _redInk = Color(0xFF9E2F23);
-const Color _blackInk = Color(0xFF2F3A38);
-const Color _faceLight = Color(0xFFFFFAEC);
-const Color _faceDark = Color(0xFFECD7B0);
 
 const double _moveDurationSeconds = 0.17;
 
@@ -381,7 +379,8 @@ class BoardComponent extends PositionComponent with TapCallbacks {
     double opacity = 1,
   }) {
     final side = sideOf(piece);
-    final ink = side == red ? _redInk : _blackInk;
+    final face = pieceFaceOf(side);
+    final ink = face.ink;
     final radius = cell * 0.43 * scale;
     final rect = Rect.fromCircle(center: center, radius: radius);
 
@@ -400,10 +399,15 @@ class BoardComponent extends PositionComponent with TapCallbacks {
           center: const Alignment(-0.35, -0.4),
           radius: 0.95,
           colors: [
-            _faceLight.withValues(alpha: opacity),
-            _faceDark.withValues(alpha: opacity),
+            face.light.withValues(alpha: opacity),
+            face.dark.withValues(alpha: opacity),
           ],
         ).createShader(rect),
+    );
+    canvas.drawCircle(
+      center,
+      radius * 0.82,
+      Paint()..color = face.dark.withValues(alpha: 0.35 * opacity),
     );
     canvas.drawCircle(
       center,

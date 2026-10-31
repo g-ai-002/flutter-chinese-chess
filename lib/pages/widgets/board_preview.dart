@@ -10,7 +10,6 @@ class BoardPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
@@ -26,9 +25,8 @@ class BoardPreview extends StatelessWidget {
         size: const Size(158, 174),
         painter: _BoardPreviewPainter(
           lineColor: appWood,
-          redColor: appRed,
-          blackColor: appBlack,
-          surfaceColor: colors.surface,
+          redFace: pieceFaceOf(red),
+          blackFace: pieceFaceOf(black),
         ),
       ),
     );
@@ -38,15 +36,13 @@ class BoardPreview extends StatelessWidget {
 class _BoardPreviewPainter extends CustomPainter {
   const _BoardPreviewPainter({
     required this.lineColor,
-    required this.redColor,
-    required this.blackColor,
-    required this.surfaceColor,
+    required this.redFace,
+    required this.blackFace,
   });
 
   final Color lineColor;
-  final Color redColor;
-  final Color blackColor;
-  final Color surfaceColor;
+  final PieceFace redFace;
+  final PieceFace blackFace;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -114,17 +110,17 @@ class _BoardPreviewPainter extends CustomPainter {
       canvas,
       Offset(left + cell * 4, top + cell * 9),
       '帅',
-      redColor,
+      redFace,
       cell,
     );
-    _drawPiece(canvas, Offset(left + cell * 4, top), '将', blackColor, cell);
+    _drawPiece(canvas, Offset(left + cell * 4, top), '将', blackFace, cell);
   }
 
   void _drawPiece(
     Canvas canvas,
     Offset center,
     String text,
-    Color color,
+    PieceFace face,
     double cell,
   ) {
     final radius = cell * 0.52;
@@ -141,8 +137,13 @@ class _BoardPreviewPainter extends CustomPainter {
       Paint()
         ..shader = RadialGradient(
           center: const Alignment(-0.35, -0.4),
-          colors: [surfaceColor, const Color(0xFFEBD6AD)],
+          colors: [face.light, face.dark],
         ).createShader(Rect.fromCircle(center: center, radius: radius)),
+    );
+    canvas.drawCircle(
+      center,
+      radius * 0.8,
+      Paint()..color = face.dark.withValues(alpha: 0.35),
     );
     canvas.drawCircle(
       center,
@@ -150,7 +151,7 @@ class _BoardPreviewPainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.6
-        ..color = color.withValues(alpha: 0.85),
+        ..color = face.ink.withValues(alpha: 0.85),
     );
     final painter = TextPainter(
       text: TextSpan(
@@ -158,7 +159,7 @@ class _BoardPreviewPainter extends CustomPainter {
         style: TextStyle(
           fontSize: cell * 0.72,
           fontWeight: FontWeight.w700,
-          color: color,
+          color: face.ink,
           fontFamily: 'KaiTi',
           fontFamilyFallback: kKaiFontFallback,
           height: 1,
@@ -175,7 +176,6 @@ class _BoardPreviewPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _BoardPreviewPainter oldDelegate) =>
       oldDelegate.lineColor != lineColor ||
-      oldDelegate.redColor != redColor ||
-      oldDelegate.blackColor != blackColor ||
-      oldDelegate.surfaceColor != surfaceColor;
+      oldDelegate.redFace != redFace ||
+      oldDelegate.blackFace != blackFace;
 }
