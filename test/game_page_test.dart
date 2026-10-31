@@ -76,4 +76,45 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets('点击棋盘可以完成一次落子并记入棋谱', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final storage = await StorageService.instance;
+    final settings = SettingsProvider(storage);
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: settings,
+        child: MaterialApp(
+          theme: buildLightTheme(),
+          home: const GamePage(
+            mode: GameMode.twoPlayers,
+            difficulty: Difficulty.entry,
+            humanSide: 0,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    final board = find.byKey(const ValueKey('xiangqi-board'));
+    expect(board, findsOneWidget);
+    final rect = tester.getRect(board);
+    final cell = rect.width / 9;
+    Offset center(int row, int col) =>
+        rect.topLeft + Offset((col + 0.5) * cell, (row + 0.5) * cell);
+
+    await tester.tapAt(center(6, 0));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tapAt(center(5, 0));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('兵九进一'), findsOneWidget);
+    expect(find.text('黑方行棋'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 }

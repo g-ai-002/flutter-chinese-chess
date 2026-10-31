@@ -316,7 +316,10 @@ class _GamePageState extends State<GamePage> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(18),
-              child: GameWidget<XiangqiGame>(game: _game),
+              child: GameWidget<XiangqiGame>(
+                key: const ValueKey('xiangqi-board'),
+                game: _game,
+              ),
             ),
           ),
         );
