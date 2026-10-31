@@ -133,7 +133,9 @@ class XiangqiSearch {
       context.aborted = true;
       return XiangqiEvaluation.evaluateForSide(cells, side);
     }
-    if (depth <= 0) return XiangqiEvaluation.evaluateForSide(cells, side);
+    if (depth <= 0) {
+      return _quiescence(cells, side, alpha, beta, ply, context, 0);
+    }
 
     final moves = XiangqiRules.pseudoMoves(cells, side);
     if (moves.isEmpty) return -_mateScore + ply;
@@ -174,6 +176,82 @@ class XiangqiSearch {
     }
     if (legalCount == 0) return -_mateScore + ply;
     return best;
+  }
+
+  /// 静态搜索：只展开吃子，消除固定深度搜索的"地平线效应"。
+  /// 被将军时不能停招，需展开所有应将着法。
+  static int _quiescence(
+    Uint8List cells,
+    int side,
+    int alpha,
+    int beta,
+    int ply,
+    _SearchContext context,
+    int qdepth,
+  ) {
+    context.nodes++;
+    if (context.nodes >= context.maxNodes) {
+      context.aborted = true;
+      return XiangqiEvaluation.evaluateForSide(cells, side);
+    }
+    if ((context.nodes & 1023) == 0 && context.expired) {
+      context.aborted = true;
+      return XiangqiEvaluation.evaluateForSide(cells, side);
+    }
+
+    final inCheck = XiangqiRules.isKingInCheck(cells, side);
+    if (qdepth >= 8) {
+      return XiangqiEvaluation.evaluateForSide(cells, side);
+    }
+    if (!inCheck) {
+      final standPat = XiangqiEvaluation.evaluateForSide(cells, side);
+      if (standPat >= beta) return beta;
+      if (standPat > alpha) alpha = standPat;
+      if (qdepth >= 4) return alpha;
+    }
+
+    final candidates = <int>[];
+    for (final move in XiangqiRules.pseudoMoves(cells, side)) {
+      if (inCheck || cells[moveTo(move)] != 0) candidates.add(move);
+    }
+    if (candidates.isEmpty) {
+      return inCheck ? -_mateScore + ply : alpha;
+    }
+    _orderMoves(cells, candidates);
+
+    final enemy = opponentOf(side);
+    var best = -_infinity;
+    for (final move in candidates) {
+      final from = moveFrom(move);
+      final to = moveTo(move);
+      final piece = cells[from];
+      final captured = cells[to];
+      cells[to] = piece;
+      cells[from] = 0;
+      if (XiangqiRules.kingsFacing(cells) ||
+          XiangqiRules.isKingInCheck(cells, side)) {
+        cells[from] = piece;
+        cells[to] = captured;
+        continue;
+      }
+      final score = -_quiescence(
+        cells,
+        enemy,
+        -beta,
+        -alpha,
+        ply + 1,
+        context,
+        qdepth + 1,
+      );
+      cells[from] = piece;
+      cells[to] = captured;
+      if (context.aborted) return inCheck && best > -_infinity ? best : alpha;
+      if (score > best) best = score;
+      if (score > alpha) alpha = score;
+      if (alpha >= beta) break;
+    }
+    if (inCheck && best == -_infinity) return -_mateScore + ply;
+    return inCheck ? best : alpha;
   }
 
   /// 吃子优先排序：被吃子价值越高、己方棋子价值越低，越先搜索。

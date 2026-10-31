@@ -44,6 +44,18 @@ void main() {
       expect(result.move, encodeMove(indexOf(5, 0), indexOf(5, 4)));
     });
 
+    test('静态搜索能看穿有保护的兵，不用车换兵', () {
+      final cells = boardWith([
+        ('k', 0, 4),
+        ('r', 4, 4),
+        ('p', 5, 4),
+        ('R', 5, 1),
+        ('K', 9, 3),
+      ]);
+      final result = XiangqiSearch.bestMove(cells: cells, side: red, depth: 1);
+      expect(result.move, isNot(encodeMove(indexOf(5, 1), indexOf(5, 4))));
+    });
+
     test('无棋可走时返回 -1', () {
       final cells = boardWith([
         ('k', 0, 4),
