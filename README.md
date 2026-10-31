@@ -5,7 +5,7 @@
 ## 功能
 
 - 🧠 完整规则：马腿、象眼、炮架、九宫、过河兵、将帅照面、将军/绝杀/困毙
-- 🤖 人机对战：入门 / 普通 / 高手三档，本地 Alpha-Beta 搜索，可选执红或执黑
+- 🤖 人机对战：入门 / 普通 / 高手三档，本地 Alpha-Beta + 静态搜索，可选执红或执黑
 - 👥 双人同屏对弈，适合面对面手谈
 - 📜 中文棋谱：炮二平五、马8进7，实时记录并可随时查看
 - ↩️ 悔棋、重开、认输，落子后自动切换行棋方
@@ -17,13 +17,13 @@
 
 ## 下载
 
-v0.1.0（当前版本）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.1.0)
+v0.1.1（当前版本）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.1.1)
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64) | `flutter-chinese-chess-0.1.0-android-aarch64.apk` |
-| Windows (x64, Win10+) | `flutter-chinese-chess-0.1.0-windows-x86_64.zip` |
-| Web | `flutter-chinese-chess-0.1.0-web.zip`（解压后起静态服务器） |
+| Android (arm64) | `flutter-chinese-chess-0.1.1-android-aarch64.apk` |
+| Windows (x64, Win10+) | `flutter-chinese-chess-0.1.1-windows-x86_64.zip` |
+| Web | `flutter-chinese-chess-0.1.1-web.zip`（解压后起静态服务器） |
 
 ## 开发
 
@@ -60,4 +60,5 @@ lib/
 
 | 版本 | 说明 |
 | --- | --- |
+| v0.1.1 | AI 增加静态搜索，消除地平线效应导致的亏子交换 |
 | v0.1.0 | 首个版本：完整规则、三档 AI、双人对弈、中文棋谱与三端发布 |

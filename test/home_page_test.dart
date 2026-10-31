@@ -30,7 +30,7 @@ void main() {
     expect(find.text('双人对弈'), findsOneWidget);
     expect(find.text('AI 难度'), findsOneWidget);
     expect(find.text('执红先行'), findsOneWidget);
-    expect(find.textContaining('v0.1.0'), findsOneWidget);
+    expect(find.textContaining('v0.1.1'), findsOneWidget);
   });
 
   testWidgets('切换先后手会持久化到设置', (tester) async {
