@@ -17,13 +17,13 @@
 
 ## 下载
 
-v0.1.1（当前版本）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.1.1)
+v0.1.2（当前版本）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.1.2)
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64) | `flutter-chinese-chess-0.1.1-android-aarch64.apk` |
-| Windows (x64, Win10+) | `flutter-chinese-chess-0.1.1-windows-x86_64.zip` |
-| Web | `flutter-chinese-chess-0.1.1-web.zip`（解压后起静态服务器） |
+| Android (arm64) | `flutter-chinese-chess-0.1.2-android-aarch64.apk` |
+| Windows (x64, Win10+) | `flutter-chinese-chess-0.1.2-windows-x86_64.zip` |
+| Web | `flutter-chinese-chess-0.1.2-web.zip`（解压后起静态服务器） |
 
 ## 开发
 
@@ -60,5 +60,6 @@ lib/
 
 | 版本 | 说明 |
 | --- | --- |
+| v0.1.2 | 重构引擎与界面重复实现，收敛规则判定、棋子排序与共用组件 |
 | v0.1.1 | AI 增加静态搜索，消除地平线效应导致的亏子交换 |
 | v0.1.0 | 首个版本：完整规则、三档 AI、双人对弈、中文棋谱与三端发布 |
