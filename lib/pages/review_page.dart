@@ -3,15 +3,16 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../flame/xiangqi_game.dart';
 import '../game/engine/board_utils.dart';
 import '../game/game_archive.dart';
 import '../game/replay_controller.dart';
 import '../models/move_record.dart';
+import '../providers/settings_provider.dart';
 import '../services/file_system_service.dart';
 import '../services/log_service.dart';
-import '../theme/board_skin.dart';
 import '../utils/formatters.dart';
 import '../utils/platform_info.dart';
 import 'widgets/board_stage.dart';
@@ -27,7 +28,6 @@ class ReviewPage extends StatefulWidget {
     required this.layout,
     this.startSide = red,
     this.result,
-    this.skin = woodSkin,
   });
 
   final String title;
@@ -35,7 +35,6 @@ class ReviewPage extends StatefulWidget {
   final List<String> layout;
   final int startSide;
   final String? result;
-  final BoardSkin skin;
 
   @override
   State<ReviewPage> createState() => _ReviewPageState();
@@ -54,8 +53,14 @@ class _ReviewPageState extends State<ReviewPage> {
       layout: widget.layout,
       startSide: widget.startSide,
     );
-    _game = XiangqiGame(view: _replay, skin: widget.skin);
+    _game = XiangqiGame(view: _replay);
     LogService.info('进入复盘: ${widget.title}, 共 ${_replay.total} 手');
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _game.skin = Provider.of<SettingsProvider>(context).boardSkin;
   }
 
   @override

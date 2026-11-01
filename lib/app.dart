@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 
 import 'pages/home_page.dart';
 import 'providers/settings_provider.dart';
-import 'services/sound_service.dart';
 import 'services/storage_service.dart';
 import 'theme/app_theme.dart';
 import 'utils/constants.dart';
@@ -25,10 +24,6 @@ class XiangqiApp extends StatelessWidget {
       create: (_) => SettingsProvider(storage),
       child: Consumer<SettingsProvider>(
         builder: (context, settings, _) {
-          SoundService.configure(
-            sound: settings.soundEnabled,
-            haptics: settings.hapticsEnabled,
-          );
           return MaterialApp(
             title: AppConstants.appName,
             debugShowCheckedModeBanner: false,

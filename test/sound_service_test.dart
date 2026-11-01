@@ -59,6 +59,33 @@ void main() {
     );
   });
 
+  test('选中棋子只触发轻触感，不播放提示音', () async {
+    SoundService.tap();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(methods(), ['HapticFeedback.vibrate']);
+    expect(calls.single.arguments, 'HapticFeedbackType.selectionClick');
+  });
+
+  test('关闭震动后选中棋子不再触发触感', () async {
+    SoundService.configure(sound: true, haptics: false);
+    SoundService.tap();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(calls, isEmpty);
+  });
+
+  test('音效与震动开关会同步到反馈服务', () async {
+    final settings = SettingsProvider(await StorageService.instance);
+    expect(SoundService.soundEnabled, isTrue);
+    expect(SoundService.hapticsEnabled, isTrue);
+
+    await settings.setSoundEnabled(false);
+    await settings.setHapticsEnabled(false);
+    expect(SoundService.soundEnabled, isFalse);
+    expect(SoundService.hapticsEnabled, isFalse);
+  });
+
   test('关闭音效与震动后不再触发系统调用', () async {
     SoundService.configure(sound: false, haptics: false);
     SoundService.play(MoveFeedback.end);
@@ -103,8 +130,9 @@ void main() {
     await tester.tapAt(center(5, 0));
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(methods(), contains('SystemSound.play'));
-    expect(methods(), contains('HapticFeedback.vibrate'));
+    expect(methods().where((m) => m == 'SystemSound.play'), hasLength(1));
+    // 选子一次轻触感 + 落子一次反馈，棋盘不再为落子重复触发触感。
+    expect(methods().where((m) => m == 'HapticFeedback.vibrate'), hasLength(2));
 
     await tester.pumpWidget(const SizedBox.shrink());
   });

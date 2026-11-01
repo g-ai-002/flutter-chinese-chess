@@ -17,6 +17,11 @@ class SoundService {
     hapticsEnabled = haptics;
   }
 
+  /// 选中棋子的轻触感：只走触感，不播放提示音。
+  static void tap() {
+    if (hapticsEnabled) HapticFeedback.selectionClick();
+  }
+
   static void play(MoveFeedback feedback) {
     if (soundEnabled) {
       SystemSound.play(

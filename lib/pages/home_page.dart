@@ -156,7 +156,6 @@ class HomePage extends StatelessWidget {
           moves: archive.moves,
           layout: archive.layout,
           startSide: archive.startSide,
-          skin: context.read<SettingsProvider>().boardSkin,
         ),
       ),
     );

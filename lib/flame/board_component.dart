@@ -4,11 +4,11 @@ import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../game/engine/board_utils.dart';
 import '../game/engine/rules.dart';
 import '../game/board_view.dart';
+import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/board_painting.dart';
 import '../theme/board_skin.dart';
@@ -374,21 +374,12 @@ class BoardComponent extends PositionComponent with TapCallbacks {
   ) {
     final cached = _piecePainters[piece];
     if (cached != null && opacity >= 0.999) return cached;
-    final painter = TextPainter(
-      text: TextSpan(
-        text: pieceName(piece),
-        style: TextStyle(
-          fontSize: cell * 0.5,
-          fontWeight: FontWeight.w600,
-          color: color.withValues(alpha: opacity),
-          fontFamily: 'KaiTi',
-          fontFamilyFallback: kKaiFontFallback,
-          height: 1,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-      textAlign: TextAlign.center,
-    )..layout();
+    final painter = pieceLabelPainter(
+      pieceName(piece),
+      fontSize: cell * 0.5,
+      fontWeight: FontWeight.w600,
+      color: color.withValues(alpha: opacity),
+    );
     if (opacity >= 0.999) _piecePainters[piece] = painter;
     return painter;
   }
@@ -427,9 +418,11 @@ class BoardComponent extends PositionComponent with TapCallbacks {
       return;
     }
     final before = view.history.length;
+    final selectedBefore = view.selected;
     view.tapCell(indexOf(row, col));
-    if (view.history.length > before) {
-      HapticFeedback.selectionClick();
+    // 落子反馈由对局页按吃子/将军统一播放，棋盘只负责选子的轻触感。
+    if (view.history.length == before && view.selected != selectedBefore) {
+      SoundService.tap();
     }
   }
 }

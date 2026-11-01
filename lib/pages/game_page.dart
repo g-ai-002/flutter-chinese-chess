@@ -69,6 +69,12 @@ class _GamePageState extends State<GamePage> {
     });
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _game.skin = Provider.of<SettingsProvider>(context).boardSkin;
+  }
+
   void _onControllerChanged() {
     if (!mounted) return;
     _syncMoveFeedback();
@@ -145,7 +151,6 @@ class _GamePageState extends State<GamePage> {
           moves: List.of(_controller.history),
           layout: _controller.board.startLayout,
           startSide: _controller.board.startSide,
-          skin: _game.skin,
         ),
       ),
     );
@@ -223,7 +228,6 @@ class _GamePageState extends State<GamePage> {
   @override
   Widget build(BuildContext context) {
     final puzzle = widget.puzzle;
-    _game.skin = context.watch<SettingsProvider>().boardSkin;
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 58,

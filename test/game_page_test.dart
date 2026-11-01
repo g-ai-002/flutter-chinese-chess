@@ -1,9 +1,11 @@
+import 'package:chinese_chess/flame/xiangqi_game.dart';
 import 'package:chinese_chess/models/game_models.dart';
 import 'package:chinese_chess/pages/game_page.dart';
 import 'package:chinese_chess/pages/widgets/game_dialogs.dart';
 import 'package:chinese_chess/providers/settings_provider.dart';
 import 'package:chinese_chess/services/storage_service.dart';
 import 'package:chinese_chess/theme/app_theme.dart';
+import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -175,6 +177,43 @@ void main() {
 
     expect(find.text('开局 · 中炮'), findsNothing);
     expect(find.text('试走 炮二平五'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('对局棋盘跟随设置中的皮肤', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final storage = await StorageService.instance;
+    final settings = SettingsProvider(storage);
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: settings,
+        child: MaterialApp(
+          theme: buildLightTheme(),
+          home: const GamePage(
+            mode: GameMode.twoPlayers,
+            difficulty: Difficulty.entry,
+            humanSide: 0,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    XiangqiGame game() => tester
+        .widget<GameWidget<XiangqiGame>>(
+          find.byKey(const ValueKey('xiangqi-board')),
+        )
+        .game!;
+
+    expect(game().skin.id, 'wood');
+
+    await settings.setBoardSkin(jadeSkin);
+    await tester.pump();
+    expect(game().skin.id, 'jade');
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
