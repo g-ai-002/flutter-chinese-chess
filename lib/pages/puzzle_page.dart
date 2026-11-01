@@ -5,6 +5,7 @@ import '../game/puzzles.dart';
 import '../models/game_models.dart';
 import '../providers/settings_provider.dart';
 import 'game_page.dart';
+import 'widgets/entry_tile.dart';
 
 /// 残局关卡列表：展示通关进度、最佳步数，点击进入挑战。
 class PuzzlePage extends StatelessWidget {
@@ -42,12 +43,11 @@ class PuzzlePage extends StatelessWidget {
                       for (var index = 0; index < kPuzzles.length; index++)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 10),
-                          child: _PuzzleCard(
+                          child: _puzzleTile(
+                            context,
                             index: index,
                             puzzle: kPuzzles[index],
-                            solved: settings.isPuzzleSolved(
-                              kPuzzles[index].id,
-                            ),
+                            solved: settings.isPuzzleSolved(kPuzzles[index].id),
                             bestMoves: settings.puzzleBestMoves(
                               kPuzzles[index].id,
                             ),
@@ -87,6 +87,33 @@ class PuzzlePage extends StatelessWidget {
           puzzle: puzzle,
         ),
       ),
+    );
+  }
+
+  /// 关卡卡片：通关后强调色转为第三色，副标题换成最佳步数。
+  Widget _puzzleTile(
+    BuildContext context, {
+    required int index,
+    required Puzzle puzzle,
+    required bool solved,
+    required int? bestMoves,
+    required VoidCallback onTap,
+  }) {
+    final colors = Theme.of(context).colorScheme;
+    final accent = solved ? colors.tertiary : colors.primary;
+    return EntryTile(
+      radius: 14,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      gap: 12,
+      leading: solved
+          ? EntryBadge(icon: Icons.check_rounded, accent: accent, size: 40)
+          : EntryBadge(label: '${index + 1}', accent: accent, size: 40),
+      title: puzzle.title,
+      trailing: _Tag(text: puzzle.goal, color: accent),
+      subtitle: solved
+          ? '已通关 · 最佳 ${bestMoves ?? puzzle.mateIn} 步'
+          : puzzle.hint,
+      onTap: onTap,
     );
   }
 }
@@ -149,106 +176,6 @@ class _ProgressCard extends StatelessWidget {
   }
 }
 
-class _PuzzleCard extends StatelessWidget {
-  const _PuzzleCard({
-    required this.index,
-    required this.puzzle,
-    required this.solved,
-    required this.bestMoves,
-    required this.onTap,
-  });
-
-  final int index;
-  final Puzzle puzzle;
-  final bool solved;
-  final int? bestMoves;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final accent = solved ? colors.tertiary : colors.primary;
-    return Material(
-      color: colors.surface,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: colors.outline.withValues(alpha: 0.8)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: solved
-                    ? Icon(Icons.check_rounded, size: 20, color: accent)
-                    : Text(
-                        '${index + 1}',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: accent,
-                        ),
-                      ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            puzzle.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        _Tag(text: puzzle.goal, color: accent),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      solved
-                          ? '已通关 · 最佳 ${bestMoves ?? puzzle.mateIn} 步'
-                          : puzzle.hint,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 13,
-                color: colors.onSurfaceVariant.withValues(alpha: 0.6),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _Tag extends StatelessWidget {
   const _Tag({required this.text, required this.color});
 
@@ -265,10 +192,8 @@ class _Tag extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: color,
-          fontSize: 10.5,
-        ),
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(color: color, fontSize: 10.5),
       ),
     );
   }

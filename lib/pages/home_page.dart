@@ -15,7 +15,9 @@ import 'puzzle_page.dart';
 import 'review_page.dart';
 import 'settings_page.dart';
 import 'widgets/board_preview.dart';
+import 'widgets/entry_tile.dart';
 import 'widgets/preference_pickers.dart';
+import 'widgets/section_card.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -90,7 +92,25 @@ class HomePage extends StatelessWidget {
                               ],
                             ),
                           const SizedBox(height: 18),
-                          _OptionsPanel(settings: settings),
+                          SectionCard(
+                            title: '对局设置',
+                            icon: Icons.tune_rounded,
+                            radius: 16,
+                            color: colors.surface.withValues(alpha: 0.7),
+                            trailing: Text(
+                              '自动记忆',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: colors.onSurfaceVariant,
+                              ),
+                            ),
+                            children: [
+                              DifficultyPicker(settings: settings),
+                              const SizedBox(height: 14),
+                              SidePicker(settings: settings),
+                              const SizedBox(height: 14),
+                              TimeControlPicker(settings: settings),
+                            ],
+                          ),
                           const SizedBox(height: 24),
                           Text(
                             'v${AppConstants.version} · 本地运行，无需联网',
@@ -162,37 +182,42 @@ class HomePage extends StatelessWidget {
   }
 
   /// 首页四个模式入口，宽屏两列、窄屏堆叠都复用同一份定义。
-  List<_ModeCard> _modeCards(
+  List<Widget> _modeCards(
     BuildContext context,
     SettingsProvider settings,
     ColorScheme colors,
   ) => [
-    _ModeCard(
-      icon: Icons.smart_toy_outlined,
+    EntryTile(
+      leading: EntryBadge(
+        icon: Icons.smart_toy_outlined,
+        accent: colors.primary,
+      ),
       title: GameMode.vsAi.label,
       subtitle: '三档 AI 难度 · 可执黑后行',
-      accent: colors.primary,
       onTap: () => _startGame(context, settings, GameMode.vsAi),
     ),
-    _ModeCard(
-      icon: Icons.people_alt_outlined,
+    EntryTile(
+      leading: EntryBadge(
+        icon: Icons.people_alt_outlined,
+        accent: colors.tertiary,
+      ),
       title: GameMode.twoPlayers.label,
       subtitle: '同屏轮流落子 · 面对面手谈',
-      accent: colors.tertiary,
       onTap: () => _startGame(context, settings, GameMode.twoPlayers),
     ),
-    _ModeCard(
-      icon: Icons.flag_outlined,
+    EntryTile(
+      leading: EntryBadge(icon: Icons.flag_outlined, accent: colors.secondary),
       title: GameMode.puzzle.label,
       subtitle: '八道杀法练习 · 限步取胜',
-      accent: colors.secondary,
       onTap: () => _openPuzzles(context),
     ),
-    _ModeCard(
-      icon: Icons.history_edu_outlined,
+    EntryTile(
+      leading: const EntryBadge(
+        icon: Icons.history_edu_outlined,
+        accent: appWood,
+      ),
       title: '棋谱复盘',
       subtitle: '导入棋谱 · 逐手回放',
-      accent: appWood,
       onTap: () => _importArchive(context),
     ),
   ];
@@ -389,127 +414,5 @@ class _OrnamentLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(width: 36, height: 1, color: color.withValues(alpha: 0.9));
-  }
-}
-
-class _ModeCard extends StatelessWidget {
-  const _ModeCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.accent,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color accent;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    return Material(
-      color: colors.surface,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: colors.outline.withValues(alpha: 0.8)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: accent, size: 24),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      subtitle,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 14,
-                color: colors.onSurfaceVariant.withValues(alpha: 0.6),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _OptionsPanel extends StatelessWidget {
-  const _OptionsPanel({required this.settings});
-
-  final SettingsProvider settings;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(18, 15, 18, 16),
-      decoration: BoxDecoration(
-        color: colors.surface.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.outline.withValues(alpha: 0.7)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.tune_rounded, size: 16, color: colors.primary),
-              const SizedBox(width: 7),
-              Text('对局设置', style: theme.textTheme.titleSmall),
-              const Spacer(),
-              Text(
-                '自动记忆',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colors.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          DifficultyPicker(settings: settings),
-          const SizedBox(height: 14),
-          SidePicker(settings: settings),
-          const SizedBox(height: 14),
-          TimeControlPicker(settings: settings),
-        ],
-      ),
-    );
   }
 }

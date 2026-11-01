@@ -20,24 +20,16 @@ class DifficultyPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return _PickerGroup(
+      label: label,
       children: [
-        _PickerLabel(label),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final difficulty in Difficulty.values)
-              ChoicePill(
-                label: difficulty.label,
-                selected: settings.difficulty == difficulty,
-                accent: colors.primary,
-                onTap: () => settings.setDifficulty(difficulty),
-              ),
-          ],
-        ),
+        for (final difficulty in Difficulty.values)
+          ChoicePill(
+            label: difficulty.label,
+            selected: settings.difficulty == difficulty,
+            accent: colors.primary,
+            onTap: () => settings.setDifficulty(difficulty),
+          ),
       ],
     );
   }
@@ -52,28 +44,20 @@ class SidePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return _PickerGroup(
+      label: label,
       children: [
-        _PickerLabel(label),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            ChoicePill(
-              label: '执红先行',
-              selected: settings.humanSide == red,
-              accent: appRed,
-              onTap: () => settings.setHumanSide(red),
-            ),
-            ChoicePill(
-              label: '执黑后行',
-              selected: settings.humanSide == black,
-              accent: appBlack,
-              onTap: () => settings.setHumanSide(black),
-            ),
-          ],
+        ChoicePill(
+          label: '执红先行',
+          selected: settings.humanSide == red,
+          accent: appRed,
+          onTap: () => settings.setHumanSide(red),
+        ),
+        ChoicePill(
+          label: '执黑后行',
+          selected: settings.humanSide == black,
+          accent: appBlack,
+          onTap: () => settings.setHumanSide(black),
         ),
       ],
     );
@@ -94,42 +78,43 @@ class TimeControlPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return _PickerGroup(
+      label: label,
       children: [
-        _PickerLabel(label),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final control in TimeControl.values)
-              ChoicePill(
-                label: control.label,
-                selected: settings.timeControl == control,
-                accent: colors.primary,
-                onTap: () => settings.setTimeControl(control),
-              ),
-          ],
-        ),
+        for (final control in TimeControl.values)
+          ChoicePill(
+            label: control.label,
+            selected: settings.timeControl == control,
+            accent: colors.primary,
+            onTap: () => settings.setTimeControl(control),
+          ),
       ],
     );
   }
 }
 
-class _PickerLabel extends StatelessWidget {
-  const _PickerLabel(this.text);
+/// 偏好选择器的统一骨架：小标题 + 一行可换行的胶囊选项。
+class _PickerGroup extends StatelessWidget {
+  const _PickerGroup({required this.label, required this.children});
 
-  final String text;
+  final String label;
+  final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Text(
-      text,
-      style: theme.textTheme.labelMedium?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(spacing: 8, runSpacing: 8, children: children),
+      ],
     );
   }
 }

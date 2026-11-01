@@ -17,6 +17,7 @@ import 'widgets/game_dialogs.dart';
 import 'widgets/game_status_bar.dart';
 import 'widgets/move_list.dart';
 import 'widgets/move_panel.dart';
+import 'widgets/play_layout.dart';
 
 class GamePage extends StatefulWidget {
   const GamePage({
@@ -83,7 +84,12 @@ class _GamePageState extends State<GamePage> {
     if (!mounted) return;
     _syncMoveFeedback();
     final result = _controller.result;
-    if (result == null || _resultShown) return;
+    if (result == null) {
+      // 悔棋或重开后回到对局中，下一次终局仍需弹出结果。
+      _resultShown = false;
+      return;
+    }
+    if (_resultShown) return;
     _resultShown = true;
     SoundService.play(MoveFeedback.end);
     final puzzle = widget.puzzle;
@@ -274,63 +280,20 @@ class _GamePageState extends State<GamePage> {
         ],
       ),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final wide = constraints.maxWidth >= 880;
-            return AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) {
-                if (wide) return _buildWide();
-                return _buildCompact();
-              },
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWide() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              children: [
-                _buildStatus(),
-                const SizedBox(height: 10),
-                Expanded(child: _buildBoard()),
-                const SizedBox(height: 8),
-                _buildActions(showMoves: false),
-              ],
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) => PlayLayout(
+            status: _buildStatus(),
+            board: _buildBoard(),
+            actions: _buildActions(showMoves: false),
+            compactBottom: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+              child: _buildActions(showMoves: true),
             ),
+            sidePanel: _buildSidePanel(),
           ),
-          const SizedBox(width: 18),
-          SizedBox(width: 292, child: _buildSidePanel()),
-        ],
+        ),
       ),
-    );
-  }
-
-  Widget _buildCompact() {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
-          child: _buildStatus(),
-        ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: _buildBoard(),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
-          child: _buildActions(showMoves: true),
-        ),
-      ],
     );
   }
 

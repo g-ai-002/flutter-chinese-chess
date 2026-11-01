@@ -4,7 +4,9 @@ import 'package:chinese_chess/game/engine/board_utils.dart';
 import 'package:chinese_chess/game/replay_controller.dart';
 import 'package:chinese_chess/models/move_record.dart';
 import 'package:chinese_chess/pages/widgets/board_stage.dart';
+import 'package:chinese_chess/pages/widgets/entry_tile.dart';
 import 'package:chinese_chess/pages/widgets/move_panel.dart';
+import 'package:chinese_chess/pages/widgets/play_layout.dart';
 import 'package:chinese_chess/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -153,6 +155,106 @@ void main() {
 
       await tester.tap(find.text('马8进7'));
       expect(tapped, 1);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  });
+
+  group('入口卡片', () {
+    testWidgets('展示标题、副标题与标签并可点击', (tester) async {
+      var tapped = 0;
+      await tester.pumpWidget(
+        _wrap(
+          SizedBox(
+            width: 360,
+            child: EntryTile(
+              leading: const EntryBadge(
+                icon: Icons.flag_outlined,
+                accent: appRed,
+              ),
+              title: '残局挑战',
+              subtitle: '八道杀法练习 · 限步取胜',
+              trailing: const Text('红先 · 1 步杀'),
+              onTap: () => tapped++,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('残局挑战'), findsOneWidget);
+      expect(find.text('八道杀法练习 · 限步取胜'), findsOneWidget);
+      expect(find.text('红先 · 1 步杀'), findsOneWidget);
+      expect(find.byIcon(Icons.flag_outlined), findsOneWidget);
+
+      await tester.tap(find.text('残局挑战'));
+      expect(tapped, 1);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
+    testWidgets('徽章可显示序号', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          const Center(
+            child: EntryBadge(label: '3', accent: appRed),
+          ),
+        ),
+      );
+
+      expect(find.text('3'), findsOneWidget);
+      expect(tester.getSize(find.byType(EntryBadge)), const Size(46, 46));
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  });
+
+  group('对局布局', () {
+    Future<void> pumpLayout(WidgetTester tester, double width) {
+      return tester.pumpWidget(
+        _wrap(
+          SizedBox(
+            width: width,
+            height: 500,
+            child: const PlayLayout(
+              board: ColoredBox(color: Colors.transparent),
+              sidePanel: Text('棋谱栏'),
+              status: Text('状态区'),
+              actions: Text('宽屏操作'),
+              compactBottom: Text('窄屏底部'),
+            ),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('宽屏为棋盘加右侧棋谱栏', (tester) async {
+      tester.view.physicalSize = const Size(1000, 600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await pumpLayout(tester, 1000);
+
+      expect(find.text('状态区'), findsOneWidget);
+      expect(find.text('宽屏操作'), findsOneWidget);
+      expect(find.text('棋谱栏'), findsOneWidget);
+      expect(find.text('窄屏底部'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
+    testWidgets('窄屏为上下堆叠并使用底部区域', (tester) async {
+      tester.view.physicalSize = const Size(500, 600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await pumpLayout(tester, 500);
+
+      expect(find.text('状态区'), findsOneWidget);
+      expect(find.text('窄屏底部'), findsOneWidget);
+      expect(find.text('宽屏操作'), findsNothing);
+      expect(find.text('棋谱栏'), findsNothing);
 
       await tester.pumpWidget(const SizedBox.shrink());
     });

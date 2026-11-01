@@ -11,6 +11,11 @@ enum Difficulty {
   final String label;
   final int depth;
   final int randomness;
+
+  static Difficulty byName(String? name) => values.firstWhere(
+    (item) => item.name == name,
+    orElse: () => Difficulty.normal,
+  );
 }
 
 /// 对弈模式。

@@ -18,6 +18,7 @@ import '../utils/platform_info.dart';
 import 'widgets/board_stage.dart';
 import 'widgets/move_list.dart';
 import 'widgets/move_panel.dart';
+import 'widgets/play_layout.dart';
 
 /// 复盘页：逐手回放一局棋谱，并支持导出为文本棋谱。
 class ReviewPage extends StatefulWidget {
@@ -165,60 +166,29 @@ class _ReviewPageState extends State<ReviewPage> {
         ],
       ),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final wide = constraints.maxWidth >= 880;
-            return AnimatedBuilder(
-              animation: _replay,
-              builder: (context, _) => wide ? _buildWide() : _buildCompact(),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWide() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
+        child: AnimatedBuilder(
+          animation: _replay,
+          builder: (context, _) => PlayLayout(
+            board: _buildBoard(),
+            actions: _buildControls(),
+            compactBottom: Column(
               children: [
-                Expanded(child: _buildBoard()),
-                const SizedBox(height: 10),
                 _buildControls(),
+                SizedBox(
+                  height: 132,
+                  child: MoveList(
+                    history: widget.moves,
+                    highlightIndex: _replay.cursor - 1,
+                    onTapIndex: (index) => _replay.jumpTo(index + 1),
+                    padding: const EdgeInsets.only(bottom: 6),
+                  ),
+                ),
               ],
             ),
+            sidePanel: _buildSidePanel(),
           ),
-          const SizedBox(width: 18),
-          SizedBox(width: 292, child: _buildSidePanel()),
-        ],
+        ),
       ),
-    );
-  }
-
-  Widget _buildCompact() {
-    return Column(
-      children: [
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: _buildBoard(),
-          ),
-        ),
-        _buildControls(),
-        SizedBox(
-          height: 132,
-          child: MoveList(
-            history: widget.moves,
-            highlightIndex: _replay.cursor - 1,
-            onTapIndex: (index) => _replay.jumpTo(index + 1),
-            padding: const EdgeInsets.only(bottom: 6),
-          ),
-        ),
-      ],
     );
   }
 

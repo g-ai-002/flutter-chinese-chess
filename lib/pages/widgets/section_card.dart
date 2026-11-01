@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// 设置页等信息卡片的统一容器。
+/// 设置页与首页等信息卡片的统一容器。
 class SectionCard extends StatelessWidget {
   const SectionCard({
     super.key,
@@ -8,12 +8,18 @@ class SectionCard extends StatelessWidget {
     required this.children,
     this.icon,
     this.trailing,
+    this.radius = 14,
+    this.color,
   });
 
   final String title;
   final List<Widget> children;
   final IconData? icon;
   final Widget? trailing;
+  final double radius;
+
+  /// 卡片底色，缺省为当前主题的 surface；渐变背景上用半透明底色。
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -22,8 +28,8 @@ class SectionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
       decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(14),
+        color: color ?? colors.surface,
+        borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: colors.outline.withValues(alpha: 0.7)),
       ),
       child: Column(
