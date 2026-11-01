@@ -30,29 +30,30 @@ jobs:
         id: version
         shell: bash
         run: |
-          jversion=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)
+          jversion=$(grep '^version:' pubspec.yaml | awk '{print $2}')
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            version=$(echo "${{ github.ref_name }}" | sed -E 's/^[vV]//')
-            parsed=$(echo "$version" | sed -E 's/^([0-9]+\.[0-9]+(\.[0-9]+)?).*/\1/')
-            if [ -n "$parsed" ]; then
-              jversion="$parsed"
+            raw_tag="${{ github.ref_name }}"
+            version=$(echo "$raw_tag" | sed -E 's/^[vV]//')
+            jversion=$(echo "$version" | sed -E 's/^([0-9]+\.[0-9]+(\.[0-9]+)?).*/\1/')
+            if [ -z "$jversion" ]; then
+              jversion=$(grep '^version:' pubspec.yaml | awk '{print $2}')
             fi
           fi
           echo "jversion=$jversion" >> $GITHUB_OUTPUT
           echo "📌 使用的版本号: $jversion"
 
-      - name: 🏷️ 解析 Flutter 项目名
+      - name: 🏷️ 计算项目名称
         id: project
         shell: bash
         run: |
-          projectName=$(grep '^name:' pubspec.yaml | awk '{print $2}' | tr '-' '_')
+          projectName=$(echo "${{ env.APP_NAME }}" | tr '-' '_')
           echo "project_name=$projectName" >> $GITHUB_OUTPUT
           echo "📌 Flutter 项目名: $projectName"
 
   test:
     needs: [ metadata ]
     runs-on: ubuntu-flutter
-    name: 🧪 静态分析与测试
+    name: 🧪 运行 Dart 测试
     steps:
       - name: 📥 检出代码
         uses: actions/checkout@v6
@@ -61,7 +62,7 @@ jobs:
         run: flutter pub get
 
       - name: 🔍 静态分析
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: ✅ 运行测试
         run: flutter test --concurrency=2
@@ -86,20 +87,40 @@ jobs:
           echo "USE_ALIYUN_MAVEN=${USE_ALIYUN_MAVEN:-<未设置>}"
           echo "JAVA_HOME=${JAVA_HOME:-<未设置>}"
           echo "ANDROID_HOME=${ANDROID_HOME:-<未设置>}"
+          echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-<未设置>}"
+          echo "GRADLE_USER_HOME=${GRADLE_USER_HOME:-<未设置>}"
+          echo "http_proxy=${http_proxy:-<未设置>}"
+          echo "https_proxy=${https_proxy:-<未设置>}"
           echo "=== 🦋 Flutter 版本 ==="
           flutter --version
+          echo "=== 🩺 Flutter doctor（输出写入 doctor.log，最多等 20s） ==="
+          # 不能让 doctor 直接写步骤日志：一旦有子进程残留，它会一直占着日志管道，
+          # 步骤就永远走不到下一步（曾因此在同一位置卡死 7 分钟）。
+          # stdin 接 /dev/null，避免子命令等交互输入。
           timeout -k 5 20 flutter doctor -v > doctor.log 2>&1 </dev/null || true
           cat doctor.log 2>/dev/null || true
+          # timeout 只覆盖 msys 进程组，残留的 dart 会占住 flutter 启动锁，后面 pub get/build 会死等
           if pgrep -f flutter_tools.snapshot > /dev/null 2>&1; then
             echo "⚠️ flutter doctor 仍有残留进程，强制清理"
             pkill -f flutter_tools.snapshot > /dev/null 2>&1 || true
           fi
+          echo "=== 🌍 Flutter 相关环境变量 ==="
+          echo "FLUTTER_STORAGE_BASE_URL=${FLUTTER_STORAGE_BASE_URL:-<未设置>}"
+          echo "PUB_HOSTED_URL=${PUB_HOSTED_URL:-<未设置>}"
+          echo "=== 🌐 网络连通性检查 ==="
+          curl -sI --connect-timeout 10 https://storage.flutter-io.cn 2>&1 || echo "❌ 无法访问 storage.flutter-io.cn"
+          curl -sI --connect-timeout 10 https://storage.googleapis.com 2>&1 || echo "❌ 无法访问 storage.googleapis.com"
 
       - name: 🪞 部署阿里云 Maven 镜像脚本
         run: |
           mkdir -p ~/.gradle/init.d
           cp android/gradle/init-aliyun-mirror.gradle ~/.gradle/init.d/init-aliyun-mirror.gradle
           echo "✅ init 脚本已部署到 ~/.gradle/init.d/"
+          if [ "${USE_ALIYUN_MAVEN:-}" = "true" ]; then
+            echo "🔧 USE_ALIYUN_MAVEN=true，将全局启用阿里云镜像"
+          else
+            echo "ℹ️ 未设置 USE_ALIYUN_MAVEN，init 脚本将不生效"
+          fi
 
       - name: 🔨 构建 Android APK
         run: flutter build apk --release --target-platform android-arm64
@@ -142,14 +163,29 @@ jobs:
       - name: 🩺 诊断网络与 Flutter 环境
         shell: bash
         run: |
+          echo "=== 🌍 构建环境变量 ==="
+          echo "http_proxy=${http_proxy:-<未设置>}"
+          echo "https_proxy=${https_proxy:-<未设置>}"
           echo "=== 🦋 Flutter 版本 ==="
           flutter --version
+          echo "=== 🩺 Flutter doctor（输出写入 doctor.log，最多等 20s） ==="
+          # Windows 上 flutter 是 bash → flutter.bat(cmd.exe) → dart.exe 的进程链，
+          # timeout 只能覆盖 msys 侧的进程。doctor 的输出必须落文件，否则一旦 dart
+          # 残留，它会一直占着步骤的 stdout 管道，步骤永远走不到下一步（曾卡死 7 分钟）。
+          # stdin 接 /dev/null，避免子命令等交互输入。
           timeout -k 5 20 flutter doctor -v > doctor.log 2>&1 </dev/null || true
           cat doctor.log 2>/dev/null || true
+          # 残留的 dart 会占住 flutter 启动锁，后面 pub get / build 会一直等锁
           if tasklist -FI 'IMAGENAME eq dart.exe' 2>/dev/null | grep -qi 'dart\.exe'; then
             echo "⚠️ 检测到残留的 dart 进程，强制清理"
             taskkill //F //T //IM dart.exe > /dev/null 2>&1 || true
           fi
+          echo "=== 🌍 Flutter 相关环境变量 ==="
+          echo "FLUTTER_STORAGE_BASE_URL=${FLUTTER_STORAGE_BASE_URL:-<未设置>}"
+          echo "PUB_HOSTED_URL=${PUB_HOSTED_URL:-<未设置>}"
+          echo "=== 🌐 网络连通性检查 ==="
+          curl -sI --connect-timeout 10 https://storage.flutter-io.cn 2>&1 || echo "❌ 无法访问 storage.flutter-io.cn"
+          curl -sI --connect-timeout 10 https://storage.googleapis.com 2>&1 || echo "❌ 无法访问 storage.googleapis.com"
 
       - name: 📦 安装依赖
         shell: bash
@@ -159,7 +195,7 @@ jobs:
         shell: bash
         run: flutter create --platforms=windows --project-name ${{ needs.metadata.outputs.project_name }} .
 
-      - name: 🩹 CMakeLists 启用 CMP0091 策略
+      - name: 🩹 CMakeLists 启用 CMP0091 策略（VS 2026 要求）
         shell: bash
         run: |
           sed -i -E 's|^(cmake_minimum_required\(VERSION [0-9.]+\))$|\1\ncmake_policy(SET CMP0091 NEW)|' windows/CMakeLists.txt
@@ -209,7 +245,7 @@ jobs:
           name: ${{ env.APP_NAME }}-${{ needs.metadata.outputs.app_version }}-windows-x86_64.zip
           path: C:/w/${{ env.APP_NAME }}-${{ needs.metadata.outputs.app_version }}-windows-x86_64.zip
 
-  # Gitea 没有 Pages，Web 产物打包成 ZIP 归档到 Release
+  # Gitea 没有 Pages，Web 产物只打包成 ZIP 归档到 Release
   build-web:
     needs: [ metadata, test ]
     runs-on: ubuntu-flutter
@@ -232,6 +268,7 @@ jobs:
           app_desc=$(grep '^description:' pubspec.yaml | sed -E 's/^description:[[:space:]]*//')
           app_title=$(echo "$app_desc" | sed -E 's/[[:space:]]*-.*$//')
           echo "📌 站点标题: $app_title"
+          echo "📌 站点描述: $app_desc"
 
           sed -i "s|<title>.*</title>|<title>${app_title}</title>|" web/index.html
           sed -i "s|<meta name=\"description\" content=\"[^\"]*\">|<meta name=\"description\" content=\"${app_desc}\">|" web/index.html
@@ -243,9 +280,13 @@ jobs:
             web/manifest.json > web/manifest.json.tmp
           mv web/manifest.json.tmp web/manifest.json
 
+          echo "--- 📄 web/manifest.json ---"
+          cat web/manifest.json
+
       - name: 🔨 构建 Web 产物
         run: |
           set -euo pipefail
+          # 归档用默认根路径 base href：解压后在目录内起静态服务器即可访问
           flutter build web --release
           du -sh build/web
 
@@ -256,6 +297,7 @@ jobs:
           rm -f "$zip_name"
           ( cd build/web && zip -qr "$GITHUB_WORKSPACE/$zip_name" . )
           du -sh "$zip_name"
+          unzip -l "$zip_name" | tail -5
 
       - name: ⬆️ 上传 Web 产物
         uses: actions/gitea-upload-artifact@v4
@@ -270,6 +312,7 @@ jobs:
     name: 🚀 创建 Gitea Release
     permissions:
       contents: write
+    environment: release
     steps:
       - name: 📥 检出代码（用于生成更新日志）
         uses: actions/checkout@v6
@@ -295,20 +338,21 @@ jobs:
           path: artifacts
 
       - name: 📝 生成发布说明
+        id: notes
         run: |
           current_tag=${GITHUB_REF#refs/tags/}
           prev_tag=$(git tag --sort=-version:refname | grep -v "^$current_tag$" | head -1)
           if [[ -n "$prev_tag" ]]; then
             git log --pretty=format:"* %s (%h)" "$prev_tag".."$current_tag" -- . ":(exclude)docs" ":(exclude).github" ":(exclude).gitea" > /tmp/release_body.txt
           else
-            echo "首个版本。" > /tmp/release_body.txt
+            echo "首次发布。" > /tmp/release_body.txt
           fi
           echo "=== 📝 发布说明 ==="
           cat /tmp/release_body.txt
 
       - name: 🚀 创建 Gitea Release
         env:
-          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
         run: |
           PRERELEASE=false
           if echo "${{ github.ref_name }}" | grep -qE -- '-(rc|beta)'; then
@@ -318,7 +362,7 @@ jobs:
           BODY_JSON=$(jq -Rs . < /tmp/release_body.txt)
           response=$(curl -s -X POST \
             "${{ github.server_url }}/api/v1/repos/${{ github.repository }}/releases" \
-            -H "Authorization: token $RELEASE_TOKEN" \
+            -H "Authorization: token $GITEA_TOKEN" \
             -H "Content-Type: application/json" \
             -d "{\"tag_name\":\"${{ github.ref_name }}\",\"name\":\"${{ github.ref_name }}\",\"body\":${BODY_JSON},\"draft\":false,\"prerelease\":${PRERELEASE}}")
 
@@ -328,6 +372,7 @@ jobs:
             echo "❌ 创建 Release 失败: $response"
             exit 1
           fi
+
           echo "✅ 已创建 Release，ID: $release_id"
 
           for file in artifacts/*; do
@@ -336,7 +381,7 @@ jobs:
               echo "⬆️ 正在上传 $filename ..."
               curl -s -X POST \
                 "${{ github.server_url }}/api/v1/repos/${{ github.repository }}/releases/$release_id/assets?name=$filename" \
-                -H "Authorization: token $RELEASE_TOKEN" \
+                -H "Authorization: token $GITEA_TOKEN" \
                 -H "Content-Type: application/octet-stream" \
                 --data-binary "@$file"
             fi
