@@ -29,6 +29,7 @@ void main() {
     expect(find.text('中国象棋'), findsWidgets);
     expect(find.text('人机对战'), findsOneWidget);
     expect(find.text('双人对弈'), findsOneWidget);
+    expect(find.text('残局挑战'), findsOneWidget);
     expect(find.text('AI 难度'), findsOneWidget);
     expect(find.text('执红先行'), findsOneWidget);
     expect(find.textContaining('v${AppConstants.version}'), findsOneWidget);
