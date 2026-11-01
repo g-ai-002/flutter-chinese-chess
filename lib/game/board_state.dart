@@ -36,6 +36,12 @@ class XiangqiBoard {
   int? lastFrom;
   int? lastTo;
 
+  /// 开局局面的十行布局，复盘与导出棋谱时用于重建。
+  List<String> get startLayout => cellsToLayout(_startCells);
+
+  /// 开局的行棋方。
+  int get startSide => _startSide;
+
   /// 落子（调用方需先保证着法合法），返回记录。
   MoveRecord applyMove(int from, int to) {
     final piece = cells[from];

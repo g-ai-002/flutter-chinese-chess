@@ -302,6 +302,12 @@ class XiangqiRules {
     ];
   }
 
+  /// 该着法是否为当前局面的合法着法（走子规则 + 不送将 + 不对脸）。
+  ///
+  /// 与 [isLegalMove] 的区别是它同时校验走子几何，供棋谱导入等外部输入使用。
+  static bool isPlayable(Uint8List cells, int side, int from, int to) =>
+      legalMoves(cells, side).contains(encodeMove(from, to));
+
   /// 走子后对下一方的判定：是否被将军、是否还有合法着法。
   static ({bool inCheck, bool hasLegalMoves}) positionStatus(
     Uint8List cells,
