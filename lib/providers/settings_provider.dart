@@ -34,4 +34,12 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   String get humanSideLabel => humanSide == 0 ? '执红先行' : '执黑后行';
+
+  bool isPuzzleSolved(String id) => _storage.isPuzzleSolved(id);
+  int? puzzleBestMoves(String id) => _storage.puzzleBestMoves(id);
+
+  Future<void> recordPuzzleCleared(String id, int moves) async {
+    await _storage.recordPuzzleCleared(id, moves);
+    notifyListeners();
+  }
 }

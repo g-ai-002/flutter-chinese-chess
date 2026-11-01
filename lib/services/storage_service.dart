@@ -61,4 +61,25 @@ class StorageService {
   int get humanSide => _p.getInt(AppConstants.prefKeyHumanSide) ?? 0;
   Future<void> setHumanSide(int value) =>
       _write((p) => p.setInt(AppConstants.prefKeyHumanSide, value));
+
+  bool isPuzzleSolved(String id) =>
+      (_p.getStringList(AppConstants.prefKeySolvedPuzzles) ?? const [])
+          .contains(id);
+
+  /// 单关最佳步数，未通关时为 null。
+  int? puzzleBestMoves(String id) => _p.getInt(AppConstants.puzzleBestKey(id));
+
+  Future<void> recordPuzzleCleared(String id, int moves) => _write((p) async {
+    final solved = (p.getStringList(AppConstants.prefKeySolvedPuzzles) ?? [])
+        .toList();
+    if (!solved.contains(id)) {
+      solved.add(id);
+      await p.setStringList(AppConstants.prefKeySolvedPuzzles, solved);
+    }
+    final best = p.getInt(AppConstants.puzzleBestKey(id));
+    if (best == null || moves < best) {
+      await p.setInt(AppConstants.puzzleBestKey(id), moves);
+    }
+    return true;
+  });
 }

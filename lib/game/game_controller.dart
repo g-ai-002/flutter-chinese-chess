@@ -8,6 +8,7 @@ import 'ai_player.dart';
 import 'board_state.dart';
 import 'engine/board_utils.dart';
 import 'engine/rules.dart';
+import 'puzzles.dart';
 
 /// 对局控制器：选择、落子、AI 回合、悔棋、终局判定。
 class GameController extends ChangeNotifier {
@@ -18,13 +19,19 @@ class GameController extends ChangeNotifier {
     AiMoveProvider? aiMove,
     XiangqiBoard? board,
     this.showHints = true,
-  }) : board = board ?? XiangqiBoard.initial(),
+    this.puzzle,
+  }) : board = board ?? _initialBoard(puzzle),
        _aiMove = aiMove ?? AiPlayer.chooseMove;
+
+  static XiangqiBoard _initialBoard(Puzzle? puzzle) => puzzle == null
+      ? XiangqiBoard.initial()
+      : XiangqiBoard.fromLayout(puzzle.layout);
 
   final GameMode mode;
   final Difficulty difficulty;
   final int humanSide;
   final bool showHints;
+  final Puzzle? puzzle;
   final XiangqiBoard board;
   final AiMoveProvider _aiMove;
 
@@ -50,11 +57,25 @@ class GameController extends ChangeNotifier {
 
   List<MoveRecord> get history => board.history;
 
+  /// 人类已落子的步数，残局按此计算剩余步数。
+  int get humanMoves =>
+      board.history.where((record) => sideOf(record.piece) == humanSide).length;
+
+  int? get remainingMoves {
+    final limit = puzzle?.mateIn;
+    if (limit == null) return null;
+    final left = limit - humanMoves;
+    return left < 0 ? 0 : left;
+  }
+
+  /// 残局挑战是否已通关。
+  bool get puzzleCleared => puzzle != null && result?.winner == humanSide;
+
   /// 页面挂载后调用；人类执黑时由 AI 先行。
   void start() {
     inCheck = XiangqiRules.isKingInCheck(board.cells, board.sideToMove);
     _notify();
-    if (mode == GameMode.vsAi && board.sideToMove != humanSide) _think();
+    if (mode != GameMode.twoPlayers && board.sideToMove != humanSide) _think();
   }
 
   void tapCell(int index) {
@@ -86,7 +107,7 @@ class GameController extends ChangeNotifier {
     thinking = false;
     do {
       board.undoLast();
-    } while (mode == GameMode.vsAi &&
+    } while (mode != GameMode.twoPlayers &&
         board.sideToMove != humanSide &&
         board.history.isNotEmpty);
     result = null;
@@ -105,7 +126,7 @@ class GameController extends ChangeNotifier {
     _clearSelection(notify: false);
     LogService.info('重新开始对局');
     _notify();
-    if (mode == GameMode.vsAi && board.sideToMove != humanSide) _think();
+    if (mode != GameMode.twoPlayers && board.sideToMove != humanSide) _think();
   }
 
   void resign() {
@@ -150,15 +171,22 @@ class GameController extends ChangeNotifier {
         winner: opponentOf(board.sideToMove),
         reason: status.inCheck ? '绝杀' : '困毙',
       );
+    } else if (board.repetitionCount >= 3) {
+      final checker = board.perpetualCheckingSide;
+      result = checker == null
+          ? const GameResult(winner: null, reason: '三次重复局面')
+          : GameResult(winner: opponentOf(checker), reason: '长将判负');
     } else if (board.noCapturePlies >= AppConstants.drawNoCapturePlies) {
       result = const GameResult(winner: null, reason: '六十回合无吃子');
+    } else if (puzzle != null && humanMoves >= puzzle!.mateIn) {
+      result = GameResult(winner: opponentOf(humanSide), reason: '超出限定步数');
     }
     _notify();
     if (result != null) {
       LogService.info('对局结束: ${result!.title} (${result!.reason})');
       return;
     }
-    if (mode == GameMode.vsAi && board.sideToMove != humanSide) _think();
+    if (mode != GameMode.twoPlayers && board.sideToMove != humanSide) _think();
   }
 
   Future<void> _think() async {
