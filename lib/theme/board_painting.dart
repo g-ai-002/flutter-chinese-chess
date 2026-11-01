@@ -1,7 +1,30 @@
 import 'package:flutter/material.dart';
 
 import '../game/engine/board_utils.dart';
+import '../utils/constants.dart';
 import 'app_theme.dart';
+
+/// 棋子字面：优先楷体并统一行高，棋盘、首页缩略图与皮肤样张共用。
+TextPainter pieceLabelPainter(
+  String text, {
+  required double fontSize,
+  required Color color,
+  FontWeight fontWeight = FontWeight.w700,
+}) => TextPainter(
+  text: TextSpan(
+    text: text,
+    style: TextStyle(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      fontFamily: 'KaiTi',
+      fontFamilyFallback: kKaiFontFallback,
+      height: 1,
+    ),
+  ),
+  textDirection: TextDirection.ltr,
+  textAlign: TextAlign.center,
+)..layout();
 
 /// 绘制一枚棋子：投影、棋面渐变、外圈与内圈，字面以传入的 [label] 居中绘制。
 ///

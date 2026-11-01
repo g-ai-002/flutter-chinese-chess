@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../game/engine/board_utils.dart';
-import '../../theme/app_theme.dart';
 import '../../theme/board_painting.dart';
 import '../../theme/board_skin.dart';
-import '../../utils/constants.dart';
 
 /// 首页装饰：一张缩小的棋盘，红黑双方各立一子，配色跟随当前皮肤。
 class BoardPreview extends StatelessWidget {
-  const BoardPreview({super.key, this.skin = woodSkin});
+  const BoardPreview({super.key, this.skin = kDefaultBoardSkin});
 
   final BoardSkin skin;
 
@@ -86,20 +84,7 @@ class _BoardPreviewPainter extends CustomPainter {
       center: center,
       radius: cell * 0.52,
       face: face,
-      label: TextPainter(
-        text: TextSpan(
-          text: text,
-          style: TextStyle(
-            fontSize: cell * 0.72,
-            fontWeight: FontWeight.w700,
-            color: face.ink,
-            fontFamily: 'KaiTi',
-            fontFamilyFallback: kKaiFontFallback,
-            height: 1,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout(),
+      label: pieceLabelPainter(text, fontSize: cell * 0.72, color: face.ink),
     );
   }
 

@@ -7,7 +7,7 @@ import 'board_component.dart';
 
 /// Flame 游戏入口：目前只有一个棋盘组件，后续可扩展落子特效与音效。
 class XiangqiGame extends FlameGame {
-  XiangqiGame({required this.view, BoardSkin skin = woodSkin})
+  XiangqiGame({required this.view, BoardSkin skin = kDefaultBoardSkin})
     : _skin = ValueNotifier(skin);
 
   final BoardView view;

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../providers/settings_provider.dart';
 import '../../theme/board_painting.dart';
 import '../../theme/board_skin.dart';
-import '../../utils/constants.dart';
 
 /// 棋盘皮肤选择器：每个选项带一块迷你棋盘预览。
 class SkinPicker extends StatelessWidget {
@@ -148,20 +147,7 @@ class _SkinSwatchPainter extends CustomPainter {
       radius: 9,
       face: skin.redFace,
       borderWidth: 1,
-      label: TextPainter(
-        text: TextSpan(
-          text: '帅',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            color: skin.redFace.ink,
-            fontFamily: 'KaiTi',
-            fontFamilyFallback: kKaiFontFallback,
-            height: 1,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout(),
+      label: pieceLabelPainter('帅', fontSize: 11, color: skin.redFace.ink),
     );
   }
 

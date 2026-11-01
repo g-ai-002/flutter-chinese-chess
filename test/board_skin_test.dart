@@ -31,10 +31,10 @@ void main() {
       kBoardSkins.map((skin) => skin.id).toSet(),
       hasLength(kBoardSkins.length),
     );
-    expect(boardSkinOf(null), same(woodSkin));
+    expect(boardSkinOf(null), same(kDefaultBoardSkin));
     expect(boardSkinOf('jade'), same(jadeSkin));
     expect(boardSkinOf('ink'), same(inkSkin));
-    expect(boardSkinOf('已下架的皮肤'), same(woodSkin));
+    expect(boardSkinOf('已下架的皮肤'), same(kDefaultBoardSkin));
   });
 
   test('每套皮肤的棋面、线条与高亮都清晰可辨', () {

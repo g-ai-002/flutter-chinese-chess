@@ -111,9 +111,14 @@ const BoardSkin inkSkin = BoardSkin(
   ),
 );
 
+/// 默认皮肤：偏好缺失或 id 失效时统一回退到此皮肤。
+const BoardSkin kDefaultBoardSkin = woodSkin;
+
 /// 全部可选皮肤，顺序即设置页展示顺序。
 const List<BoardSkin> kBoardSkins = [woodSkin, jadeSkin, inkSkin];
 
-/// 按 id 取皮肤，未知 id 回退檀木，兼容旧版本偏好。
-BoardSkin boardSkinOf(String? id) =>
-    kBoardSkins.firstWhere((skin) => skin.id == id, orElse: () => woodSkin);
+/// 按 id 取皮肤，未知 id 回退默认皮肤，兼容旧版本偏好。
+BoardSkin boardSkinOf(String? id) => kBoardSkins.firstWhere(
+  (skin) => skin.id == id,
+  orElse: () => kDefaultBoardSkin,
+);
