@@ -35,6 +35,8 @@ void main() {
     expect(find.text('开局提示'), findsOneWidget);
 
     // 开关顺序：深色模式、显示可走位置、开局提示。
+    await tester.ensureVisible(find.byType(Switch).at(1));
+    await tester.pumpAndSettle();
     await tester.tap(find.byType(Switch).at(1));
     await tester.pumpAndSettle();
     expect(settings.showHints, isFalse);
@@ -45,7 +47,7 @@ void main() {
     expect(settings.showOpeningHints, isFalse);
     expect(storage.showOpeningHints, isFalse);
 
-    await tester.drag(find.byType(ListView), const Offset(0, -700));
+    await tester.drag(find.byType(ListView), const Offset(0, -900));
     await tester.pumpAndSettle();
     expect(find.text('关于'), findsOneWidget);
     expect(find.text('v${AppConstants.version}'), findsOneWidget);
