@@ -81,6 +81,51 @@ void main() {
     });
   });
 
+  group('ClockTracker', () {
+    test('结算用时并记录落子快照', () {
+      final tracker = ClockTracker(TimeControl.blitz)..resume(red);
+      expect(tracker.settle(const Duration(seconds: 30)), isNull);
+      expect(tracker.clock.remainingMs(red), 270000);
+
+      tracker.mark();
+      tracker.resume(black);
+      expect(tracker.settle(const Duration(seconds: 10)), isNull);
+
+      tracker.rewind(keepMoves: 0, side: red);
+      expect(tracker.clock.remainingMs(red), 270000);
+      expect(tracker.clock.remainingMs(black), 300000);
+      expect(tracker.clock.activeSide, red);
+    });
+
+    test('停表后不再结算', () {
+      final tracker = ClockTracker(TimeControl.blitz)..resume(red);
+      tracker.stop();
+      expect(tracker.settle(const Duration(seconds: 30)), isNull);
+      expect(tracker.clock.remainingMs(red), 300000);
+    });
+
+    test('超时后停表且不再扣时', () {
+      final tracker = ClockTracker(TimeControl.blitz)..resume(black);
+      expect(tracker.settle(const Duration(minutes: 5)), black);
+      expect(tracker.clock.remainingMs(black), 0);
+      expect(tracker.clock.isRunning, isFalse);
+      expect(tracker.settle(const Duration(seconds: 1)), isNull);
+    });
+
+    test('重开清零剩余时间与快照', () {
+      final tracker = ClockTracker(TimeControl.rapid)..resume(red);
+      tracker.settle(const Duration(minutes: 1));
+      tracker.mark();
+      tracker.restart(red);
+
+      expect(tracker.clock.remainingMs(red), 600000);
+      expect(tracker.clock.activeSide, red);
+      // 快照已随重开清空，再悔棋不会还原到重开前的用时。
+      tracker.rewind(keepMoves: 0, side: red);
+      expect(tracker.clock.remainingMs(red), 600000);
+    });
+  });
+
   group('棋钟格式', () {
     test('剩余时间显示为分秒，满一小时带上小时', () {
       expect(formatClock(300000), '05:00');

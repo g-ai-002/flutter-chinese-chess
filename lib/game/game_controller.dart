@@ -47,10 +47,13 @@ class GameController extends ChangeNotifier implements BoardView {
   final XiangqiBoard board;
   final AiMoveProvider _aiMove;
 
-  /// 限时对局的棋钟，不限时或残局为 null。
-  late final MatchClock? clock = timeControl.isTimed
-      ? MatchClock(timeControl)
+  /// 限时对局的计时簿记，不限时或残局为 null。
+  late final ClockTracker? _tracker = timeControl.isTimed
+      ? ClockTracker(timeControl)
       : null;
+
+  /// 限时对局的棋钟，供界面展示双方剩余时间。
+  MatchClock? get clock => _tracker?.clock;
 
   @override
   int? selected;
@@ -63,13 +66,6 @@ class GameController extends ChangeNotifier implements BoardView {
 
   int _serial = 0;
   bool _disposed = false;
-
-  /// 计时基准：界面按固定间隔结算，落子时再补一次，AI 思考也算本方用时。
-  final Stopwatch _watch = Stopwatch()..start();
-  Duration _lastMark = Duration.zero;
-
-  /// 每步落子前的双方剩余时间，下标与棋谱长度对应，供悔棋还原。
-  final List<List<int>> _clockMarks = [];
 
   bool get isHumanTurn =>
       mode == GameMode.twoPlayers || board.sideToMove == humanSide;
@@ -116,9 +112,8 @@ class GameController extends ChangeNotifier implements BoardView {
   /// 界面定时调用：把当前行棋方的实际用时结算给棋钟，超时即判负。
   /// [elapsed] 仅测试用，传入时不再读取真实耗时。
   void tickClock([Duration? elapsed]) {
-    final clock = this.clock;
-    if (clock == null || result != null || !clock.isRunning) return;
-    final expired = clock.charge(elapsed ?? _consumeElapsed());
+    if (result != null) return;
+    final expired = _tracker?.settle(elapsed);
     if (expired == null) return;
     LogService.warning('${sideName(expired)}超时判负');
     _finish(GameResult(winner: opponentOf(expired), reason: '超时'));
@@ -158,7 +153,7 @@ class GameController extends ChangeNotifier implements BoardView {
         board.sideToMove != humanSide &&
         board.history.isNotEmpty);
     result = null;
-    _restoreClock();
+    _tracker?.rewind(keepMoves: board.history.length, side: board.sideToMove);
     _clearSelection(notify: false);
     inCheck = XiangqiRules.isKingInCheck(board.cells, board.sideToMove);
     LogService.info('悔棋，当前轮到${sideName(board.sideToMove)}');
@@ -171,9 +166,7 @@ class GameController extends ChangeNotifier implements BoardView {
     thinking = false;
     result = null;
     inCheck = false;
-    _clockMarks.clear();
-    clock?.reset();
-    _syncClock();
+    _tracker?.restart(board.sideToMove);
     _clearSelection(notify: false);
     LogService.info('重新开始对局');
     _notify();
@@ -190,18 +183,10 @@ class GameController extends ChangeNotifier implements BoardView {
   /// 收敛终局：记录结果、停表、收掉残留选中，写日志并通知界面。
   void _finish(GameResult outcome) {
     result = outcome;
-    clock?.stop();
+    _tracker?.stop();
     _clearSelection(notify: false);
     LogService.info('对局结束: ${outcome.title} (${outcome.reason})');
     _notify();
-  }
-
-  /// 结算当前行棋方从上次结算至今的用时。
-  Duration _consumeElapsed() {
-    final now = _watch.elapsed;
-    final delta = now - _lastMark;
-    _lastMark = now;
-    return delta;
   }
 
   void _clearSelection({bool notify = true}) {
@@ -216,8 +201,7 @@ class GameController extends ChangeNotifier implements BoardView {
     if (result != null) return;
     final record = board.tryApply(from, to);
     if (record == null) return;
-    final clock = this.clock;
-    if (clock != null) _clockMarks.add(clock.snapshot());
+    _tracker?.mark();
     selected = null;
     legalTargets = const [];
     final captureText = record.isCapture
@@ -247,32 +231,15 @@ class GameController extends ChangeNotifier implements BoardView {
     if (mode != GameMode.twoPlayers && board.sideToMove != humanSide) _think();
   }
 
-  /// 把计时交给当前行棋方；终局或停表时清零基准，避免把空闲时间算进去。
+  /// 把计时交给当前行棋方；终局时停表。
   void _syncClock() {
-    final clock = this.clock;
-    if (clock == null) return;
-    _lastMark = _watch.elapsed;
+    final tracker = _tracker;
+    if (tracker == null) return;
     if (result == null) {
-      clock.start(board.sideToMove);
+      tracker.resume(board.sideToMove);
     } else {
-      clock.stop();
+      tracker.stop();
     }
-  }
-
-  /// 悔棋后回到落子前的棋钟状态，并重新为当前行棋方计时。
-  void _restoreClock() {
-    final clock = this.clock;
-    if (clock == null) return;
-    List<int>? mark;
-    while (_clockMarks.length > board.history.length) {
-      mark = _clockMarks.removeLast();
-    }
-    if (mark == null) {
-      clock.reset();
-    } else {
-      clock.restore(mark, side: board.sideToMove);
-    }
-    _syncClock();
   }
 
   /// 依据规则裁定终局；对局继续时返回 null。
