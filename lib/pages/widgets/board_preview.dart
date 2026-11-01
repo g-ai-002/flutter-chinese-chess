@@ -96,53 +96,25 @@ class _BoardPreviewPainter extends CustomPainter {
     PieceFace face,
     double cell,
   ) {
-    final radius = cell * 0.52;
-    canvas.drawCircle(
-      center.translate(0, 1.5),
-      radius,
-      Paint()
-        ..color = Colors.black.withValues(alpha: 0.16)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
-    );
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..shader = RadialGradient(
-          center: const Alignment(-0.35, -0.4),
-          colors: [face.light, face.dark],
-        ).createShader(Rect.fromCircle(center: center, radius: radius)),
-    );
-    canvas.drawCircle(
-      center,
-      radius * 0.8,
-      Paint()..color = face.dark.withValues(alpha: 0.35),
-    );
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.6
-        ..color = face.ink.withValues(alpha: 0.85),
-    );
-    final painter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(
-          fontSize: cell * 0.72,
-          fontWeight: FontWeight.w700,
-          color: face.ink,
-          fontFamily: 'KaiTi',
-          fontFamilyFallback: kKaiFontFallback,
-          height: 1,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    painter.paint(
+    paintPieceDisc(
       canvas,
-      center - Offset(painter.width / 2, painter.height / 2),
+      center: center,
+      radius: cell * 0.52,
+      face: face,
+      label: TextPainter(
+        text: TextSpan(
+          text: text,
+          style: TextStyle(
+            fontSize: cell * 0.72,
+            fontWeight: FontWeight.w700,
+            color: face.ink,
+            fontFamily: 'KaiTi',
+            fontFamilyFallback: kKaiFontFallback,
+            height: 1,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout(),
     );
   }
 

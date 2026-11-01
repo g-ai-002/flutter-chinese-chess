@@ -40,9 +40,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
 
     final count = view.history.length;
     if (count != _seenMoves) {
-      if (count > _seenMoves &&
-          _seenMoves >= 0 &&
-          view.history.isNotEmpty) {
+      if (count > _seenMoves && _seenMoves >= 0 && view.history.isNotEmpty) {
         final last = view.history.last;
         _anim = _MoveAnim(
           from: last.from,
@@ -343,58 +341,17 @@ class BoardComponent extends PositionComponent with TapCallbacks {
     double scale = 1,
     double opacity = 1,
   }) {
-    final side = sideOf(piece);
-    final face = pieceFaceOf(side);
-    final ink = face.ink;
-    final radius = cell * 0.43 * scale;
-    final rect = Rect.fromCircle(center: center, radius: radius);
-
-    canvas.drawCircle(
-      center.translate(0, cell * 0.035),
-      radius * 1.02,
-      Paint()
-        ..color = Colors.black.withValues(alpha: 0.18 * opacity)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, cell * 0.05),
-    );
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..shader = RadialGradient(
-          center: const Alignment(-0.35, -0.4),
-          radius: 0.95,
-          colors: [
-            face.light.withValues(alpha: opacity),
-            face.dark.withValues(alpha: opacity),
-          ],
-        ).createShader(rect),
-    );
-    canvas.drawCircle(
-      center,
-      radius * 0.82,
-      Paint()..color = face.dark.withValues(alpha: 0.35 * opacity),
-    );
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = cell * 0.045
-        ..color = ink.withValues(alpha: 0.9 * opacity),
-    );
-    canvas.drawCircle(
-      center,
-      radius * 0.8,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = cell * 0.013
-        ..color = ink.withValues(alpha: 0.5 * opacity),
-    );
-
-    final painter = _piecePainter(piece, cell, ink, opacity);
-    painter.paint(
+    final face = pieceFaceOf(sideOf(piece));
+    paintPieceDisc(
       canvas,
-      center - Offset(painter.width / 2, painter.height / 2),
+      center: center,
+      radius: cell * 0.43 * scale,
+      face: face,
+      label: _piecePainter(piece, cell, face.ink, opacity),
+      borderWidth: cell * 0.045,
+      innerRingWidth: cell * 0.013,
+      shadowBlur: cell * 0.05,
+      opacity: opacity,
     );
   }
 

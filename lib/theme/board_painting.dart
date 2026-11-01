@@ -1,6 +1,67 @@
 import 'package:flutter/material.dart';
 
 import '../game/engine/board_utils.dart';
+import 'app_theme.dart';
+
+/// 绘制一枚棋子：投影、棋面渐变、外圈与内圈，字面以传入的 [label] 居中绘制。
+///
+/// Flame 棋盘与首页缩略图共用同一套棋子质感；[innerRingWidth] 为 0 时不画内圈。
+void paintPieceDisc(
+  Canvas canvas, {
+  required Offset center,
+  required double radius,
+  required PieceFace face,
+  required TextPainter label,
+  double borderWidth = 1.6,
+  double innerRingWidth = 0,
+  double shadowBlur = 2,
+  double opacity = 1,
+}) {
+  canvas.drawCircle(
+    center.translate(0, radius * 0.08),
+    radius * 1.02,
+    Paint()
+      ..color = Colors.black.withValues(alpha: 0.18 * opacity)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, shadowBlur),
+  );
+  canvas.drawCircle(
+    center,
+    radius,
+    Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-0.35, -0.4),
+        radius: 0.95,
+        colors: [
+          face.light.withValues(alpha: opacity),
+          face.dark.withValues(alpha: opacity),
+        ],
+      ).createShader(Rect.fromCircle(center: center, radius: radius)),
+  );
+  canvas.drawCircle(
+    center,
+    radius * 0.82,
+    Paint()..color = face.dark.withValues(alpha: 0.35 * opacity),
+  );
+  canvas.drawCircle(
+    center,
+    radius,
+    Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = borderWidth
+      ..color = face.ink.withValues(alpha: 0.9 * opacity),
+  );
+  if (innerRingWidth > 0) {
+    canvas.drawCircle(
+      center,
+      radius * 0.8,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = innerRingWidth
+        ..color = face.ink.withValues(alpha: 0.5 * opacity),
+    );
+  }
+  label.paint(canvas, center - Offset(label.width / 2, label.height / 2));
+}
 
 /// 绘制棋盘网格：十条横线、九条竖线（楚河汉界处断开）、两处九宫斜线与外框。
 ///

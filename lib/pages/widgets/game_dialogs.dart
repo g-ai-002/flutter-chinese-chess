@@ -10,61 +10,26 @@ Future<void> showGameResultDialog(
   required VoidCallback onRestart,
   VoidCallback? onReview,
 }) {
-  return showDialog<void>(
-    context: context,
-    barrierDismissible: false,
-    builder: (dialogContext) {
-      final colors = Theme.of(dialogContext).colorScheme;
-      return PopScope(
-        canPop: false,
-        child: AlertDialog(
-          icon: Icon(
-            result.isDraw
-                ? Icons.handshake_outlined
-                : Icons.emoji_events_outlined,
-            size: 36,
-            color: colors.primary,
-          ),
-          title: Text(result.title),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(result.reason),
-              const SizedBox(height: 6),
-              Text(
-                '共 $moveCount 手',
-                style: Theme.of(dialogContext).textTheme.bodySmall,
-              ),
-            ],
-          ),
-          actionsAlignment: MainAxisAlignment.center,
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                Navigator.of(context).pop();
-              },
-              child: const Text('返回首页'),
-            ),
-            if (onReview != null)
-              OutlinedButton(
-                onPressed: () {
-                  Navigator.of(dialogContext).pop();
-                  onReview();
-                },
-                child: const Text('复盘'),
-              ),
-            FilledButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                onRestart();
-              },
-              child: const Text('再来一局'),
-            ),
-          ],
-        ),
-      );
-    },
+  return _showResultDialog(
+    context,
+    icon: result.isDraw
+        ? Icons.handshake_outlined
+        : Icons.emoji_events_outlined,
+    title: result.title,
+    message: result.reason,
+    note: '共 $moveCount 手',
+    actions: [
+      _ResultAction(
+        label: '返回首页',
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+      if (onReview != null) _ResultAction(label: '复盘', onPressed: onReview),
+      _ResultAction(
+        label: '再来一局',
+        style: _ActionStyle.filled,
+        onPressed: onRestart,
+      ),
+    ],
   );
 }
 
@@ -100,55 +65,96 @@ Future<void> showPuzzleResultDialog(
   required VoidCallback onRetry,
   VoidCallback? onNext,
 }) {
+  return _showResultDialog(
+    context,
+    icon: cleared ? Icons.emoji_events_outlined : Icons.hourglass_bottom,
+    title: cleared ? '挑战成功' : '挑战失败',
+    message: cleared ? '于第 $moves 步将死黑方' : reason,
+    note: '本关限 $mateIn 步',
+    actions: [
+      _ResultAction(
+        label: '返回列表',
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+      if (cleared && onNext != null)
+        _ResultAction(
+          label: '下一关',
+          style: _ActionStyle.outlined,
+          onPressed: onNext,
+        ),
+      _ResultAction(
+        label: cleared ? '再来一次' : '再试一次',
+        style: _ActionStyle.filled,
+        onPressed: onRetry,
+      ),
+    ],
+  );
+}
+
+enum _ActionStyle { text, outlined, filled }
+
+/// 结果弹窗的一个动作：点击后先关闭弹窗，再执行回调。
+class _ResultAction {
+  const _ResultAction({
+    required this.label,
+    required this.onPressed,
+    this.style = _ActionStyle.text,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+  final _ActionStyle style;
+}
+
+/// 终局与残局共用的结果弹窗骨架。
+Future<void> _showResultDialog(
+  BuildContext context, {
+  required IconData icon,
+  required String title,
+  required String message,
+  required String note,
+  required List<_ResultAction> actions,
+}) {
   return showDialog<void>(
     context: context,
     barrierDismissible: false,
     builder: (dialogContext) {
-      final colors = Theme.of(dialogContext).colorScheme;
+      final theme = Theme.of(dialogContext);
+      void run(_ResultAction action) {
+        Navigator.of(dialogContext).pop();
+        action.onPressed();
+      }
+
       return PopScope(
         canPop: false,
         child: AlertDialog(
-          icon: Icon(
-            cleared ? Icons.emoji_events_outlined : Icons.hourglass_bottom,
-            size: 36,
-            color: colors.primary,
-          ),
-          title: Text(cleared ? '挑战成功' : '挑战失败'),
+          icon: Icon(icon, size: 36, color: theme.colorScheme.primary),
+          title: Text(title),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(cleared ? '于第 $moves 步将死黑方' : reason),
+              Text(message),
               const SizedBox(height: 6),
-              Text(
-                '本关限 $mateIn 步',
-                style: Theme.of(dialogContext).textTheme.bodySmall,
-              ),
+              Text(note, style: theme.textTheme.bodySmall),
             ],
           ),
           actionsAlignment: MainAxisAlignment.center,
           actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                Navigator.of(context).pop();
+            for (final action in actions)
+              switch (action.style) {
+                _ActionStyle.filled => FilledButton(
+                  onPressed: () => run(action),
+                  child: Text(action.label),
+                ),
+                _ActionStyle.outlined => OutlinedButton(
+                  onPressed: () => run(action),
+                  child: Text(action.label),
+                ),
+                _ActionStyle.text => TextButton(
+                  onPressed: () => run(action),
+                  child: Text(action.label),
+                ),
               },
-              child: const Text('返回列表'),
-            ),
-            if (cleared && onNext != null)
-              OutlinedButton(
-                onPressed: () {
-                  Navigator.of(dialogContext).pop();
-                  onNext();
-                },
-                child: const Text('下一关'),
-              ),
-            FilledButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                onRetry();
-              },
-              child: Text(cleared ? '再来一次' : '再试一次'),
-            ),
           ],
         ),
       );

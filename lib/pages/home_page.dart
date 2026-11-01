@@ -26,16 +26,7 @@ class HomePage extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
-    final modeCards = [
-      for (final entry in _modeEntries(context, settings, colors))
-        _ModeCard(
-          icon: entry.icon,
-          title: entry.title,
-          subtitle: entry.subtitle,
-          accent: entry.accent,
-          onTap: entry.onTap,
-        ),
-    ];
+    final modeCards = _modeCards(context, settings, colors);
 
     return Scaffold(
       body: Container(
@@ -152,9 +143,8 @@ class HomePage extends StatelessWidget {
     final archive = GameArchive.decode(text);
     if (!context.mounted) return;
     if (archive == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('棋谱无法解析，请检查文本是否完整')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('棋谱无法解析，请检查文本是否完整')));
       return;
     }
     LogService.info('导入棋谱: ${archive.title}, 共 ${archive.moveCount} 手');
@@ -172,33 +162,33 @@ class HomePage extends StatelessWidget {
   }
 
   /// 首页四个模式入口，宽屏两列、窄屏堆叠都复用同一份定义。
-  List<_ModeEntry> _modeEntries(
+  List<_ModeCard> _modeCards(
     BuildContext context,
     SettingsProvider settings,
     ColorScheme colors,
   ) => [
-    _ModeEntry(
+    _ModeCard(
       icon: Icons.smart_toy_outlined,
       title: GameMode.vsAi.label,
       subtitle: '三档 AI 难度 · 可执黑后行',
       accent: colors.primary,
       onTap: () => _startGame(context, settings, GameMode.vsAi),
     ),
-    _ModeEntry(
+    _ModeCard(
       icon: Icons.people_alt_outlined,
       title: GameMode.twoPlayers.label,
       subtitle: '同屏轮流落子 · 面对面手谈',
       accent: colors.tertiary,
       onTap: () => _startGame(context, settings, GameMode.twoPlayers),
     ),
-    _ModeEntry(
+    _ModeCard(
       icon: Icons.flag_outlined,
       title: GameMode.puzzle.label,
       subtitle: '八道杀法练习 · 限步取胜',
       accent: colors.secondary,
       onTap: () => _openPuzzles(context),
     ),
-    _ModeEntry(
+    _ModeCard(
       icon: Icons.history_edu_outlined,
       title: '棋谱复盘',
       subtitle: '导入棋谱 · 逐手回放',
@@ -268,22 +258,6 @@ class _ImportDialogState extends State<_ImportDialog> {
       ],
     );
   }
-}
-
-class _ModeEntry {
-  const _ModeEntry({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.accent,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color accent;
-  final VoidCallback onTap;
 }
 
 class _TopBar extends StatelessWidget {

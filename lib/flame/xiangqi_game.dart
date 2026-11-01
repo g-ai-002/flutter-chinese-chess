@@ -16,10 +16,9 @@ class XiangqiGame extends FlameGame {
 
   @override
   Future<void> onLoad() async {
-    final board = BoardComponent(view: view)
-      ..size = size.clone()
-      ..position = Vector2.zero();
+    final board = BoardComponent(view: view);
     _board = board;
+    _fit(board);
     await add(board);
   }
 
@@ -27,9 +26,13 @@ class XiangqiGame extends FlameGame {
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
     final board = _board;
-    if (board != null) {
-      board.size = size.clone();
-      board.position = Vector2.zero();
-    }
+    if (board != null) _fit(board);
+  }
+
+  /// 棋盘始终铺满游戏区域，随窗口或屏幕尺寸变化重建尺寸。
+  void _fit(BoardComponent board) {
+    board
+      ..size = size.clone()
+      ..position = Vector2.zero();
   }
 }
