@@ -17,8 +17,8 @@ int _warmth(Color color) => (color.r * 255).round() - (color.b * 255).round();
 
 void main() {
   test('红黑棋面底色可明显区分', () {
-    final redFace = pieceFaceOf(red);
-    final blackFace = pieceFaceOf(black);
+    final redFace = woodSkin.faceOf(red);
+    final blackFace = woodSkin.faceOf(black);
 
     expect(redFace.dark, isNot(blackFace.dark));
     expect(redFace.light, isNot(blackFace.light));
@@ -33,7 +33,7 @@ void main() {
 
   test('棋面与棋子文字保持足够对比度', () {
     for (final side in [red, black]) {
-      final face = pieceFaceOf(side);
+      final face = woodSkin.faceOf(side);
       expect(
         _contrast(face.ink, face.dark),
         greaterThanOrEqualTo(4.0),

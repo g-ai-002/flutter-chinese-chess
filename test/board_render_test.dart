@@ -1,10 +1,11 @@
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:chinese_chess/flame/board_component.dart';
 import 'package:chinese_chess/game/game_controller.dart';
 import 'package:chinese_chess/models/game_models.dart';
+import 'package:chinese_chess/theme/board_skin.dart';
 import 'package:flame/components.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const double _width = 480;
@@ -16,7 +17,7 @@ Future<ByteData> _renderBoard() async {
     difficulty: Difficulty.entry,
     humanSide: 0,
   );
-  final board = BoardComponent(view: controller)
+  final board = BoardComponent(view: controller, skin: ValueNotifier(woodSkin))
     ..size = Vector2(_width, _height);
   final recorder = ui.PictureRecorder();
   board.render(ui.Canvas(recorder));
