@@ -26,13 +26,13 @@
 
 ## 下载
 
-v0.6.0（当前版本）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.6.0)
+v0.6.1（当前版本）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.6.1)
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64) | `flutter-chinese-chess-0.6.0-android-aarch64.apk` |
-| Windows (x64, Win10+) | `flutter-chinese-chess-0.6.0-windows-x86_64.zip` |
-| Web | `flutter-chinese-chess-0.6.0-web.zip`（解压后起静态服务器） |
+| Android (arm64) | `flutter-chinese-chess-0.6.1-android-aarch64.apk` |
+| Windows (x64, Win10+) | `flutter-chinese-chess-0.6.1-windows-x86_64.zip` |
+| Web | `flutter-chinese-chess-0.6.1-web.zip`（解压后起静态服务器） |
 
 ## 开发
 
@@ -71,16 +71,17 @@ lib/
 
 | 版本 | 说明 |
 | --- | --- |
+| v0.6.1 | 重构引擎增量代码：杀棋分数、搜索棋盘与置换表职责收敛，状态胶囊统一 |
 | v0.6.0 | AI 引擎升级：迭代加深、置换表、杀手着法与历史启发，高手档提到 5 层 |
 | v0.5.1 | 重构棋钟簿记、偏好选择器与入口卡片，对局页与复盘页共用布局骨架 |
 | v0.5.0 | 新增限时对局：5 / 10 / 20 分钟棋钟、超时判负，悔棋还原用时 |
 | v0.4.1 | 重构皮肤默认值、棋子字面与触感入口，修复落子重复震动，复盘皮肤即时跟随 |
-| v0.4.0 | 新增檀木 / 青玉 / 墨韵三套棋盘皮肤，落子音效与震动反馈可开关 |
 
 ### 更早版本
 
 | 版本 | 说明 |
 | --- | --- |
+| v0.4.0 | 新增檀木 / 青玉 / 墨韵三套棋盘皮肤，落子音效与震动反馈可开关 |
 | v0.3.1 | 重构棋盘舞台、棋谱侧栏、棋子绘制与棋谱解析，收敛重复实现 |
 | v0.3.0 | 新增开局库提示与复盘，支持棋谱导出、导入与逐手回放 |
 | v0.2.1 | 重构布局解析、棋盘绘制与终局裁定，首页与设置页共用偏好选择器 |
