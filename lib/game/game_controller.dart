@@ -64,6 +64,9 @@ class GameController extends ChangeNotifier implements BoardView {
   bool inCheck = false;
   GameResult? result;
 
+  /// 最近一次 AI 搜索摘要，供界面展示引擎层数与用时。
+  AiInsight? aiInsight;
+
   int _serial = 0;
   bool _disposed = false;
 
@@ -165,6 +168,7 @@ class GameController extends ChangeNotifier implements BoardView {
     board.reset();
     thinking = false;
     result = null;
+    aiInsight = null;
     inCheck = false;
     _tracker?.restart(board.sideToMove);
     _clearSelection(notify: false);
@@ -286,6 +290,12 @@ class GameController extends ChangeNotifier implements BoardView {
     thinking = false;
     stopwatch.stop();
     if (reply != null) {
+      aiInsight = AiInsight(
+        depth: reply.depth,
+        nodes: reply.nodes,
+        score: reply.score,
+        millis: stopwatch.elapsedMilliseconds,
+      );
       LogService.info(
         'AI 完成: 深度 ${reply.depth}, 节点 ${reply.nodes}, '
         '评分 ${reply.score}, 用时 ${stopwatch.elapsedMilliseconds}ms',

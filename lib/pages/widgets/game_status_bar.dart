@@ -93,6 +93,29 @@ class GameStatusBar extends StatelessWidget {
                 letterSpacing: 1,
               ),
             ),
+          )
+        else if (isAiMode && controller.aiInsight != null)
+          Tooltip(
+            message:
+                '节点 ${controller.aiInsight!.nodes} · '
+                '评分 ${controller.aiInsight!.score}',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.memory_rounded,
+                  size: 13,
+                  color: colors.onSurfaceVariant,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  controller.aiInsight!.label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
         const Spacer(),
         if (puzzle != null)

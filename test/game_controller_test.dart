@@ -40,6 +40,42 @@ void main() {
     controller.dispose();
   });
 
+  test('AI 完成后记录引擎摘要，重开后清空', () async {
+    final controller = GameController(
+      mode: GameMode.vsAi,
+      difficulty: Difficulty.entry,
+      humanSide: red,
+      aiMove: (cells, side, difficulty) async =>
+          const AiReply(move: 0, score: 42, nodes: 1234, depth: 3),
+    );
+    controller.start();
+    controller.tapCell(indexOf(9, 0));
+    controller.tapCell(indexOf(8, 0));
+    await pumpEventQueue();
+
+    final insight = controller.aiInsight;
+    expect(insight, isNotNull);
+    expect(insight!.depth, 3);
+    expect(insight.nodes, 1234);
+    expect(insight.score, 42);
+
+    controller.restart();
+    expect(controller.aiInsight, isNull);
+
+    controller.dispose();
+  });
+
+  test('引擎摘要文案保留层数与用时', () {
+    const insight = AiInsight(
+      depth: 5,
+      nodes: 123456,
+      score: -20,
+      millis: 1820,
+    );
+
+    expect(insight.label, 'AI 第 5 层 · 1.8s');
+  });
+
   test('人类执黑时 AI 先行，且此时不能悔棋', () async {
     final controller = GameController(
       mode: GameMode.vsAi,

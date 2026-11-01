@@ -1,7 +1,12 @@
 import 'package:chinese_chess/flame/xiangqi_game.dart';
+import 'package:chinese_chess/game/ai_player.dart';
+import 'package:chinese_chess/game/engine/board_utils.dart';
+import 'package:chinese_chess/game/engine/rules.dart';
+import 'package:chinese_chess/game/game_controller.dart';
 import 'package:chinese_chess/models/game_models.dart';
 import 'package:chinese_chess/pages/game_page.dart';
 import 'package:chinese_chess/pages/widgets/game_dialogs.dart';
+import 'package:chinese_chess/pages/widgets/game_status_bar.dart';
 import 'package:chinese_chess/providers/settings_provider.dart';
 import 'package:chinese_chess/services/storage_service.dart';
 import 'package:chinese_chess/theme/app_theme.dart';
@@ -216,6 +221,38 @@ void main() {
     expect(game().skin.id, 'jade');
 
     await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('状态条在对局空闲时展示 AI 引擎信息', (tester) async {
+    final controller = GameController(
+      mode: GameMode.vsAi,
+      difficulty: Difficulty.entry,
+      humanSide: red,
+      aiMove: (cells, side, difficulty) async => AiReply(
+        move: encodeMove(indexOf(3, 0), indexOf(4, 0)),
+        score: 35,
+        nodes: 2048,
+        depth: 3,
+      ),
+    );
+    controller.start();
+    controller.tapCell(indexOf(9, 0));
+    controller.tapCell(indexOf(8, 0));
+    await tester.pump();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(
+          body: GameStatusBar(controller: controller, humanSide: red),
+        ),
+      ),
+    );
+
+    expect(find.textContaining('AI 第 3 层'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    controller.dispose();
   });
 
   testWidgets('终局弹窗提供复盘入口', (tester) async {
