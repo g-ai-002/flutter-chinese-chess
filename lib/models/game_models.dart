@@ -1,16 +1,24 @@
 import '../game/engine/board_utils.dart';
 
-/// 难度档位：搜索深度与原着随机度。
+/// 难度档位：搜索深度、原着随机度与思考时限。
 enum Difficulty {
-  entry('入门', 1, 160),
-  normal('普通', 3, 40),
-  expert('高手', 4, 0);
+  entry('入门', 1, 160, 400),
+  normal('普通', 3, 40, 2000),
+  expert('高手', 5, 0, 5000);
 
-  const Difficulty(this.label, this.depth, this.randomness);
+  const Difficulty(
+    this.label,
+    this.depth,
+    this.randomness,
+    this.timeLimitMillis,
+  );
 
   final String label;
   final int depth;
   final int randomness;
+
+  /// 单步思考时限（毫秒），与节点预算先到先停。
+  final int timeLimitMillis;
 
   static Difficulty byName(String? name) => values.firstWhere(
     (item) => item.name == name,

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:chinese_chess/game/engine/board_utils.dart';
 import 'package:chinese_chess/game/engine/rules.dart';
 import 'package:chinese_chess/game/engine/search.dart';
+import 'package:chinese_chess/game/puzzles.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'rules_test.dart' show boardWith;
@@ -69,6 +70,65 @@ void main() {
         depth: 2,
       );
       expect(result.move, -1);
+    });
+
+    test('迭代加深记录实际完成的层数', () {
+      final cells = initialCells();
+      final result = XiangqiSearch.bestMove(
+        cells: cells,
+        side: red,
+        depth: 4,
+        timeLimitMillis: 30000,
+      );
+
+      expect(result.depth, inInclusiveRange(1, 4));
+      expect(result.nodes, greaterThan(0));
+      expect(XiangqiRules.legalMoves(cells, red), contains(result.move));
+    });
+
+    test('节点预算耗尽时仍返回合法着法', () {
+      final cells = initialCells();
+      final result = XiangqiSearch.bestMove(
+        cells: cells,
+        side: red,
+        depth: 6,
+        maxNodes: 300,
+        timeLimitMillis: 30000,
+      );
+
+      expect(XiangqiRules.legalMoves(cells, red), contains(result.move));
+    });
+
+    test('同一局面重复搜索结果一致', () {
+      final first = XiangqiSearch.bestMove(
+        cells: initialCells(),
+        side: red,
+        depth: 3,
+        maxNodes: 200000,
+      );
+      final second = XiangqiSearch.bestMove(
+        cells: initialCells(),
+        side: red,
+        depth: 3,
+        maxNodes: 200000,
+      );
+
+      expect(second.move, first.move);
+      expect(second.score, first.score);
+    });
+
+    test('两步杀残局能搜到杀棋', () {
+      final puzzle = kPuzzles.firstWhere((item) => item.id == 'p5');
+      final cells = cellsFromLayout(puzzle.layout);
+      final result = XiangqiSearch.bestMove(
+        cells: cells,
+        side: red,
+        depth: 4,
+        timeLimitMillis: 30000,
+      );
+
+      expect(result.score, greaterThan(900000));
+      expect(XiangqiRules.legalMoves(cells, red), contains(result.move));
     });
   });
 }
