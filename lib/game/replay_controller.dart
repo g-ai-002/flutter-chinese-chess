@@ -13,8 +13,8 @@ class ReplayController extends ChangeNotifier implements BoardView {
     required this.layout,
     this.startSide = red,
   }) : moves = List.unmodifiable(moves) {
-    _validateAll();
-    _board = _build(0);
+    _validate();
+    _board = _initialBoard();
   }
 
   /// 开局布局（十行），用于重建每一步的局面。
@@ -68,28 +68,31 @@ class ReplayController extends ChangeNotifier implements BoardView {
   void last() => jumpTo(moves.length);
 
   /// 跳到第 [cursor] 手之后（0 为开局局面），越界时自动收敛。
+  ///
+  /// 前进沿当前局面续走，后退时回到开局重演，避免每步都从头构建。
   void jumpTo(int cursor) {
     final target = cursor.clamp(0, moves.length);
     if (target == _cursor) return;
-    _board = _build(target);
-    _cursor = target;
+    if (target < _cursor) {
+      _board = _initialBoard();
+      _cursor = 0;
+    }
+    while (_cursor < target) {
+      _applyTo(_board, _cursor);
+      _cursor++;
+    }
     notifyListeners();
   }
 
   @override
   void tapCell(int index) {}
 
-  XiangqiBoard _build(int cursor) {
-    final board = XiangqiBoard.fromLayout(layout, sideToMove: startSide);
-    for (var index = 0; index < cursor; index++) {
-      _applyTo(board, index);
-    }
-    return board;
-  }
+  XiangqiBoard _initialBoard() =>
+      XiangqiBoard.fromLayout(layout, sideToMove: startSide);
 
   /// 构造时整体校验一遍，非法棋谱在进入复盘页前就暴露出来。
-  void _validateAll() {
-    final board = XiangqiBoard.fromLayout(layout, sideToMove: startSide);
+  void _validate() {
+    final board = _initialBoard();
     for (var index = 0; index < moves.length; index++) {
       _applyTo(board, index);
     }
@@ -97,14 +100,8 @@ class ReplayController extends ChangeNotifier implements BoardView {
 
   void _applyTo(XiangqiBoard board, int index) {
     final record = moves[index];
-    if (!XiangqiRules.isPlayable(
-      board.cells,
-      board.sideToMove,
-      record.from,
-      record.to,
-    )) {
+    if (board.tryApply(record.from, record.to) == null) {
       throw ArgumentError('第 ${index + 1} 手「${record.notation}」不是合法着法');
     }
-    board.applyMove(record.from, record.to);
   }
 }

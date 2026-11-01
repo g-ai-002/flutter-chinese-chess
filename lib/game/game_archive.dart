@@ -73,16 +73,6 @@ class GameArchive {
     for (final raw in text.split(RegExp(r'\r?\n'))) {
       final line = raw.trim();
       if (line.isEmpty || line == tag) continue;
-      if (line.startsWith('#')) {
-        final body = line.substring(1);
-        final colon = body.indexOf(':');
-        if (colon > 0) {
-          fields['#${body.substring(0, colon)}'] = body
-              .substring(colon + 1)
-              .trim();
-        }
-        continue;
-      }
       final withIndex = RegExp(r'^\d+\.\s*(.+)$').firstMatch(line);
       if (withIndex != null) {
         numbered.addAll(_tokens(withIndex.group(1)!));
@@ -95,6 +85,7 @@ class GameArchive {
             .trim();
         continue;
       }
+      if (line.startsWith('#')) continue;
       loose.addAll(_tokens(line));
     }
 
@@ -115,8 +106,9 @@ class GameArchive {
           final from = int.tryParse(parts[0]);
           final to = int.tryParse(parts[1]);
           if (from == null || to == null) return null;
-          if (!_apply(board, from, to)) return null;
-          records.add(board.history.last);
+          final record = board.tryApply(from, to);
+          if (record == null) return null;
+          records.add(record);
         }
       } else {
         for (final notation in numbered.isEmpty ? loose : numbered) {
@@ -126,8 +118,9 @@ class GameArchive {
             notation,
           );
           if (move == null) return null;
-          if (!_apply(board, moveFrom(move), moveTo(move))) return null;
-          records.add(board.history.last);
+          final record = board.tryApply(moveFrom(move), moveTo(move));
+          if (record == null) return null;
+          records.add(record);
         }
       }
       if (records.isEmpty) return null;
@@ -147,17 +140,6 @@ class GameArchive {
   /// 导出的「进行中」对局在复盘时不显示结果。
   static String? _optional(String? value) =>
       value == null || value.isEmpty || value == '进行中' ? null : value;
-
-  static bool _apply(XiangqiBoard board, int from, int to) {
-    if (from < 0 || from >= cellCount || to < 0 || to >= cellCount) {
-      return false;
-    }
-    if (!XiangqiRules.isPlayable(board.cells, board.sideToMove, from, to)) {
-      return false;
-    }
-    board.applyMove(from, to);
-    return true;
-  }
 
   static List<String> _tokens(String text) => [
     for (final token in text.split(RegExp(r'\s+')))

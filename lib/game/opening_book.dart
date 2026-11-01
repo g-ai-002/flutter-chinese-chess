@@ -43,15 +43,16 @@ class OpeningBook {
     OpeningLine? named;
     OpeningLine? extension;
     for (final line in kOpeningLines) {
-      if (line.moves.length <= played.length && _isPrefix(line.moves, played)) {
-        if (named == null || line.moves.length > named.moves.length) {
-          named = line;
-        }
-      } else if (line.moves.length > played.length &&
-          _isPrefix(played, line.moves)) {
-        if (extension == null || line.moves.length > extension.moves.length) {
-          extension = line;
-        }
+      final completed =
+          line.moves.length <= played.length && _isPrefix(line.moves, played);
+      final upcoming =
+          line.moves.length > played.length && _isPrefix(played, line.moves);
+      if (completed &&
+          (named == null || line.moves.length > named.moves.length)) {
+        named = line;
+      } else if (upcoming &&
+          (extension == null || line.moves.length > extension.moves.length)) {
+        extension = line;
       }
     }
     final matched = named ?? extension;

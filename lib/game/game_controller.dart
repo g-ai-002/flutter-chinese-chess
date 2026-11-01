@@ -168,10 +168,8 @@ class GameController extends ChangeNotifier implements BoardView {
 
   void _play(int from, int to) {
     if (result != null) return;
-    if (!XiangqiRules.isLegalMove(board.cells, board.sideToMove, from, to)) {
-      return;
-    }
-    final record = board.applyMove(from, to);
+    final record = board.tryApply(from, to);
+    if (record == null) return;
     selected = null;
     legalTargets = const [];
     final captureText = record.isCapture

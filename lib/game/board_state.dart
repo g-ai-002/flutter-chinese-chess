@@ -72,6 +72,12 @@ class XiangqiBoard {
     return record;
   }
 
+  /// 校验后落子，供棋谱导入与复盘等外部输入使用；非法着法返回 null。
+  MoveRecord? tryApply(int from, int to) {
+    if (!XiangqiRules.isPlayable(cells, sideToMove, from, to)) return null;
+    return applyMove(from, to);
+  }
+
   void reset() {
     cells.setAll(0, _startCells);
     sideToMove = _startSide;
