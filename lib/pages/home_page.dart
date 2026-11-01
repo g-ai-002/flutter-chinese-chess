@@ -8,6 +8,7 @@ import '../providers/settings_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/constants.dart';
 import 'game_page.dart';
+import 'puzzle_page.dart';
 import 'settings_page.dart';
 import 'widgets/board_preview.dart';
 import 'widgets/choice_pill.dart';
@@ -88,6 +89,16 @@ class HomePage extends StatelessWidget {
                                     ),
                                   ),
                                 ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: _ModeCard(
+                                    icon: Icons.flag_outlined,
+                                    title: GameMode.puzzle.label,
+                                    subtitle: '八道杀法练习 · 限步取胜',
+                                    accent: colors.secondary,
+                                    onTap: () => _openPuzzles(context),
+                                  ),
+                                ),
                               ],
                             )
                           else ...[
@@ -110,6 +121,14 @@ class HomePage extends StatelessWidget {
                                 settings,
                                 GameMode.twoPlayers,
                               ),
+                            ),
+                            const SizedBox(height: 12),
+                            _ModeCard(
+                              icon: Icons.flag_outlined,
+                              title: GameMode.puzzle.label,
+                              subtitle: '八道杀法练习 · 限步取胜',
+                              accent: colors.secondary,
+                              onTap: () => _openPuzzles(context),
                             ),
                           ],
                           const SizedBox(height: 18),
@@ -148,6 +167,12 @@ class HomePage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _openPuzzles(BuildContext context) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const PuzzlePage()));
   }
 }
 

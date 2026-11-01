@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../flame/xiangqi_game.dart';
 import '../game/engine/board_utils.dart';
 import '../game/game_controller.dart';
+import '../game/puzzles.dart';
 import '../models/game_models.dart';
 import '../providers/settings_provider.dart';
 import '../services/log_service.dart';
@@ -20,11 +21,15 @@ class GamePage extends StatefulWidget {
     required this.mode,
     required this.difficulty,
     required this.humanSide,
+    this.puzzle,
   });
 
   final GameMode mode;
   final Difficulty difficulty;
   final int humanSide;
+
+  /// 残局关卡，非空时以残局规则判定胜负。
+  final Puzzle? puzzle;
 
   @override
   State<GamePage> createState() => _GamePageState();
@@ -44,12 +49,16 @@ class _GamePageState extends State<GamePage> {
       difficulty: widget.difficulty,
       humanSide: widget.humanSide,
       showHints: settings.showHints,
+      puzzle: widget.puzzle,
     );
     _game = XiangqiGame(controller: _controller);
     _controller.addListener(_onControllerChanged);
+    final puzzle = widget.puzzle;
     LogService.info(
-      '开始对局: ${widget.mode.label}, 难度 ${widget.difficulty.label}, '
-      '执${widget.humanSide == red ? '红' : '黑'}',
+      puzzle == null
+          ? '开始对局: ${widget.mode.label}, 难度 ${widget.difficulty.label}, '
+                '执${widget.humanSide == red ? '红' : '黑'}'
+          : '开始残局: ${puzzle.title}, 限 ${puzzle.mateIn} 步',
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _controller.start();
@@ -59,21 +68,81 @@ class _GamePageState extends State<GamePage> {
   void _onControllerChanged() {
     if (!mounted) return;
     final result = _controller.result;
-    if (result != null && !_resultShown) {
-      _resultShown = true;
+    if (result == null || _resultShown) return;
+    _resultShown = true;
+    final puzzle = widget.puzzle;
+    if (puzzle != null) {
+      final cleared = _controller.puzzleCleared;
+      final moves = _controller.humanMoves;
+      if (cleared) {
+        context.read<SettingsProvider>().recordPuzzleCleared(puzzle.id, moves);
+      }
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        showGameResultDialog(
+        showPuzzleResultDialog(
           context,
-          result: result,
-          moveCount: _controller.history.length,
-          onRestart: () {
+          cleared: cleared,
+          reason: result.reason,
+          moves: moves,
+          mateIn: puzzle.mateIn,
+          onRetry: () {
             _resultShown = false;
             _controller.restart();
           },
+          onNext: cleared ? _nextPuzzleBuilder(puzzle) : null,
         );
       });
+      return;
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showGameResultDialog(
+        context,
+        result: result,
+        moveCount: _controller.history.length,
+        onRestart: () {
+          _resultShown = false;
+          _controller.restart();
+        },
+      );
+    });
+  }
+
+  /// 通关后跳到下一关，已是最后一关时返回 null。
+  VoidCallback? _nextPuzzleBuilder(Puzzle current) {
+    final index = kPuzzles.indexWhere((item) => item.id == current.id);
+    if (index < 0 || index + 1 >= kPuzzles.length) return null;
+    final next = kPuzzles[index + 1];
+    return () {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => GamePage(
+            mode: GameMode.puzzle,
+            difficulty: widget.difficulty,
+            humanSide: kPuzzleHumanSide,
+            puzzle: next,
+          ),
+        ),
+      );
+    };
+  }
+
+  void _showPuzzleHint() {
+    final puzzle = widget.puzzle;
+    if (puzzle == null) return;
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('提示 · ${puzzle.title}'),
+        content: Text(puzzle.hint),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('知道了'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _confirmResign() async {
@@ -110,15 +179,18 @@ class _GamePageState extends State<GamePage> {
 
   @override
   Widget build(BuildContext context) {
+    final puzzle = widget.puzzle;
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 58,
         title: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(widget.mode.label),
+            Text(puzzle?.title ?? widget.mode.label),
             Text(
-              widget.mode == GameMode.vsAi
+              puzzle != null
+                  ? '残局挑战 · 红先 ${puzzle.mateIn} 步杀'
+                  : widget.mode == GameMode.vsAi
                   ? '${widget.difficulty.label} · ${widget.humanSide == red ? '执红' : '执黑'}'
                   : '同屏对弈',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -256,6 +328,12 @@ class _GamePageState extends State<GamePage> {
           label: '重开',
           onPressed: _controller.restart,
         ),
+        if (widget.puzzle != null)
+          _ActionButton(
+            icon: Icons.lightbulb_outline,
+            label: '提示',
+            onPressed: _showPuzzleHint,
+          ),
         if (showMoves)
           _ActionButton(
             icon: Icons.format_list_bulleted_rounded,

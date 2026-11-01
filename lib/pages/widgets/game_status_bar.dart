@@ -23,6 +23,7 @@ class GameStatusBar extends StatelessWidget {
     final side = controller.board.sideToMove;
     final sideColor = sideColorOf(side);
     final isAiMode = controller.mode == GameMode.vsAi;
+    final puzzle = controller.puzzle;
 
     return Row(
       children: [
@@ -94,12 +95,28 @@ class GameStatusBar extends StatelessWidget {
             ),
           ),
         const Spacer(),
-        Text(
-          isAiMode ? (humanSide == red ? '你执红' : '你执黑') : '同屏对弈',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: colors.onSurfaceVariant,
+        if (puzzle != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: colors.primaryContainer,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '限 ${puzzle.mateIn} 步 · 剩 ${controller.remainingMoves ?? 0} 步',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: colors.onPrimaryContainer,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          )
+        else
+          Text(
+            isAiMode ? (humanSide == red ? '你执红' : '你执黑') : '同屏对弈',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
           ),
-        ),
       ],
     );
   }
