@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../game/ai_player.dart';
 import '../../game/engine/board_utils.dart';
 import '../../game/game_controller.dart';
 import '../../models/game_models.dart';
 import '../../theme/app_theme.dart';
+import 'status_chip.dart';
 
 /// 对局状态条：行棋方、AI 思考中、将军提示与执子信息。
 class GameStatusBar extends StatelessWidget {
@@ -27,13 +29,8 @@ class GameStatusBar extends StatelessWidget {
 
     return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: sideColor.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: sideColor.withValues(alpha: 0.35)),
-          ),
+        StatusChip(
+          accent: sideColor,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -57,74 +54,12 @@ class GameStatusBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        if (controller.thinking)
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 12,
-                height: 12,
-                child: CircularProgressIndicator(
-                  strokeWidth: 1.6,
-                  color: colors.primary,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'AI 思考中',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colors.onSurfaceVariant,
-                ),
-              ),
-            ],
-          )
-        else if (controller.inCheck)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-            decoration: BoxDecoration(
-              color: colors.primary,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              '将军',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: colors.onPrimary,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1,
-              ),
-            ),
-          )
-        else if (isAiMode && controller.aiInsight != null)
-          Tooltip(
-            message:
-                '节点 ${controller.aiInsight!.nodes} · '
-                '评分 ${controller.aiInsight!.score}',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.memory_rounded,
-                  size: 13,
-                  color: colors.onSurfaceVariant,
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  controller.aiInsight!.label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
+        Flexible(flex: 4, child: _status(theme)),
         const Spacer(),
         if (puzzle != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: colors.primaryContainer,
-              borderRadius: BorderRadius.circular(20),
-            ),
+          StatusChip(
+            accent: colors.primaryContainer,
+            filled: true,
             child: Text(
               '限 ${puzzle.mateIn} 步 · 剩 ${controller.remainingMoves ?? 0} 步',
               style: theme.textTheme.labelSmall?.copyWith(
@@ -141,6 +76,94 @@ class GameStatusBar extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+
+  /// 行棋方右侧的即时状态：思考中 > 将军 > 引擎摘要，取第一个成立的。
+  Widget _status(ThemeData theme) {
+    if (controller.thinking) {
+      return _ThinkingLabel(color: theme.colorScheme.onSurfaceVariant);
+    }
+    if (controller.inCheck) {
+      return StatusChip(
+        accent: theme.colorScheme.primary,
+        filled: true,
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        child: Text(
+          '将军',
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onPrimary,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1,
+          ),
+        ),
+      );
+    }
+    final insight = controller.aiInsight;
+    if (controller.mode == GameMode.vsAi && insight != null) {
+      return _InsightLabel(insight: insight);
+    }
+    return const SizedBox.shrink();
+  }
+}
+
+/// AI 思考中的转圈与文案。
+class _ThinkingLabel extends StatelessWidget {
+  const _ThinkingLabel({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 12,
+          height: 12,
+          child: CircularProgressIndicator(
+            strokeWidth: 1.6,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          'AI 思考中',
+          style: theme.textTheme.bodySmall?.copyWith(color: color),
+        ),
+      ],
+    );
+  }
+}
+
+/// 引擎摘要：层数与用时，悬停可看节点数与评分。
+class _InsightLabel extends StatelessWidget {
+  const _InsightLabel({required this.insight});
+
+  final AiInsight insight;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.onSurfaceVariant;
+    return Tooltip(
+      message: insight.detail,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.memory_rounded, size: 13, color: color),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              insight.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(color: color),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

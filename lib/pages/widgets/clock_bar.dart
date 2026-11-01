@@ -6,6 +6,7 @@ import '../../game/engine/board_utils.dart';
 import '../../game/game_controller.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/formatters.dart';
+import 'status_chip.dart';
 
 /// 棋钟条：并列展示双方剩余时间，当前行棋方高亮，不足一分钟转为警示色。
 class ClockBar extends StatefulWidget {
@@ -78,15 +79,9 @@ class _ClockChip extends StatelessWidget {
     final colors = theme.colorScheme;
     final urgent = remainingMs <= 60000;
     final accent = urgent ? colors.error : sideColorOf(side);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: active ? 0.13 : 0.05),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: active ? accent.withValues(alpha: 0.7) : colors.outline,
-        ),
-      ),
+    return StatusChip(
+      accent: accent,
+      active: active,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

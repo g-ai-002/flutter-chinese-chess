@@ -7,6 +7,7 @@ import 'package:chinese_chess/pages/widgets/board_stage.dart';
 import 'package:chinese_chess/pages/widgets/entry_tile.dart';
 import 'package:chinese_chess/pages/widgets/move_panel.dart';
 import 'package:chinese_chess/pages/widgets/play_layout.dart';
+import 'package:chinese_chess/pages/widgets/status_chip.dart';
 import 'package:chinese_chess/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -255,6 +256,64 @@ void main() {
       expect(find.text('窄屏底部'), findsOneWidget);
       expect(find.text('宽屏操作'), findsNothing);
       expect(find.text('棋谱栏'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  });
+
+  group('状态胶囊', () {
+    Color chipColor(WidgetTester tester) {
+      final box = tester.widget<Container>(
+        find.descendant(
+          of: find.byType(StatusChip),
+          matching: find.byType(Container),
+        ),
+      );
+      return (box.decoration! as BoxDecoration).color!;
+    }
+
+    testWidgets('淡底胶囊用强调色低透明度铺底', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          const Center(
+            child: StatusChip(accent: appRed, child: Text('红方行棋')),
+          ),
+        ),
+      );
+
+      expect(find.text('红方行棋'), findsOneWidget);
+      expect(chipColor(tester).a, closeTo(0.10, 0.01));
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
+    testWidgets('实心胶囊直接用强调色，非活跃时底色更淡', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          const Center(
+            child: StatusChip(
+              accent: appRed,
+              filled: true,
+              child: Text('将军'),
+            ),
+          ),
+        ),
+      );
+      expect(find.text('将军'), findsOneWidget);
+      expect(chipColor(tester), appRed);
+
+      await tester.pumpWidget(
+        _wrap(
+          const Center(
+            child: StatusChip(
+              accent: appRed,
+              active: false,
+              child: Text('黑方行棋'),
+            ),
+          ),
+        ),
+      );
+      expect(chipColor(tester).a, closeTo(0.04, 0.01));
 
       await tester.pumpWidget(const SizedBox.shrink());
     });

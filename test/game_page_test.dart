@@ -250,6 +250,47 @@ void main() {
     );
 
     expect(find.textContaining('AI 第 3 层'), findsOneWidget);
+    expect(
+      find.byTooltip('节点 2048 · 评分 35'),
+      findsOneWidget,
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    controller.dispose();
+  });
+
+  testWidgets('窄屏下状态条不溢出', (tester) async {
+    final controller = GameController(
+      mode: GameMode.vsAi,
+      difficulty: Difficulty.entry,
+      humanSide: black,
+      aiMove: (cells, side, difficulty) async => AiReply(
+        move: encodeMove(indexOf(3, 0), indexOf(4, 0)),
+        score: 35,
+        nodes: 2048000,
+        depth: 5,
+      ),
+    );
+    controller.start();
+    controller.tapCell(indexOf(0, 0));
+    controller.tapCell(indexOf(1, 0));
+    await tester.pump();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 320,
+            child: GameStatusBar(controller: controller, humanSide: black),
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('红方行棋'), findsNothing);
+    expect(find.textContaining('AI 第 5 层'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     controller.dispose();
