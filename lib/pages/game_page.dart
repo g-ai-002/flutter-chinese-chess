@@ -1,6 +1,3 @@
-import 'dart:math' as math;
-
-import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -13,9 +10,11 @@ import '../models/game_models.dart';
 import '../providers/settings_provider.dart';
 import '../services/log_service.dart';
 import 'review_page.dart';
+import 'widgets/board_stage.dart';
 import 'widgets/game_dialogs.dart';
 import 'widgets/game_status_bar.dart';
 import 'widgets/move_list.dart';
+import 'widgets/move_panel.dart';
 
 class GamePage extends StatefulWidget {
   const GamePage({
@@ -303,41 +302,8 @@ class _GamePageState extends State<GamePage> {
     );
   }
 
-  Widget _buildBoard() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        var width = math.min(constraints.maxWidth, 660.0);
-        var height = width * 10 / 9;
-        if (height > constraints.maxHeight) {
-          height = constraints.maxHeight;
-          width = height * 9 / 10;
-        }
-        return Center(
-          child: Container(
-            width: width,
-            height: height,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.18),
-                  blurRadius: 22,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: GameWidget<XiangqiGame>(
-                key: const ValueKey('xiangqi-board'),
-                game: _game,
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
+  Widget _buildBoard() =>
+      BoardStage(game: _game, gameKey: const ValueKey('xiangqi-board'));
 
   Widget _buildActions({required bool showMoves}) {
     final isAi = widget.mode == GameMode.vsAi;
@@ -377,55 +343,8 @@ class _GamePageState extends State<GamePage> {
     );
   }
 
-  Widget _buildSidePanel() {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.outline.withValues(alpha: 0.7)),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-            child: Row(
-              children: [
-                Icon(Icons.menu_book_outlined, size: 17, color: colors.primary),
-                const SizedBox(width: 7),
-                Text('棋谱', style: theme.textTheme.titleSmall),
-                const Spacer(),
-                Text(
-                  '${_controller.history.length} 手',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Divider(color: colors.outline.withValues(alpha: 0.5)),
-          Expanded(
-            child: MoveList(
-              history: _controller.history,
-              padding: const EdgeInsets.symmetric(vertical: 6),
-            ),
-          ),
-          Divider(color: colors.outline.withValues(alpha: 0.5)),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-            child: Text(
-              '提示：点击棋子选中，再点目标位置落子。',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colors.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildSidePanel() =>
+      MovePanel(history: _controller.history, footer: '提示：点击棋子选中，再点目标位置落子。');
 }
 
 class _ActionButton extends StatelessWidget {
@@ -504,7 +423,9 @@ class _OpeningHint extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               '试走 $next',
-              style: theme.textTheme.labelSmall?.copyWith(color: colors.primary),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: colors.primary,
+              ),
             ),
           ],
         ],

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -14,7 +13,9 @@ import '../services/file_system_service.dart';
 import '../services/log_service.dart';
 import '../utils/formatters.dart';
 import '../utils/platform_info.dart';
+import 'widgets/board_stage.dart';
 import 'widgets/move_list.dart';
+import 'widgets/move_panel.dart';
 
 /// 复盘页：逐手回放一局棋谱，并支持导出为文本棋谱。
 class ReviewPage extends StatefulWidget {
@@ -213,57 +214,12 @@ class _ReviewPageState extends State<ReviewPage> {
     );
   }
 
-  Widget _buildSidePanel() {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.outline.withValues(alpha: 0.7)),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-            child: Row(
-              children: [
-                Icon(Icons.menu_book_outlined, size: 17, color: colors.primary),
-                const SizedBox(width: 7),
-                Text('棋谱', style: theme.textTheme.titleSmall),
-                const Spacer(),
-                Text(
-                  '${_replay.total} 手',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Divider(color: colors.outline.withValues(alpha: 0.5)),
-          Expanded(
-            child: MoveList(
-              history: widget.moves,
-              highlightIndex: _replay.cursor - 1,
-              onTapIndex: (index) => _replay.jumpTo(index + 1),
-              padding: const EdgeInsets.symmetric(vertical: 6),
-            ),
-          ),
-          Divider(color: colors.outline.withValues(alpha: 0.5)),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-            child: Text(
-              _summaryText(),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colors.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildSidePanel() => MovePanel(
+    history: widget.moves,
+    highlightIndex: _replay.cursor - 1,
+    onTapIndex: (index) => _replay.jumpTo(index + 1),
+    footer: _summaryText(),
+  );
 
   String _summaryText() {
     final parts = [
@@ -274,41 +230,8 @@ class _ReviewPageState extends State<ReviewPage> {
     return parts.join(' · ');
   }
 
-  Widget _buildBoard() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        var width = math.min(constraints.maxWidth, 660.0);
-        var height = width * 10 / 9;
-        if (height > constraints.maxHeight) {
-          height = constraints.maxHeight;
-          width = height * 9 / 10;
-        }
-        return Center(
-          child: Container(
-            width: width,
-            height: height,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.18),
-                  blurRadius: 22,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: GameWidget<XiangqiGame>(
-                key: const ValueKey('review-board'),
-                game: _game,
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
+  Widget _buildBoard() =>
+      BoardStage(game: _game, gameKey: const ValueKey('review-board'));
 
   Widget _buildControls() {
     final theme = Theme.of(context);
