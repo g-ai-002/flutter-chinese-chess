@@ -73,6 +73,25 @@ void main() {
     replay.dispose();
   });
 
+  test('前进与后退交替后与直接跳转的局面一致', () {
+    final replay = replayOf(opening);
+    replay.jumpTo(3);
+    final third = [for (final record in replay.history) record.notation];
+
+    replay.previous();
+    replay.previous();
+    expect(replay.cursor, 1);
+    expect(replay.history.single.notation, opening.first);
+
+    replay.next();
+    replay.next();
+    expect(replay.cursor, 3);
+    expect([for (final record in replay.history) record.notation], third);
+    expect(replay.board.sideToMove, black);
+
+    replay.dispose();
+  });
+
   test('非法的着法序列在构造时抛出异常', () {
     final records = play(['炮二平五']);
     final broken = MoveRecord(

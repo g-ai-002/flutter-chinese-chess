@@ -94,6 +94,19 @@ void main() {
     expect(GameArchive.decode('[中国象棋棋谱]\n布局: bad\n#moves: 1-2'), isNull);
   });
 
+  test('忽略无冒号的井号注释行', () {
+    const text = '''
+[中国象棋棋谱]
+# 这是注释
+标题: 笔记
+1. 炮二平五 马8进7
+''';
+    final decoded = GameArchive.decode(text);
+    expect(decoded, isNotNull);
+    expect(decoded!.title, '笔记');
+    expect(decoded.moves.length, 2);
+  });
+
   test('着法编码越界时返回 null', () {
     const text = '''
 #moves: 0-1 0-999

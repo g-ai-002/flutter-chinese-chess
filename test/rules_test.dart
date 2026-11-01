@@ -222,4 +222,45 @@ void main() {
       expect(XiangqiRules.isPositionSafe(cells, black), isTrue);
     });
   });
+
+  group('外部着法校验', () {
+    test('接受本方棋子的合法着法', () {
+      final cells = initialCells();
+      expect(
+        XiangqiRules.isPlayable(cells, red, indexOf(7, 1), indexOf(7, 4)),
+        isTrue,
+        reason: '炮二平五',
+      );
+    });
+
+    test('拒绝非本方棋子、空位与越界下标', () {
+      final cells = initialCells();
+      expect(
+        XiangqiRules.isPlayable(cells, red, indexOf(0, 0), indexOf(0, 1)),
+        isFalse,
+        reason: '黑方棋子不能由红方走',
+      );
+      expect(
+        XiangqiRules.isPlayable(cells, red, indexOf(4, 4), indexOf(4, 3)),
+        isFalse,
+        reason: '空位不能走子',
+      );
+      expect(XiangqiRules.isPlayable(cells, red, -1, 0), isFalse);
+      expect(XiangqiRules.isPlayable(cells, red, 0, cellCount), isFalse);
+    });
+
+    test('拒绝违反走子几何或送将的着法', () {
+      final cells = boardWith([('K', 9, 4), ('k', 0, 3), ('r', 0, 4)]);
+      expect(
+        XiangqiRules.isPlayable(cells, red, indexOf(9, 4), indexOf(8, 3)),
+        isFalse,
+        reason: '帅不能斜走',
+      );
+      expect(
+        XiangqiRules.isPlayable(cells, red, indexOf(9, 4), indexOf(9, 5)),
+        isTrue,
+        reason: '横向避开将军是合法着法',
+      );
+    });
+  });
 }
