@@ -75,11 +75,7 @@ class OpeningBook {
 
 /// 常见开局线路，按红方起手分组。
 const List<OpeningLine> kOpeningLines = [
-  OpeningLine(
-    moves: ['炮二平五'],
-    name: '中炮',
-    note: '炮镇中路，直指将门，是最常见的起手。',
-  ),
+  OpeningLine(moves: ['炮二平五'], name: '中炮', note: '炮镇中路，直指将门，是最常见的起手。'),
   OpeningLine(
     moves: ['炮二平五', '马8进7'],
     name: '中炮对屏风马',
@@ -115,11 +111,7 @@ const List<OpeningLine> kOpeningLines = [
     name: '中炮对反宫马 · 士角炮屏风马',
     note: '黑方阵型成形，红方需防中路受制。',
   ),
-  OpeningLine(
-    moves: ['炮二平五', '炮8平5'],
-    name: '中炮对顺炮',
-    note: '黑方同向架炮，形成对攻格局。',
-  ),
+  OpeningLine(moves: ['炮二平五', '炮8平5'], name: '中炮对顺炮', note: '黑方同向架炮，形成对攻格局。'),
   OpeningLine(
     moves: ['炮二平五', '炮8平5', '马二进三'],
     name: '中炮对顺炮',
@@ -130,64 +122,24 @@ const List<OpeningLine> kOpeningLines = [
     name: '中炮对顺炮 · 双正马',
     note: '双方各跳正马，蓄势待发。',
   ),
-  OpeningLine(
-    moves: ['炮二平五', '炮2平5'],
-    name: '中炮对列炮',
-    note: '黑方异向架炮，各攻一翼。',
-  ),
+  OpeningLine(moves: ['炮二平五', '炮2平5'], name: '中炮对列炮', note: '黑方异向架炮，各攻一翼。'),
   OpeningLine(
     moves: ['炮二平五', '马2进3'],
     name: '中炮对单提马',
     note: '黑方单马守中，左翼子力尚待出动。',
   ),
-  OpeningLine(
-    moves: ['兵七进一'],
-    name: '仙人指路',
-    note: '先挺七兵试探应手，保留中炮与飞相的选择。',
-  ),
-  OpeningLine(
-    moves: ['兵七进一', '卒3进1'],
-    name: '仙人指路对进卒',
-    note: '黑方以卒制卒，保持对称。',
-  ),
-  OpeningLine(
-    moves: ['兵七进一', '炮2平3'],
-    name: '仙人指路对卒底炮',
-    note: '黑方平炮射兵，准备抢先。',
-  ),
+  OpeningLine(moves: ['兵七进一'], name: '仙人指路', note: '先挺七兵试探应手，保留中炮与飞相的选择。'),
+  OpeningLine(moves: ['兵七进一', '卒3进1'], name: '仙人指路对进卒', note: '黑方以卒制卒，保持对称。'),
+  OpeningLine(moves: ['兵七进一', '炮2平3'], name: '仙人指路对卒底炮', note: '黑方平炮射兵，准备抢先。'),
   OpeningLine(
     moves: ['兵七进一', '炮2平3', '马八进七'],
     name: '仙人指路对卒底炮',
     note: '红马护兵，稳中带攻。',
   ),
-  OpeningLine(
-    moves: ['相三进五'],
-    name: '飞相局',
-    note: '先固防守，后发制人。',
-  ),
-  OpeningLine(
-    moves: ['相三进五', '马8进7'],
-    name: '飞相局对起马',
-    note: '黑方跳马出动，静观其变。',
-  ),
-  OpeningLine(
-    moves: ['马八进七'],
-    name: '起马局',
-    note: '先出马，保留中炮与飞相的选择。',
-  ),
-  OpeningLine(
-    moves: ['马八进七', '卒3进1'],
-    name: '起马局对进卒',
-    note: '黑方挺卒制马，争夺中路。',
-  ),
-  OpeningLine(
-    moves: ['炮二平六'],
-    name: '过宫炮',
-    note: '炮过宫集结一翼，子力协调。',
-  ),
-  OpeningLine(
-    moves: ['炮八平六'],
-    name: '士角炮',
-    note: '炮入士角，攻守两宜。',
-  ),
+  OpeningLine(moves: ['相三进五'], name: '飞相局', note: '先固防守，后发制人。'),
+  OpeningLine(moves: ['相三进五', '马8进7'], name: '飞相局对起马', note: '黑方跳马出动，静观其变。'),
+  OpeningLine(moves: ['马八进七'], name: '起马局', note: '先出马，保留中炮与飞相的选择。'),
+  OpeningLine(moves: ['马八进七', '卒3进1'], name: '起马局对进卒', note: '黑方挺卒制马，争夺中路。'),
+  OpeningLine(moves: ['炮二平六'], name: '过宫炮', note: '炮过宫集结一翼，子力协调。'),
+  OpeningLine(moves: ['炮八平六'], name: '士角炮', note: '炮入士角，攻守两宜。'),
 ];

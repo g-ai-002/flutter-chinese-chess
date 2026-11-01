@@ -1,6 +1,6 @@
 # 中国象棋 🀄
 
-基于 Flutter + Flame 的中国象棋，支持 Android、Windows 与 Web。规则严谨、界面克制，内置三档 AI、八道残局与中文棋谱。
+基于 Flutter + Flame 的中国象棋，支持 Android、Windows 与 Web。规则严谨、界面克制，内置三档 AI、八道残局、开局提示与棋谱复盘。
 
 ## 功能
 
@@ -9,6 +9,9 @@
 - 🤖 人机对战：入门 / 普通 / 高手三档，本地 Alpha-Beta + 静态搜索，可选执红或执黑
 - 👥 双人同屏对弈，适合面对面手谈
 - 🏁 残局挑战：八道杀法练习，从一步杀到三步杀，限步取胜并记录最佳步数
+- 🧭 开局提示：内置常见开局库，实时显示开局名称与推荐着法，可随时关闭
+- ♻️ 复盘回放：终局后逐手回看，支持自动播放、滑杆跳转与点击棋谱定位
+- 💾 棋谱导出导入：中文记谱一键复制或存为文本，导入即可复盘
 - 📜 中文棋谱：炮二平五、马8进7，实时记录并可随时查看
 - ↩️ 悔棋、重开、认输，落子后自动切换行棋方
 - ✨ Flame 木纹棋盘、红黑棋面分色、落子滑动动画、将军呼吸提示
@@ -19,13 +22,13 @@
 
 ## 下载
 
-v0.2.1（当前版本）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.2.1)
+v0.3.0（当前版本）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.3.0)
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64) | `flutter-chinese-chess-0.2.1-android-aarch64.apk` |
-| Windows (x64, Win10+) | `flutter-chinese-chess-0.2.1-windows-x86_64.zip` |
-| Web | `flutter-chinese-chess-0.2.1-web.zip`（解压后起静态服务器） |
+| Android (arm64) | `flutter-chinese-chess-0.3.0-android-aarch64.apk` |
+| Windows (x64, Win10+) | `flutter-chinese-chess-0.3.0-windows-x86_64.zip` |
+| Web | `flutter-chinese-chess-0.3.0-web.zip`（解压后起静态服务器） |
 
 ## 开发
 
@@ -44,13 +47,15 @@ flutter test
 - Android：应用外部存储目录下的 `FlutterChineseChess/logs/`
 - Web：仅保留内存日志，可在设置页查看
 
+导出的棋谱保存在 `<文档>/FlutterChineseChess/records/`（Web 端使用剪贴板复制）。
+
 ## 目录结构
 
 ```
 lib/
-├── game/       规则引擎、搜索、棋谱记法、残局关卡、对局控制器
+├── game/       规则引擎、搜索、棋谱记法、开局库、棋谱编解码、复盘、残局关卡
 ├── flame/      Flame 棋盘组件与游戏入口
-├── pages/      首页、对局页、残局页、设置页及通用组件
+├── pages/      首页、对局页、残局页、复盘页、设置页及通用组件
 ├── services/   日志、偏好存储、文件系统
 ├── providers/  设置与进度状态
 ├── models/     对局模型
@@ -62,14 +67,16 @@ lib/
 
 | 版本 | 说明 |
 | --- | --- |
+| v0.3.0 | 新增开局库提示与复盘，支持棋谱导出、导入与逐手回放 |
 | v0.2.1 | 重构布局解析、棋盘绘制与终局裁定，首页与设置页共用偏好选择器 |
 | v0.2.0 | 新增残局挑战八关，补齐三次重复判和与长将判负 |
 | v0.1.3 | 棋子按阵营分色，红方暖象牙、黑方冷灰绿，提升辨识度 |
 | v0.1.2 | 重构引擎与界面重复实现，收敛规则判定、棋子排序与共用组件 |
-| v0.1.1 | AI 增加静态搜索，消除地平线效应导致的亏子交换 |
 
 ### 更早版本
 
 | 版本 | 说明 |
 | --- | --- |
+| v0.1.1 | AI 增加静态搜索，消除地平线效应导致的亏子交换 |
 | v0.1.0 | 首个可玩版本：完整规则、三档 AI、双人对弈、中文棋谱与三端发布 |
+
