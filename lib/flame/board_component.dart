@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -10,20 +11,21 @@ import '../game/engine/rules.dart';
 import '../game/board_view.dart';
 import '../theme/app_theme.dart';
 import '../theme/board_painting.dart';
+import '../theme/board_skin.dart';
 import '../utils/constants.dart';
-
-const Color _boardLight = Color(0xFFF4E3C1);
-const Color _boardDark = Color(0xFFE3C795);
-const Color _lineColor = Color(0xFF8A6337);
-const Color _redInk = Color(0xFF9E2F23);
 
 const double _moveDurationSeconds = 0.17;
 
-/// Flame 棋盘组件：绘制木纹棋盘、棋子、走子提示与落子动画，并处理点击。
+/// Flame 棋盘组件：绘制棋盘、棋子、走子提示与落子动画，并处理点击。
+///
+/// 皮肤通过 [skin] 监听，切换皮肤时清空文字缓存并按新配色重绘。
 class BoardComponent extends PositionComponent with TapCallbacks {
-  BoardComponent({required this.view});
+  BoardComponent({required this.view, required this.skin});
 
   final BoardView view;
+  final ValueListenable<BoardSkin> skin;
+
+  BoardSkin get _skin => skin.value;
 
   double _cell = 0;
   double _time = 0;
@@ -32,6 +34,22 @@ class BoardComponent extends PositionComponent with TapCallbacks {
   double _cacheCell = 0;
   final Map<int, TextPainter> _piecePainters = {};
   final Map<String, TextPainter> _textPainters = {};
+
+  @override
+  Future<void> onLoad() async {
+    skin.addListener(_clearTextCaches);
+  }
+
+  @override
+  void onRemove() {
+    skin.removeListener(_clearTextCaches);
+    super.onRemove();
+  }
+
+  void _clearTextCaches() {
+    _piecePainters.clear();
+    _textPainters.clear();
+  }
 
   @override
   void update(double dt) {
@@ -88,30 +106,23 @@ class BoardComponent extends PositionComponent with TapCallbacks {
       Offset((colOf(index) + 0.5) * cell, (rowOf(index) + 0.5) * cell);
 
   void _drawBoard(Canvas canvas, double cell) {
+    final skin = _skin;
     final rect = Rect.fromLTWH(0, 0, cell * boardCols, cell * boardRows);
     final rrect = RRect.fromRectAndRadius(rect, Radius.circular(cell * 0.22));
-    canvas.drawRRect(
-      rrect,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [_boardLight, _boardDark],
-        ).createShader(rect),
-    );
+    canvas.drawRRect(rrect, Paint()..shader = skin.gradient.createShader(rect));
 
     canvas.drawRRect(
       rrect.deflate(cell * 0.10),
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = cell * 0.018
-        ..color = _lineColor.withValues(alpha: 0.35),
+        ..color = skin.line.withValues(alpha: 0.35),
     );
 
     final linePaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = math.max(0.9, cell * 0.014)
-      ..color = _lineColor.withValues(alpha: 0.78);
+      ..color = skin.line.withValues(alpha: 0.78);
 
     final left = cell * 0.5;
     final top = cell * 0.5;
@@ -124,18 +135,18 @@ class BoardComponent extends PositionComponent with TapCallbacks {
       palacePaint: Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = linePaint.strokeWidth
-        ..color = _lineColor.withValues(alpha: 0.6),
+        ..color = skin.line.withValues(alpha: 0.6),
       borderPaint: Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = cell * 0.032
-        ..color = _lineColor.withValues(alpha: 0.9),
+        ..color = skin.line.withValues(alpha: 0.9),
     );
 
     final riverStyle = TextStyle(
       fontSize: cell * 0.42,
       letterSpacing: cell * 0.16,
       fontWeight: FontWeight.w600,
-      color: _lineColor.withValues(alpha: 0.62),
+      color: skin.line.withValues(alpha: 0.62),
       fontFamily: 'KaiTi',
       fontFamilyFallback: kKaiFontFallback,
       height: 1,
@@ -179,7 +190,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
       ..style = PaintingStyle.stroke
       ..strokeWidth = cell * 0.025
       ..strokeCap = StrokeCap.round
-      ..color = _lineColor.withValues(alpha: 0.55);
+      ..color = _skin.line.withValues(alpha: 0.55);
     final gap = cell * 0.09;
     final length = cell * 0.13;
     for (final (row, col) in points) {
@@ -204,7 +215,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
         ..style = PaintingStyle.stroke
         ..strokeWidth = cell * 0.03
         ..strokeCap = StrokeCap.round
-        ..color = _redInk.withValues(alpha: 0.45);
+        ..color = _skin.redInk.withValues(alpha: 0.45);
       _drawCellBrackets(canvas, _center(lastFrom, cell), cell, paint);
       _drawCellBrackets(canvas, _center(lastTo, cell), cell, paint);
     }
@@ -216,7 +227,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
       canvas.drawCircle(
         center,
         radius,
-        Paint()..color = _redInk.withValues(alpha: 0.10),
+        Paint()..color = _skin.redInk.withValues(alpha: 0.10),
       );
       canvas.drawCircle(
         center,
@@ -224,7 +235,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = cell * 0.028
-          ..color = _redInk.withValues(alpha: 0.55),
+          ..color = _skin.redInk.withValues(alpha: 0.55),
       );
     }
 
@@ -235,7 +246,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
           canvas.drawCircle(
             center,
             cell * 0.075,
-            Paint()..color = _lineColor.withValues(alpha: 0.42),
+            Paint()..color = _skin.line.withValues(alpha: 0.42),
           );
         } else {
           canvas.drawCircle(
@@ -244,7 +255,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
             Paint()
               ..style = PaintingStyle.stroke
               ..strokeWidth = cell * 0.028
-              ..color = _redInk.withValues(alpha: 0.55),
+              ..color = _skin.redInk.withValues(alpha: 0.55),
           );
         }
       }
@@ -264,7 +275,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
           Paint()
             ..style = PaintingStyle.stroke
             ..strokeWidth = cell * 0.045
-            ..color = _redInk.withValues(alpha: 0.35 + 0.35 * pulse)
+            ..color = _skin.redInk.withValues(alpha: 0.35 + 0.35 * pulse)
             ..maskFilter = MaskFilter.blur(BlurStyle.normal, cell * 0.05),
         );
         canvas.drawCircle(
@@ -273,7 +284,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
           Paint()
             ..style = PaintingStyle.stroke
             ..strokeWidth = cell * 0.025
-            ..color = _redInk.withValues(alpha: 0.55 + 0.3 * pulse),
+            ..color = _skin.redInk.withValues(alpha: 0.55 + 0.3 * pulse),
         );
       }
     }
@@ -341,7 +352,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
     double scale = 1,
     double opacity = 1,
   }) {
-    final face = pieceFaceOf(sideOf(piece));
+    final face = _skin.faceOf(sideOf(piece));
     paintPieceDisc(
       canvas,
       center: center,

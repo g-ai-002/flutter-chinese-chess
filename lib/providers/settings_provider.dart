@@ -2,8 +2,9 @@ import 'package:flutter/foundation.dart';
 
 import '../models/game_models.dart';
 import '../services/storage_service.dart';
+import '../theme/board_skin.dart';
 
-/// 用户偏好：主题、难度、先后手、走法提示。
+/// 用户偏好：主题、棋盘皮肤、难度、先后手、走法提示与音效。
 class SettingsProvider extends ChangeNotifier {
   SettingsProvider(this._storage);
 
@@ -20,6 +21,18 @@ class SettingsProvider extends ChangeNotifier {
   int get humanSide => _storage.humanSide;
   Future<void> setHumanSide(int value) =>
       _update(() => _storage.setHumanSide(value));
+
+  BoardSkin get boardSkin => boardSkinOf(_storage.boardSkinId);
+  Future<void> setBoardSkin(BoardSkin value) =>
+      _update(() => _storage.setBoardSkinId(value.id));
+
+  bool get soundEnabled => _storage.soundEnabled;
+  Future<void> setSoundEnabled(bool value) =>
+      _update(() => _storage.setSoundEnabled(value));
+
+  bool get hapticsEnabled => _storage.hapticsEnabled;
+  Future<void> setHapticsEnabled(bool value) =>
+      _update(() => _storage.setHapticsEnabled(value));
 
   bool get showHints => _storage.showHints;
   Future<void> setShowHints(bool value) =>

@@ -66,7 +66,7 @@ class HomePage extends StatelessWidget {
                         children: [
                           _TopBar(darkMode: settings.darkMode),
                           const SizedBox(height: 22),
-                          const _Hero(),
+                          _Hero(skin: settings.boardSkin),
                           const SizedBox(height: 30),
                           if (wide)
                             Wrap(
@@ -156,6 +156,7 @@ class HomePage extends StatelessWidget {
           moves: archive.moves,
           layout: archive.layout,
           startSide: archive.startSide,
+          skin: context.read<SettingsProvider>().boardSkin,
         ),
       ),
     );
@@ -330,7 +331,9 @@ class _TopBar extends StatelessWidget {
 }
 
 class _Hero extends StatelessWidget {
-  const _Hero();
+  const _Hero({required this.skin});
+
+  final BoardSkin skin;
 
   @override
   Widget build(BuildContext context) {
@@ -338,7 +341,7 @@ class _Hero extends StatelessWidget {
     final colors = theme.colorScheme;
     return Column(
       children: [
-        const BoardPreview(),
+        BoardPreview(skin: skin),
         const SizedBox(height: 20),
         Text(
           '中国象棋',

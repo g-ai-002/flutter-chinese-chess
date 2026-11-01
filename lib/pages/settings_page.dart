@@ -8,6 +8,7 @@ import '../utils/constants.dart';
 import '../utils/platform_info.dart';
 import 'widgets/preference_pickers.dart';
 import 'widgets/section_card.dart';
+import 'widgets/skin_picker.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -40,6 +41,8 @@ class SettingsPage extends StatelessWidget {
                   title: '外观与提示',
                   icon: Icons.palette_outlined,
                   children: [
+                    SkinPicker(settings: settings),
+                    const SizedBox(height: 16),
                     _SwitchRow(
                       title: '深色模式',
                       subtitle: '暖墨底色，夜间对弈更舒适',
@@ -59,6 +62,26 @@ class SettingsPage extends StatelessWidget {
                       subtitle: '对局前段显示开局名称与推荐着法',
                       value: settings.showOpeningHints,
                       onChanged: settings.setShowOpeningHints,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SectionCard(
+                  title: '音效与反馈',
+                  icon: Icons.graphic_eq_rounded,
+                  children: [
+                    _SwitchRow(
+                      title: '落子音效',
+                      subtitle: '落子、吃子与将军时播放系统提示音',
+                      value: settings.soundEnabled,
+                      onChanged: settings.setSoundEnabled,
+                    ),
+                    const SizedBox(height: 10),
+                    _SwitchRow(
+                      title: '震动反馈',
+                      subtitle: '吃子与将军时给出不同强度的触感',
+                      value: settings.hapticsEnabled,
+                      onChanged: settings.setHapticsEnabled,
                     ),
                   ],
                 ),

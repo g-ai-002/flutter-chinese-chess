@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import '../../game/engine/board_utils.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/board_painting.dart';
+import '../../theme/board_skin.dart';
 import '../../utils/constants.dart';
 
-/// 首页装饰：一张缩小的木纹棋盘，红黑双方各立一子。
+/// 首页装饰：一张缩小的棋盘，红黑双方各立一子，配色跟随当前皮肤。
 class BoardPreview extends StatelessWidget {
-  const BoardPreview({super.key});
+  const BoardPreview({super.key, this.skin = woodSkin});
+
+  final BoardSkin skin;
 
   @override
   Widget build(BuildContext context) {
@@ -24,47 +27,29 @@ class BoardPreview extends StatelessWidget {
       ),
       child: CustomPaint(
         size: const Size(158, 174),
-        painter: _BoardPreviewPainter(
-          lineColor: appWood,
-          redFace: pieceFaceOf(red),
-          blackFace: pieceFaceOf(black),
-        ),
+        painter: _BoardPreviewPainter(skin: skin),
       ),
     );
   }
 }
 
 class _BoardPreviewPainter extends CustomPainter {
-  const _BoardPreviewPainter({
-    required this.lineColor,
-    required this.redFace,
-    required this.blackFace,
-  });
+  const _BoardPreviewPainter({required this.skin});
 
-  final Color lineColor;
-  final PieceFace redFace;
-  final PieceFace blackFace;
+  final BoardSkin skin;
 
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
     final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(12));
-    canvas.drawRRect(
-      rrect,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFF6E6C6), Color(0xFFE2C592)],
-        ).createShader(rect),
-    );
+    canvas.drawRRect(rrect, Paint()..shader = skin.gradient.createShader(rect));
 
     const pad = 16.0;
     final cell = (size.width - pad * 2) / (boardCols - 1);
     final top = (size.height - cell * (boardRows - 1)) / 2;
 
     final linePaint = Paint()
-      ..color = lineColor.withValues(alpha: 0.55)
+      ..color = skin.line.withValues(alpha: 0.55)
       ..strokeWidth = 0.9
       ..style = PaintingStyle.stroke;
 
@@ -74,7 +59,7 @@ class _BoardPreviewPainter extends CustomPainter {
       cell: cell,
       linePaint: linePaint,
       borderPaint: Paint()
-        ..color = lineColor.withValues(alpha: 0.55)
+        ..color = skin.line.withValues(alpha: 0.55)
         ..strokeWidth = 1.6
         ..style = PaintingStyle.stroke,
     );
@@ -83,10 +68,10 @@ class _BoardPreviewPainter extends CustomPainter {
       canvas,
       Offset(pad + cell * 4, top + cell * 9),
       '帅',
-      redFace,
+      skin.redFace,
       cell,
     );
-    _drawPiece(canvas, Offset(pad + cell * 4, top), '将', blackFace, cell);
+    _drawPiece(canvas, Offset(pad + cell * 4, top), '将', skin.blackFace, cell);
   }
 
   void _drawPiece(
@@ -120,7 +105,5 @@ class _BoardPreviewPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _BoardPreviewPainter oldDelegate) =>
-      oldDelegate.lineColor != lineColor ||
-      oldDelegate.redFace != redFace ||
-      oldDelegate.blackFace != blackFace;
+      oldDelegate.skin != skin;
 }

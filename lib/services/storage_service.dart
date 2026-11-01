@@ -43,6 +43,20 @@ class StorageService {
   Future<void> setShowHints(bool value) =>
       _write((p) => p.setBool(AppConstants.prefKeyShowHints, value));
 
+  /// 棋盘皮肤 id，未知值由 [boardSkinOf] 回退到檀木。
+  String get boardSkinId =>
+      _p.getString(AppConstants.prefKeyBoardSkin) ?? 'wood';
+  Future<void> setBoardSkinId(String value) =>
+      _write((p) => p.setString(AppConstants.prefKeyBoardSkin, value));
+
+  bool get soundEnabled => _p.getBool(AppConstants.prefKeySound) ?? true;
+  Future<void> setSoundEnabled(bool value) =>
+      _write((p) => p.setBool(AppConstants.prefKeySound, value));
+
+  bool get hapticsEnabled => _p.getBool(AppConstants.prefKeyHaptics) ?? true;
+  Future<void> setHapticsEnabled(bool value) =>
+      _write((p) => p.setBool(AppConstants.prefKeyHaptics, value));
+
   bool get showOpeningHints =>
       _p.getBool(AppConstants.prefKeyShowOpeningHints) ?? true;
   Future<void> setShowOpeningHints(bool value) =>

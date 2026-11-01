@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../game/engine/board_utils.dart';
 
+export 'board_skin.dart';
+
 /// 中国红 + 宣纸底色的视觉基调。
 const Color appRed = Color(0xFFA63A2B);
 const Color appBlack = Color(0xFF39433F);
@@ -9,29 +11,6 @@ const Color appWood = Color(0xFF8B6239);
 
 /// 红黑双方在界面上的代表色。
 Color sideColorOf(int side) => side == red ? appRed : appBlack;
-
-/// 棋面渐变配色：红方暖象牙、黑方冷灰绿，用底色差异强化阵营辨识。
-class PieceFace {
-  const PieceFace({required this.light, required this.dark, required this.ink});
-
-  final Color light;
-  final Color dark;
-  final Color ink;
-}
-
-const PieceFace _redFace = PieceFace(
-  light: Color(0xFFFFF5E6),
-  dark: Color(0xFFEEC9A0),
-  ink: appRed,
-);
-
-const PieceFace _blackFace = PieceFace(
-  light: Color(0xFFF1F4EE),
-  dark: Color(0xFFC3CEC1),
-  ink: appBlack,
-);
-
-PieceFace pieceFaceOf(int side) => side == red ? _redFace : _blackFace;
 
 ThemeData buildLightTheme({String? fontFamily}) {
   const scheme = ColorScheme.light(
