@@ -133,8 +133,13 @@ class GameController extends ChangeNotifier {
     if (result != null) return;
     _serial++;
     thinking = false;
-    result = GameResult(winner: opponentOf(humanSide), reason: '认输');
-    LogService.info('对局结束: ${result!.title} (${result!.reason})');
+    _finish(GameResult(winner: opponentOf(humanSide), reason: '认输'));
+  }
+
+  /// 收敛终局：记录结果、写日志并通知界面。
+  void _finish(GameResult outcome) {
+    result = outcome;
+    LogService.info('对局结束: ${outcome.title} (${outcome.reason})');
     _notify();
   }
 
@@ -166,27 +171,42 @@ class GameController extends ChangeNotifier {
   void _afterMove() {
     final status = XiangqiRules.positionStatus(board.cells, board.sideToMove);
     inCheck = status.inCheck;
-    if (!status.hasLegalMoves) {
-      result = GameResult(
-        winner: opponentOf(board.sideToMove),
-        reason: status.inCheck ? '绝杀' : '困毙',
-      );
-    } else if (board.repetitionCount >= 3) {
-      final checker = board.perpetualCheckingSide;
-      result = checker == null
-          ? const GameResult(winner: null, reason: '三次重复局面')
-          : GameResult(winner: opponentOf(checker), reason: '长将判负');
-    } else if (board.noCapturePlies >= AppConstants.drawNoCapturePlies) {
-      result = const GameResult(winner: null, reason: '六十回合无吃子');
-    } else if (puzzle != null && humanMoves >= puzzle!.mateIn) {
-      result = GameResult(winner: opponentOf(humanSide), reason: '超出限定步数');
-    }
-    _notify();
-    if (result != null) {
-      LogService.info('对局结束: ${result!.title} (${result!.reason})');
+    final outcome = _adjudicate(
+      hasLegalMoves: status.hasLegalMoves,
+      inCheck: status.inCheck,
+    );
+    if (outcome != null) {
+      _finish(outcome);
       return;
     }
+    _notify();
     if (mode != GameMode.twoPlayers && board.sideToMove != humanSide) _think();
+  }
+
+  /// 依据规则裁定终局；对局继续时返回 null。
+  GameResult? _adjudicate({
+    required bool hasLegalMoves,
+    required bool inCheck,
+  }) {
+    if (!hasLegalMoves) {
+      return GameResult(
+        winner: opponentOf(board.sideToMove),
+        reason: inCheck ? '绝杀' : '困毙',
+      );
+    }
+    if (board.repetitionCount >= 3) {
+      final checker = board.perpetualCheckingSide;
+      return checker == null
+          ? const GameResult(winner: null, reason: '三次重复局面')
+          : GameResult(winner: opponentOf(checker), reason: '长将判负');
+    }
+    if (board.noCapturePlies >= AppConstants.drawNoCapturePlies) {
+      return const GameResult(winner: null, reason: '六十回合无吃子');
+    }
+    if (puzzle != null && humanMoves >= puzzle!.mateIn) {
+      return GameResult(winner: opponentOf(humanSide), reason: '超出限定步数');
+    }
+    return null;
   }
 
   Future<void> _think() async {

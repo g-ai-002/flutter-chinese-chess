@@ -11,10 +11,8 @@ class XiangqiEvaluation {
 
   static int evaluate(Uint8List cells) {
     var score = 0;
-    var redAdvisors = 0;
-    var blackAdvisors = 0;
-    var redElephants = 0;
-    var blackElephants = 0;
+    final advisors = [0, 0];
+    final elephants = [0, 0];
 
     for (var index = 0; index < cellCount; index++) {
       final piece = cells[index];
@@ -44,26 +42,18 @@ class XiangqiEvaluation {
           value += centrality * 4;
           value += side == red ? (8 - row) * 3 : (row - 1) * 3;
         case typeAdvisor:
-          if (side == red) {
-            redAdvisors++;
-          } else {
-            blackAdvisors++;
-          }
+          advisors[side]++;
         case typeElephant:
-          if (side == red) {
-            redElephants++;
-          } else {
-            blackElephants++;
-          }
+          elephants[side]++;
       }
       score += side == red ? value : -value;
     }
 
     // 缺士少象的一方，帅/将安全感下降。
-    score -= (2 - redAdvisors) * 25;
-    score -= (2 - redElephants) * 15;
-    score += (2 - blackAdvisors) * 25;
-    score += (2 - blackElephants) * 15;
+    score -= (2 - advisors[red]) * 25;
+    score -= (2 - elephants[red]) * 15;
+    score += (2 - advisors[black]) * 25;
+    score += (2 - elephants[black]) * 15;
     return score;
   }
 

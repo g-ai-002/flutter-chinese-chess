@@ -1,3 +1,5 @@
+import '../game/engine/board_utils.dart';
+
 /// 难度档位：搜索深度与原着随机度。
 enum Difficulty {
   entry('入门', 1, 160),
@@ -34,6 +36,6 @@ class GameResult {
 
   String get title {
     if (winner == null) return '和棋';
-    return winner == 0 ? '红方胜' : '黑方胜';
+    return winner == red ? '红方胜' : '黑方胜';
   }
 }

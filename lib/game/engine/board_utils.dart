@@ -71,7 +71,8 @@ const List<String> _initialLayout = [
   'RHEAKAEHR',
 ];
 
-const Map<String, int> _charToPiece = {
+/// 布局字符与棋子类型的对应：大写为红方、小写为黑方，`.` 表示空位。
+const Map<String, int> _symbolToType = {
   'K': typeKing,
   'A': typeAdvisor,
   'E': typeElephant,
@@ -81,43 +82,59 @@ const Map<String, int> _charToPiece = {
   'P': typePawn,
 };
 
-Uint8List initialCells() {
+const Map<int, String> _typeToSymbol = {
+  typeKing: 'k',
+  typeAdvisor: 'a',
+  typeElephant: 'e',
+  typeHorse: 'h',
+  typeRook: 'r',
+  typeCannon: 'c',
+  typePawn: 'p',
+};
+
+/// 把 `K`/`k` 这类布局字符解析为棋子编码，`.` 表示空位，其余字符抛错。
+int pieceFromSymbol(String symbol) {
+  if (symbol == '.') return 0;
+  final type = _symbolToType[symbol.toUpperCase()];
+  if (type == null) {
+    throw ArgumentError('未知的棋子字符: $symbol');
+  }
+  final isRed = symbol == symbol.toUpperCase();
+  return pieceOf(isRed ? red : black, type);
+}
+
+/// 棋子编码转布局字符，空位为 `.`。
+String symbolOfPiece(int piece) {
+  if (piece == 0) return '.';
+  final symbol = _typeToSymbol[typeOf(piece)]!;
+  return sideOf(piece) == red ? symbol.toUpperCase() : symbol;
+}
+
+/// 由十行布局字符串生成棋盘；行数或行宽不符时抛出 [ArgumentError]。
+Uint8List cellsFromLayout(List<String> rows) {
+  if (rows.length != boardRows) {
+    throw ArgumentError('布局需要 $boardRows 行，实际 ${rows.length} 行');
+  }
   final cells = Uint8List(cellCount);
   for (var row = 0; row < boardRows; row++) {
-    final line = _initialLayout[row];
+    final line = rows[row];
+    if (line.length != boardCols) {
+      throw ArgumentError('第 $row 行需要 $boardCols 列，实际 ${line.length} 列');
+    }
     for (var col = 0; col < boardCols; col++) {
-      final ch = line[col];
-      if (ch == '.') continue;
-      final isRed = ch == ch.toUpperCase();
-      final type = _charToPiece[ch.toUpperCase()]!;
-      cells[row * boardCols + col] = pieceOf(isRed ? red : black, type);
+      cells[indexOf(row, col)] = pieceFromSymbol(line[col]);
     }
   }
   return cells;
 }
 
+Uint8List initialCells() => cellsFromLayout(_initialLayout);
+
 /// 调试与测试用：把棋盘转成布局字符串。
-List<String> cellsToLayout(Uint8List cells) {
-  final symbols = {
-    typeKing: 'k',
-    typeAdvisor: 'a',
-    typeElephant: 'e',
-    typeHorse: 'h',
-    typeRook: 'r',
-    typeCannon: 'c',
-    typePawn: 'p',
-  };
-  return List.generate(boardRows, (row) {
-    final buffer = StringBuffer();
-    for (var col = 0; col < boardCols; col++) {
-      final piece = cells[row * boardCols + col];
-      if (piece == 0) {
-        buffer.write('.');
-        continue;
-      }
-      final symbol = symbols[typeOf(piece)]!;
-      buffer.write(sideOf(piece) == red ? symbol.toUpperCase() : symbol);
-    }
-    return buffer.toString();
-  });
-}
+List<String> cellsToLayout(Uint8List cells) => List.generate(boardRows, (row) {
+  final buffer = StringBuffer();
+  for (var col = 0; col < boardCols; col++) {
+    buffer.write(symbolOfPiece(cells[indexOf(row, col)]));
+  }
+  return buffer.toString();
+});

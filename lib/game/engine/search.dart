@@ -56,28 +56,17 @@ class XiangqiSearch {
 
     for (final move in moves) {
       final captured = _applyMove(board, move);
-      final int score;
-      if (randomness > 0) {
-        score = -_negamax(
-          board,
-          opponentOf(side),
-          depth - 1,
-          -_infinity,
-          _infinity,
-          1,
-          context,
-        );
-      } else {
-        score = -_negamax(
-          board,
-          opponentOf(side),
-          depth - 1,
-          -_infinity,
-          -alpha,
-          1,
-          context,
-        );
-      }
+      // 随机档不收敛窗口，保留全部着法的分数供后续挑档。
+      final beta = randomness > 0 ? _infinity : -alpha;
+      final score = -_negamax(
+        board,
+        opponentOf(side),
+        depth - 1,
+        -_infinity,
+        beta,
+        1,
+        context,
+      );
       _restoreMove(board, move, captured);
       if (context.aborted) break;
 
@@ -119,11 +108,7 @@ class XiangqiSearch {
     _SearchContext context,
   ) {
     context.nodes++;
-    if (context.nodes >= context.maxNodes) {
-      context.aborted = true;
-      return XiangqiEvaluation.evaluateForSide(cells, side);
-    }
-    if ((context.nodes & 1023) == 0 && context.expired) {
+    if (context.exhausted) {
       context.aborted = true;
       return XiangqiEvaluation.evaluateForSide(cells, side);
     }
@@ -176,11 +161,7 @@ class XiangqiSearch {
     int qdepth,
   ) {
     context.nodes++;
-    if (context.nodes >= context.maxNodes) {
-      context.aborted = true;
-      return XiangqiEvaluation.evaluateForSide(cells, side);
-    }
-    if ((context.nodes & 1023) == 0 && context.expired) {
+    if (context.exhausted) {
       context.aborted = true;
       return XiangqiEvaluation.evaluateForSide(cells, side);
     }
@@ -283,5 +264,8 @@ class _SearchContext {
   bool aborted = false;
   final Stopwatch _watch = Stopwatch()..start();
 
-  bool get expired => _watch.elapsedMilliseconds > 8000;
+  /// 节点数或时间任一超限即视为耗尽，时间检查每 1024 个节点做一次。
+  bool get exhausted =>
+      nodes >= maxNodes ||
+      ((nodes & 1023) == 0 && _watch.elapsedMilliseconds > 8000);
 }

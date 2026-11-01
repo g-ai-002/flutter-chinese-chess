@@ -16,30 +16,8 @@ class XiangqiBoard {
   factory XiangqiBoard.initial() => XiangqiBoard._(initialCells(), red);
 
   /// 测试与残局用：从 10 行布局字符串构造（大写为红）。
-  factory XiangqiBoard.fromLayout(List<String> rows, {int sideToMove = red}) {
-    final cells = Uint8List(cellCount);
-    const mapping = {
-      'K': typeKing,
-      'A': typeAdvisor,
-      'E': typeElephant,
-      'H': typeHorse,
-      'R': typeRook,
-      'C': typeCannon,
-      'P': typePawn,
-    };
-    for (var row = 0; row < boardRows; row++) {
-      for (var col = 0; col < boardCols; col++) {
-        final ch = rows[row][col];
-        if (ch == '.') continue;
-        final isRed = ch == ch.toUpperCase();
-        cells[indexOf(row, col)] = pieceOf(
-          isRed ? red : black,
-          mapping[ch.toUpperCase()]!,
-        );
-      }
-    }
-    return XiangqiBoard._(cells, sideToMove);
-  }
+  factory XiangqiBoard.fromLayout(List<String> rows, {int sideToMove = red}) =>
+      XiangqiBoard._(cellsFromLayout(rows), sideToMove);
 
   /// 局面键：行棋方 + 九十个格子的棋子编码，用于重复局面判定。
   static String positionKeyOf(Uint8List cells, int side) =>
@@ -119,26 +97,25 @@ class XiangqiBoard {
   }
 
   /// 当前局面在本次对局中出现的次数（含当前）。
-  int get repetitionCount {
-    final key = positionKeys.last;
-    var count = 0;
-    for (final item in positionKeys) {
-      if (item == key) count++;
-    }
-    return count;
-  }
+  int get repetitionCount => _currentRepetition.count;
 
   /// 重复循环中步步将军的一方；若无长将或双方互将则返回 null。
   int? get perpetualCheckingSide {
-    if (repetitionCount < 3) return null;
+    final repetition = _currentRepetition;
+    if (repetition.count < 3) return null;
+    return XiangqiRules.perpetualChecker(history.skip(repetition.start));
+  }
+
+  /// 当前局面的出现次数，以及它首次出现时的着法下标（供长将判定取循环起点）。
+  ({int count, int start}) get _currentRepetition {
     final key = positionKeys.last;
+    var count = 0;
     var start = 0;
     for (var index = 0; index < positionKeys.length; index++) {
-      if (positionKeys[index] == key) {
-        start = index;
-        break;
-      }
+      if (positionKeys[index] != key) continue;
+      if (count == 0) start = index;
+      count++;
     }
-    return XiangqiRules.perpetualChecker(history.skip(start));
+    return (count: count, start: start);
   }
 }

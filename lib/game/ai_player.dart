@@ -52,7 +52,3 @@ SearchResult _runSearch(_AiRequest request) => XiangqiSearch.bestMove(
   depth: request.depth,
   randomness: request.randomness,
 );
-
-/// 供界面显示 AI 搜索深度。
-int effectiveDepthFor(Difficulty difficulty) =>
-    AiPlayer._effectiveDepth(difficulty);

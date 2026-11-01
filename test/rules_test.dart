@@ -7,21 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// 测试辅助：按 (棋子字符, 行, 列) 摆放的棋盘。
 Uint8List boardWith(List<(String, int, int)> pieces) {
   final cells = Uint8List(cellCount);
-  const mapping = {
-    'K': typeKing,
-    'A': typeAdvisor,
-    'E': typeElephant,
-    'H': typeHorse,
-    'R': typeRook,
-    'C': typeCannon,
-    'P': typePawn,
-  };
   for (final (symbol, row, col) in pieces) {
-    final isRed = symbol == symbol.toUpperCase();
-    cells[indexOf(row, col)] = pieceOf(
-      isRed ? red : black,
-      mapping[symbol.toUpperCase()]!,
-    );
+    cells[indexOf(row, col)] = pieceFromSymbol(symbol);
   }
   return cells;
 }

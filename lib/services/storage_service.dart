@@ -18,9 +18,6 @@ class StorageService {
     return service;
   }
 
-  /// 仅供测试注入。
-  static void overrideInstance(StorageService service) => _instance = service;
-
   /// 仅供测试：清空单例，配合 SharedPreferences 的 mock 数据使用。
   static void resetForTests() => _instance = null;
 
