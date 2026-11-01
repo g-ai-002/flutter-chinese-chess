@@ -12,6 +12,7 @@ import '../game/puzzles.dart';
 import '../models/game_models.dart';
 import '../providers/settings_provider.dart';
 import '../services/log_service.dart';
+import 'review_page.dart';
 import 'widgets/game_dialogs.dart';
 import 'widgets/game_status_bar.dart';
 import 'widgets/move_list.dart';
@@ -86,6 +87,7 @@ class _GamePageState extends State<GamePage> {
           result: result,
           moveCount: _controller.history.length,
           onRestart: _restart,
+          onReview: _openReview,
         );
         return;
       }
@@ -104,6 +106,25 @@ class _GamePageState extends State<GamePage> {
   void _restart() {
     _resultShown = false;
     _controller.restart();
+  }
+
+  /// 终局后进入复盘，棋谱快照与开局布局一并带过去。
+  void _openReview() {
+    final result = _controller.result;
+    final title = widget.mode == GameMode.twoPlayers
+        ? widget.mode.label
+        : '${widget.mode.label} · ${widget.difficulty.label}';
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ReviewPage(
+          title: title,
+          result: result == null ? null : '${result.title}（${result.reason}）',
+          moves: List.of(_controller.history),
+          layout: _controller.board.startLayout,
+          startSide: _controller.board.startSide,
+        ),
+      ),
+    );
   }
 
   /// 通关后跳到下一关，已是最后一关时返回 null。
@@ -458,7 +479,7 @@ class _OpeningHint extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final next = info.next;
-    return Container(
+    final hint = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: colors.primary.withValues(alpha: 0.06),
@@ -489,5 +510,8 @@ class _OpeningHint extends StatelessWidget {
         ],
       ),
     );
+    final note = info.note;
+    if (note == null) return hint;
+    return Tooltip(message: note, child: hint);
   }
 }

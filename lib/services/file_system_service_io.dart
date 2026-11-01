@@ -39,6 +39,24 @@ class FileSystemService {
 
   Future<String> getLogRootPath() async => (await getLogRoot()).path;
 
+  /// 保存文本到 `<用户目录>/FlutterChineseChess/records`，返回文件路径。
+  Future<String?> saveText(String fileName, String content) async {
+    try {
+      final base = await _baseDir();
+      final dir = Directory(
+        '${base.path}${Platform.pathSeparator}$appDirName'
+        '${Platform.pathSeparator}records',
+      );
+      if (!await dir.exists()) await dir.create(recursive: true);
+      final file = File('${dir.path}${Platform.pathSeparator}$fileName');
+      await file.writeAsString(content);
+      return file.path;
+    } catch (e, stack) {
+      LogService.error('保存文本失败: $fileName', e, stack);
+      return null;
+    }
+  }
+
   /// 打开系统文件管理器定位到目录，失败返回 false。
   Future<bool> openDirectory(String path) async {
     try {

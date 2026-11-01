@@ -10,5 +10,7 @@ class FileSystemService {
 
   Future<String> getLogRootPath() async => '';
 
+  Future<String?> saveText(String fileName, String content) async => null;
+
   Future<bool> openDirectory(String path) async => false;
 }

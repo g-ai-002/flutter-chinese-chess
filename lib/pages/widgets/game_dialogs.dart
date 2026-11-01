@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../models/game_models.dart';
 
-/// 终局弹窗：展示胜负原因，可直接返回首页或再来一局。
+/// 终局弹窗：展示胜负原因，可返回首页、复盘或再来一局。
 Future<void> showGameResultDialog(
   BuildContext context, {
   required GameResult result,
   required int moveCount,
   required VoidCallback onRestart,
+  VoidCallback? onReview,
 }) {
   return showDialog<void>(
     context: context,
@@ -45,6 +46,14 @@ Future<void> showGameResultDialog(
               },
               child: const Text('返回首页'),
             ),
+            if (onReview != null)
+              OutlinedButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  onReview();
+                },
+                child: const Text('复盘'),
+              ),
             FilledButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();

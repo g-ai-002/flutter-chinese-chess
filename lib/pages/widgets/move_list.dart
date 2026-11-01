@@ -3,15 +3,24 @@ import 'package:flutter/material.dart';
 import '../../models/move_record.dart';
 
 /// 棋谱列表：按回合成对展示红黑双方的记法，新棋子自动滚到底部。
+///
+/// 复盘时可指定高亮的手数与点击回调，用于跳转到任意一步。
 class MoveList extends StatefulWidget {
   const MoveList({
     super.key,
     required this.history,
     this.padding = EdgeInsets.zero,
+    this.highlightIndex,
+    this.onTapIndex,
   });
 
   final List<MoveRecord> history;
   final EdgeInsets padding;
+
+  /// 需要高亮的手数下标，缺省时高亮最后一手。
+  final int? highlightIndex;
+
+  final ValueChanged<int>? onTapIndex;
 
   @override
   State<MoveList> createState() => _MoveListState();
@@ -82,6 +91,7 @@ class _MoveListState extends State<MoveList> {
     }
 
     final rows = (widget.history.length + 1) ~/ 2;
+    final highlight = widget.highlightIndex ?? widget.history.length - 1;
     return ListView.builder(
       controller: _scroll,
       padding: widget.padding,
@@ -93,7 +103,6 @@ class _MoveListState extends State<MoveList> {
         final black = blackIndex < widget.history.length
             ? widget.history[blackIndex]
             : null;
-        final lastIndex = widget.history.length - 1;
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
           decoration: BoxDecoration(
@@ -118,7 +127,8 @@ class _MoveListState extends State<MoveList> {
               Expanded(
                 child: _NotationText(
                   record: red,
-                  highlight: redIndex == lastIndex,
+                  highlight: redIndex == highlight,
+                  onTap: _tapHandler(redIndex),
                 ),
               ),
               Expanded(
@@ -126,7 +136,8 @@ class _MoveListState extends State<MoveList> {
                     ? const SizedBox.shrink()
                     : _NotationText(
                         record: black,
-                        highlight: blackIndex == lastIndex,
+                        highlight: blackIndex == highlight,
+                        onTap: _tapHandler(blackIndex),
                       ),
               ),
             ],
@@ -135,23 +146,43 @@ class _MoveListState extends State<MoveList> {
       },
     );
   }
+
+  VoidCallback? _tapHandler(int index) {
+    final onTap = widget.onTapIndex;
+    if (onTap == null) return null;
+    return () => onTap(index);
+  }
 }
 
 class _NotationText extends StatelessWidget {
-  const _NotationText({required this.record, required this.highlight});
+  const _NotationText({
+    required this.record,
+    required this.highlight,
+    this.onTap,
+  });
 
   final MoveRecord record;
   final bool highlight;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    return Text(
+    final text = Text(
       record.notation,
       style: theme.textTheme.bodyMedium?.copyWith(
         color: highlight ? colors.primary : colors.onSurface,
         fontWeight: highlight ? FontWeight.w700 : FontWeight.w400,
+      ),
+    );
+    if (onTap == null) return text;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: text,
       ),
     );
   }
