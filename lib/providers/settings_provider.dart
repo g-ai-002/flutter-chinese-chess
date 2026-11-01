@@ -25,6 +25,10 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> setShowHints(bool value) =>
       _update(() => _storage.setShowHints(value));
 
+  bool get showOpeningHints => _storage.showOpeningHints;
+  Future<void> setShowOpeningHints(bool value) =>
+      _update(() => _storage.setShowOpeningHints(value));
+
   bool isPuzzleSolved(String id) => _storage.isPuzzleSolved(id);
   int? puzzleBestMoves(String id) => _storage.puzzleBestMoves(id);
 

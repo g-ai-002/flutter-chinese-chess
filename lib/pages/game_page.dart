@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../flame/xiangqi_game.dart';
 import '../game/engine/board_utils.dart';
 import '../game/game_controller.dart';
+import '../game/opening_book.dart';
 import '../game/puzzles.dart';
 import '../models/game_models.dart';
 import '../providers/settings_provider.dart';
@@ -49,6 +50,7 @@ class _GamePageState extends State<GamePage> {
       difficulty: widget.difficulty,
       humanSide: widget.humanSide,
       showHints: settings.showHints,
+      showOpeningHints: settings.showOpeningHints,
       puzzle: widget.puzzle,
     );
     _game = XiangqiGame(view: _controller);
@@ -230,10 +232,7 @@ class _GamePageState extends State<GamePage> {
           Expanded(
             child: Column(
               children: [
-                GameStatusBar(
-                  controller: _controller,
-                  humanSide: widget.humanSide,
-                ),
+                _buildStatus(),
                 const SizedBox(height: 10),
                 Expanded(child: _buildBoard()),
                 const SizedBox(height: 8),
@@ -253,10 +252,7 @@ class _GamePageState extends State<GamePage> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
-          child: GameStatusBar(
-            controller: _controller,
-            humanSide: widget.humanSide,
-          ),
+          child: _buildStatus(),
         ),
         Expanded(
           child: Padding(
@@ -268,6 +264,20 @@ class _GamePageState extends State<GamePage> {
           padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
           child: _buildActions(showMoves: true),
         ),
+      ],
+    );
+  }
+
+  Widget _buildStatus() {
+    final opening = _controller.opening;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GameStatusBar(controller: _controller, humanSide: widget.humanSide),
+        if (opening != null) ...[
+          const SizedBox(height: 8),
+          _OpeningHint(info: opening),
+        ],
       ],
     );
   }
@@ -431,6 +441,51 @@ class _ActionButton extends StatelessWidget {
               color: enabled ? colors.onSurface : colors.onSurfaceVariant,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 开局提示：显示当前开局名称与推荐着法。
+class _OpeningHint extends StatelessWidget {
+  const _OpeningHint({required this.info});
+
+  final OpeningInfo info;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final next = info.next;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: colors.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colors.primary.withValues(alpha: 0.16)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.auto_stories_outlined, size: 13, color: colors.primary),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              '开局 · ${info.name}',
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: colors.onSurface,
+              ),
+            ),
+          ),
+          if (next != null) ...[
+            const SizedBox(width: 8),
+            Text(
+              '试走 $next',
+              style: theme.textTheme.labelSmall?.copyWith(color: colors.primary),
+            ),
+          ],
         ],
       ),
     );

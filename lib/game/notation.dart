@@ -4,9 +4,18 @@ library;
 import 'dart:typed_data';
 
 import 'engine/board_utils.dart';
+import 'engine/rules.dart';
 
 class MoveNotation {
   MoveNotation._();
+
+  /// 在当前局面中找出与 [text] 记法对应的合法着法，找不到返回 null。
+  static int? findMove(Uint8List cells, int side, String text) {
+    for (final move in XiangqiRules.legalMoves(cells, side)) {
+      if (describe(cells, moveFrom(move), moveTo(move)) == text) return move;
+    }
+    return null;
+  }
 
   /// 依据走子前的棋盘生成该步的中文记法。
   static String describe(Uint8List cells, int from, int to) {

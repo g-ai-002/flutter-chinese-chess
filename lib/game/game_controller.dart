@@ -9,6 +9,7 @@ import 'board_state.dart';
 import 'board_view.dart';
 import 'engine/board_utils.dart';
 import 'engine/rules.dart';
+import 'opening_book.dart';
 import 'puzzles.dart';
 
 /// 对局控制器：选择、落子、AI 回合、悔棋、终局判定。
@@ -20,6 +21,7 @@ class GameController extends ChangeNotifier implements BoardView {
     AiMoveProvider? aiMove,
     XiangqiBoard? board,
     this.showHints = true,
+    this.showOpeningHints = true,
     this.puzzle,
   }) : board = board ?? _initialBoard(puzzle),
        _aiMove = aiMove ?? AiPlayer.chooseMove;
@@ -33,6 +35,7 @@ class GameController extends ChangeNotifier implements BoardView {
   final int humanSide;
   @override
   final bool showHints;
+  final bool showOpeningHints;
   final Puzzle? puzzle;
   @override
   final XiangqiBoard board;
@@ -63,6 +66,12 @@ class GameController extends ChangeNotifier implements BoardView {
 
   @override
   List<MoveRecord> get history => board.history;
+
+  /// 当前开局提示，残局与关闭提示时为 null。
+  OpeningInfo? get opening {
+    if (!showOpeningHints || mode == GameMode.puzzle) return null;
+    return OpeningBook.lookup(board);
+  }
 
   /// 人类已落子的步数，残局按此计算剩余步数。
   int get humanMoves =>

@@ -43,6 +43,11 @@ class StorageService {
   Future<void> setShowHints(bool value) =>
       _write((p) => p.setBool(AppConstants.prefKeyShowHints, value));
 
+  bool get showOpeningHints =>
+      _p.getBool(AppConstants.prefKeyShowOpeningHints) ?? true;
+  Future<void> setShowOpeningHints(bool value) =>
+      _write((p) => p.setBool(AppConstants.prefKeyShowOpeningHints, value));
+
   Difficulty get difficulty {
     final name = _p.getString(AppConstants.prefKeyDifficulty);
     return Difficulty.values.firstWhere(

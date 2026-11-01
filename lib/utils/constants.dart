@@ -17,6 +17,7 @@ class AppConstants {
   static const String prefKeyDifficulty = 'difficulty';
   static const String prefKeyHumanSide = 'human_side';
   static const String prefKeyShowHints = 'show_hints';
+  static const String prefKeyShowOpeningHints = 'show_opening_hints';
   static const String prefKeySolvedPuzzles = 'solved_puzzles';
 
   /// 单关最佳步数的存储键：`puzzle_best_<id>`。

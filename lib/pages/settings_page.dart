@@ -53,6 +53,13 @@ class SettingsPage extends StatelessWidget {
                       value: settings.showHints,
                       onChanged: settings.setShowHints,
                     ),
+                    const SizedBox(height: 10),
+                    _SwitchRow(
+                      title: '开局提示',
+                      subtitle: '对局前段显示开局名称与推荐着法',
+                      value: settings.showOpeningHints,
+                      onChanged: settings.setShowOpeningHints,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),

@@ -32,11 +32,18 @@ void main() {
     expect(find.text('设置'), findsOneWidget);
     expect(find.text('AI 难度'), findsOneWidget);
     expect(find.text('显示可走位置'), findsOneWidget);
+    expect(find.text('开局提示'), findsOneWidget);
 
-    await tester.tap(find.byType(Switch).last);
+    // 开关顺序：深色模式、显示可走位置、开局提示。
+    await tester.tap(find.byType(Switch).at(1));
     await tester.pumpAndSettle();
     expect(settings.showHints, isFalse);
     expect(storage.showHints, isFalse);
+
+    await tester.tap(find.byType(Switch).at(2));
+    await tester.pumpAndSettle();
+    expect(settings.showOpeningHints, isFalse);
+    expect(storage.showOpeningHints, isFalse);
 
     await tester.drag(find.byType(ListView), const Offset(0, -700));
     await tester.pumpAndSettle();
