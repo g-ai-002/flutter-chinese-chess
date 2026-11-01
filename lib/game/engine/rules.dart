@@ -3,6 +3,7 @@ library;
 
 import 'dart:typed_data';
 
+import '../../models/move_record.dart';
 import 'board_utils.dart';
 
 /// 一步棋编码为 `from * 90 + to`，便于在搜索中快速传递。
@@ -311,5 +312,24 @@ class XiangqiRules {
       inCheck: isKingInCheck(cells, side),
       hasLegalMoves: moves.isNotEmpty,
     );
+  }
+
+  /// 从重复循环的着法中找出长将的一方。
+  ///
+  /// 循环内每一步都在将军的一方认定为长将；双方都长将或都不长将时返回 null，
+  /// 交由调用方按普通重复局面判和。
+  static int? perpetualChecker(Iterable<MoveRecord> cycle) {
+    final moves = [0, 0];
+    final checks = [0, 0];
+    for (final record in cycle) {
+      final side = sideOf(record.piece);
+      moves[side]++;
+      if (record.givesCheck) checks[side]++;
+    }
+    bool allCheck(int side) => moves[side] > 0 && checks[side] == moves[side];
+    final redChecks = allCheck(red);
+    final blackChecks = allCheck(black);
+    if (redChecks == blackChecks) return null;
+    return redChecks ? red : black;
   }
 }

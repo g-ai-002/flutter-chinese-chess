@@ -7,11 +7,15 @@ import 'notation.dart';
 
 /// 可撤销的棋局状态。
 class XiangqiBoard {
-  XiangqiBoard._(this.cells, this.sideToMove);
+  XiangqiBoard._(this.cells, this.sideToMove)
+    : _startCells = Uint8List.fromList(cells),
+      _startSide = sideToMove {
+    positionKeys.add(positionKeyOf(cells, sideToMove));
+  }
 
   factory XiangqiBoard.initial() => XiangqiBoard._(initialCells(), red);
 
-  /// 测试用：从 10 行布局字符串构造（大写为红）。
+  /// 测试与残局用：从 10 行布局字符串构造（大写为红）。
   factory XiangqiBoard.fromLayout(List<String> rows, {int sideToMove = red}) {
     final cells = Uint8List(cellCount);
     const mapping = {
@@ -37,9 +41,19 @@ class XiangqiBoard {
     return XiangqiBoard._(cells, sideToMove);
   }
 
+  /// 局面键：行棋方 + 九十个格子的棋子编码，用于重复局面判定。
+  static String positionKeyOf(Uint8List cells, int side) =>
+      String.fromCharCodes([side, ...cells]);
+
   final Uint8List cells;
+  final Uint8List _startCells;
+  final int _startSide;
   int sideToMove;
   final List<MoveRecord> history = [];
+
+  /// 每一步之后的局面键，首项为开局局面。
+  final List<String> positionKeys = [];
+
   int noCapturePlies = 0;
   int? lastFrom;
   int? lastTo;
@@ -68,15 +82,19 @@ class XiangqiBoard {
       noCaptureBefore: previousNoCapture,
     );
     history.add(record);
+    positionKeys.add(positionKeyOf(cells, sideToMove));
     lastFrom = from;
     lastTo = to;
     return record;
   }
 
   void reset() {
-    cells.setAll(0, initialCells());
-    sideToMove = red;
+    cells.setAll(0, _startCells);
+    sideToMove = _startSide;
     history.clear();
+    positionKeys
+      ..clear()
+      ..add(positionKeyOf(cells, sideToMove));
     noCapturePlies = 0;
     lastFrom = null;
     lastTo = null;
@@ -85,6 +103,7 @@ class XiangqiBoard {
   MoveRecord? undoLast() {
     if (history.isEmpty) return null;
     final record = history.removeLast();
+    positionKeys.removeLast();
     cells[record.from] = record.piece;
     cells[record.to] = record.captured;
     sideToMove = sideOf(record.piece);
@@ -97,5 +116,29 @@ class XiangqiBoard {
       lastTo = history.last.to;
     }
     return record;
+  }
+
+  /// 当前局面在本次对局中出现的次数（含当前）。
+  int get repetitionCount {
+    final key = positionKeys.last;
+    var count = 0;
+    for (final item in positionKeys) {
+      if (item == key) count++;
+    }
+    return count;
+  }
+
+  /// 重复循环中步步将军的一方；若无长将或双方互将则返回 null。
+  int? get perpetualCheckingSide {
+    if (repetitionCount < 3) return null;
+    final key = positionKeys.last;
+    var start = 0;
+    for (var index = 0; index < positionKeys.length; index++) {
+      if (positionKeys[index] == key) {
+        start = index;
+        break;
+      }
+    }
+    return XiangqiRules.perpetualChecker(history.skip(start));
   }
 }
