@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../game/engine/board_utils.dart';
+import '../game/engine/rules.dart';
 import '../game/game_controller.dart';
 import '../theme/app_theme.dart';
+import '../theme/board_painting.dart';
 import '../utils/constants.dart';
 
 const Color _boardLight = Color(0xFFF4E3C1);
@@ -115,46 +117,17 @@ class BoardComponent extends PositionComponent with TapCallbacks {
 
     final left = cell * 0.5;
     final top = cell * 0.5;
-    final right = left + cell * (boardCols - 1);
-    final bottom = top + cell * (boardRows - 1);
 
-    for (var row = 0; row < boardRows; row++) {
-      final y = top + row * cell;
-      canvas.drawLine(Offset(left, y), Offset(right, y), linePaint);
-    }
-
-    for (var col = 0; col < boardCols; col++) {
-      final x = left + col * cell;
-      if (col == 0 || col == boardCols - 1) {
-        canvas.drawLine(Offset(x, top), Offset(x, bottom), linePaint);
-        continue;
-      }
-      canvas.drawLine(Offset(x, top), Offset(x, top + cell * 4), linePaint);
-      canvas.drawLine(Offset(x, top + cell * 5), Offset(x, bottom), linePaint);
-    }
-
-    final palacePaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = linePaint.strokeWidth
-      ..color = _lineColor.withValues(alpha: 0.6);
-    for (final topRow in const [0, 7]) {
-      final y0 = top + topRow * cell;
-      final y1 = y0 + cell * 2;
-      canvas.drawLine(
-        Offset(left + cell * 3, y0),
-        Offset(left + cell * 5, y1),
-        palacePaint,
-      );
-      canvas.drawLine(
-        Offset(left + cell * 5, y0),
-        Offset(left + cell * 3, y1),
-        palacePaint,
-      );
-    }
-
-    canvas.drawRect(
-      Rect.fromLTRB(left, top, right, bottom),
-      Paint()
+    paintBoardGrid(
+      canvas,
+      topLeft: Offset(left, top),
+      cell: cell,
+      linePaint: linePaint,
+      palacePaint: Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = linePaint.strokeWidth
+        ..color = _lineColor.withValues(alpha: 0.6),
+      borderPaint: Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = cell * 0.032
         ..color = _lineColor.withValues(alpha: 0.9),
@@ -280,7 +253,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
     }
 
     if (controller.inCheck) {
-      final king = _findKing(
+      final king = XiangqiRules.findKing(
         controller.board.cells,
         controller.board.sideToMove,
       );
@@ -306,14 +279,6 @@ class BoardComponent extends PositionComponent with TapCallbacks {
         );
       }
     }
-  }
-
-  int? _findKing(List<int> cells, int side) {
-    final target = pieceOf(side, typeKing);
-    for (var index = 0; index < cellCount; index++) {
-      if (cells[index] == target) return index;
-    }
-    return null;
   }
 
   void _drawCellBrackets(

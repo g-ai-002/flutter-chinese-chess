@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/game_models.dart';
 import '../providers/settings_provider.dart';
 import '../services/file_system_service.dart';
 import '../services/log_service.dart';
-import '../theme/app_theme.dart';
 import '../utils/constants.dart';
 import '../utils/platform_info.dart';
-import 'widgets/choice_pill.dart';
+import 'widgets/preference_pickers.dart';
 import 'widgets/section_card.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -32,52 +30,9 @@ class SettingsPage extends StatelessWidget {
                   title: '对局',
                   icon: Icons.tune_rounded,
                   children: [
-                    Text(
-                      'AI 难度',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final difficulty in Difficulty.values)
-                          ChoicePill(
-                            label: difficulty.label,
-                            selected: settings.difficulty == difficulty,
-                            accent: colors.primary,
-                            onTap: () => settings.setDifficulty(difficulty),
-                          ),
-                      ],
-                    ),
+                    DifficultyPicker(settings: settings),
                     const SizedBox(height: 16),
-                    Text(
-                      '默认执子',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        ChoicePill(
-                          label: '执红先行',
-                          selected: settings.humanSide == 0,
-                          accent: appRed,
-                          onTap: () => settings.setHumanSide(0),
-                        ),
-                        ChoicePill(
-                          label: '执黑后行',
-                          selected: settings.humanSide == 1,
-                          accent: appBlack,
-                          onTap: () => settings.setHumanSide(1),
-                        ),
-                      ],
-                    ),
+                    SidePicker(settings: settings, label: '默认执子'),
                   ],
                 ),
                 const SizedBox(height: 12),

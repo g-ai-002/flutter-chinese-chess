@@ -10,36 +10,30 @@ class SettingsProvider extends ChangeNotifier {
   final StorageService _storage;
 
   bool get darkMode => _storage.darkMode;
-  Future<void> setDarkMode(bool value) async {
-    await _storage.setDarkMode(value);
-    notifyListeners();
-  }
+  Future<void> setDarkMode(bool value) =>
+      _update(() => _storage.setDarkMode(value));
 
   Difficulty get difficulty => _storage.difficulty;
-  Future<void> setDifficulty(Difficulty value) async {
-    await _storage.setDifficulty(value);
-    notifyListeners();
-  }
+  Future<void> setDifficulty(Difficulty value) =>
+      _update(() => _storage.setDifficulty(value));
 
   int get humanSide => _storage.humanSide;
-  Future<void> setHumanSide(int value) async {
-    await _storage.setHumanSide(value);
-    notifyListeners();
-  }
+  Future<void> setHumanSide(int value) =>
+      _update(() => _storage.setHumanSide(value));
 
   bool get showHints => _storage.showHints;
-  Future<void> setShowHints(bool value) async {
-    await _storage.setShowHints(value);
-    notifyListeners();
-  }
-
-  String get humanSideLabel => humanSide == 0 ? '执红先行' : '执黑后行';
+  Future<void> setShowHints(bool value) =>
+      _update(() => _storage.setShowHints(value));
 
   bool isPuzzleSolved(String id) => _storage.isPuzzleSolved(id);
   int? puzzleBestMoves(String id) => _storage.puzzleBestMoves(id);
 
-  Future<void> recordPuzzleCleared(String id, int moves) async {
-    await _storage.recordPuzzleCleared(id, moves);
+  Future<void> recordPuzzleCleared(String id, int moves) =>
+      _update(() => _storage.recordPuzzleCleared(id, moves));
+
+  /// 写入偏好后统一通知界面，避免每个 setter 重复一遍。
+  Future<void> _update(Future<void> Function() write) async {
+    await write();
     notifyListeners();
   }
 }

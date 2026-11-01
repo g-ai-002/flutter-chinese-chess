@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../game/engine/board_utils.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/board_painting.dart';
 import '../../utils/constants.dart';
 
 /// 首页装饰：一张缩小的木纹棋盘，红黑双方各立一子。
@@ -61,59 +62,31 @@ class _BoardPreviewPainter extends CustomPainter {
     const pad = 16.0;
     final cell = (size.width - pad * 2) / (boardCols - 1);
     final top = (size.height - cell * (boardRows - 1)) / 2;
-    const left = pad;
 
     final linePaint = Paint()
       ..color = lineColor.withValues(alpha: 0.55)
       ..strokeWidth = 0.9
       ..style = PaintingStyle.stroke;
 
-    for (var row = 0; row < boardRows; row++) {
-      final y = top + row * cell;
-      canvas.drawLine(Offset(left, y), Offset(left + cell * 8, y), linePaint);
-    }
-    for (var col = 0; col < boardCols; col++) {
-      final x = left + col * cell;
-      if (col == 0 || col == boardCols - 1) {
-        canvas.drawLine(Offset(x, top), Offset(x, top + cell * 9), linePaint);
-      } else {
-        canvas.drawLine(Offset(x, top), Offset(x, top + cell * 4), linePaint);
-        canvas.drawLine(
-          Offset(x, top + cell * 5),
-          Offset(x, top + cell * 9),
-          linePaint,
-        );
-      }
-    }
-
-    for (final row in const [0, 7]) {
-      final y0 = top + row * cell;
-      final y1 = y0 + cell * 2;
-      canvas.drawLine(
-        Offset(left + cell * 3, y0),
-        Offset(left + cell * 5, y1),
-        linePaint,
-      );
-      canvas.drawLine(
-        Offset(left + cell * 5, y0),
-        Offset(left + cell * 3, y1),
-        linePaint,
-      );
-    }
-
-    canvas.drawRect(
-      Rect.fromLTWH(left, top, cell * 8, cell * 9),
-      linePaint..strokeWidth = 1.6,
+    paintBoardGrid(
+      canvas,
+      topLeft: Offset(pad, top),
+      cell: cell,
+      linePaint: linePaint,
+      borderPaint: Paint()
+        ..color = lineColor.withValues(alpha: 0.55)
+        ..strokeWidth = 1.6
+        ..style = PaintingStyle.stroke,
     );
 
     _drawPiece(
       canvas,
-      Offset(left + cell * 4, top + cell * 9),
+      Offset(pad + cell * 4, top + cell * 9),
       '帅',
       redFace,
       cell,
     );
-    _drawPiece(canvas, Offset(left + cell * 4, top), '将', blackFace, cell);
+    _drawPiece(canvas, Offset(pad + cell * 4, top), '将', blackFace, cell);
   }
 
   void _drawPiece(

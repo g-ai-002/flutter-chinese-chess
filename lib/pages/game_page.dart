@@ -71,41 +71,37 @@ class _GamePageState extends State<GamePage> {
     if (result == null || _resultShown) return;
     _resultShown = true;
     final puzzle = widget.puzzle;
-    if (puzzle != null) {
-      final cleared = _controller.puzzleCleared;
-      final moves = _controller.humanMoves;
-      if (cleared) {
-        context.read<SettingsProvider>().recordPuzzleCleared(puzzle.id, moves);
-      }
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        showPuzzleResultDialog(
-          context,
-          cleared: cleared,
-          reason: result.reason,
-          moves: moves,
-          mateIn: puzzle.mateIn,
-          onRetry: () {
-            _resultShown = false;
-            _controller.restart();
-          },
-          onNext: cleared ? _nextPuzzleBuilder(puzzle) : null,
-        );
-      });
-      return;
+    final cleared = puzzle != null && _controller.puzzleCleared;
+    final moves = _controller.humanMoves;
+    if (puzzle != null && cleared) {
+      context.read<SettingsProvider>().recordPuzzleCleared(puzzle.id, moves);
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      showGameResultDialog(
+      if (puzzle == null) {
+        showGameResultDialog(
+          context,
+          result: result,
+          moveCount: _controller.history.length,
+          onRestart: _restart,
+        );
+        return;
+      }
+      showPuzzleResultDialog(
         context,
-        result: result,
-        moveCount: _controller.history.length,
-        onRestart: () {
-          _resultShown = false;
-          _controller.restart();
-        },
+        cleared: cleared,
+        reason: result.reason,
+        moves: moves,
+        mateIn: puzzle.mateIn,
+        onRetry: _restart,
+        onNext: cleared ? _nextPuzzleBuilder(puzzle) : null,
       );
     });
+  }
+
+  void _restart() {
+    _resultShown = false;
+    _controller.restart();
   }
 
   /// 通关后跳到下一关，已是最后一关时返回 null。

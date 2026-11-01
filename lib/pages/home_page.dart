@@ -3,15 +3,15 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../game/engine/board_utils.dart';
 import '../models/game_models.dart';
 import '../providers/settings_provider.dart';
-import '../theme/app_theme.dart';
 import '../utils/constants.dart';
 import 'game_page.dart';
 import 'puzzle_page.dart';
 import 'settings_page.dart';
 import 'widgets/board_preview.dart';
-import 'widgets/choice_pill.dart';
+import 'widgets/preference_pickers.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -22,6 +22,16 @@ class HomePage extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
+    final modeCards = [
+      for (final entry in _modeEntries(context, settings, colors))
+        _ModeCard(
+          icon: entry.icon,
+          title: entry.title,
+          subtitle: entry.subtitle,
+          accent: entry.accent,
+          onTap: entry.onTap,
+        ),
+    ];
 
     return Scaffold(
       body: Container(
@@ -62,75 +72,21 @@ class HomePage extends StatelessWidget {
                           if (wide)
                             Row(
                               children: [
-                                Expanded(
-                                  child: _ModeCard(
-                                    icon: Icons.smart_toy_outlined,
-                                    title: GameMode.vsAi.label,
-                                    subtitle: '三档 AI 难度 · 可执黑后行',
-                                    accent: colors.primary,
-                                    onTap: () => _startGame(
-                                      context,
-                                      settings,
-                                      GameMode.vsAi,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: _ModeCard(
-                                    icon: Icons.people_alt_outlined,
-                                    title: GameMode.twoPlayers.label,
-                                    subtitle: '同屏轮流落子 · 面对面手谈',
-                                    accent: colors.tertiary,
-                                    onTap: () => _startGame(
-                                      context,
-                                      settings,
-                                      GameMode.twoPlayers,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: _ModeCard(
-                                    icon: Icons.flag_outlined,
-                                    title: GameMode.puzzle.label,
-                                    subtitle: '八道杀法练习 · 限步取胜',
-                                    accent: colors.secondary,
-                                    onTap: () => _openPuzzles(context),
-                                  ),
-                                ),
+                                for (var i = 0; i < modeCards.length; i++) ...[
+                                  if (i > 0) const SizedBox(width: 14),
+                                  Expanded(child: modeCards[i]),
+                                ],
                               ],
                             )
-                          else ...[
-                            _ModeCard(
-                              icon: Icons.smart_toy_outlined,
-                              title: GameMode.vsAi.label,
-                              subtitle: '三档 AI 难度 · 可执黑后行',
-                              accent: colors.primary,
-                              onTap: () =>
-                                  _startGame(context, settings, GameMode.vsAi),
+                          else
+                            Column(
+                              children: [
+                                for (var i = 0; i < modeCards.length; i++) ...[
+                                  if (i > 0) const SizedBox(height: 12),
+                                  modeCards[i],
+                                ],
+                              ],
                             ),
-                            const SizedBox(height: 12),
-                            _ModeCard(
-                              icon: Icons.people_alt_outlined,
-                              title: GameMode.twoPlayers.label,
-                              subtitle: '同屏轮流落子 · 面对面手谈',
-                              accent: colors.tertiary,
-                              onTap: () => _startGame(
-                                context,
-                                settings,
-                                GameMode.twoPlayers,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            _ModeCard(
-                              icon: Icons.flag_outlined,
-                              title: GameMode.puzzle.label,
-                              subtitle: '八道杀法练习 · 限步取胜',
-                              accent: colors.secondary,
-                              onTap: () => _openPuzzles(context),
-                            ),
-                          ],
                           const SizedBox(height: 18),
                           _OptionsPanel(settings: settings),
                           const SizedBox(height: 24),
@@ -163,17 +119,61 @@ class HomePage extends StatelessWidget {
         builder: (_) => GamePage(
           mode: mode,
           difficulty: settings.difficulty,
-          humanSide: mode == GameMode.vsAi ? settings.humanSide : 0,
+          humanSide: mode == GameMode.vsAi ? settings.humanSide : red,
         ),
       ),
     );
   }
 
   void _openPuzzles(BuildContext context) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const PuzzlePage()));
+    Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => const PuzzlePage()));
   }
+
+  /// 首页三个模式入口，宽屏并排、窄屏堆叠都复用同一份定义。
+  List<_ModeEntry> _modeEntries(
+    BuildContext context,
+    SettingsProvider settings,
+    ColorScheme colors,
+  ) => [
+    _ModeEntry(
+      icon: Icons.smart_toy_outlined,
+      title: GameMode.vsAi.label,
+      subtitle: '三档 AI 难度 · 可执黑后行',
+      accent: colors.primary,
+      onTap: () => _startGame(context, settings, GameMode.vsAi),
+    ),
+    _ModeEntry(
+      icon: Icons.people_alt_outlined,
+      title: GameMode.twoPlayers.label,
+      subtitle: '同屏轮流落子 · 面对面手谈',
+      accent: colors.tertiary,
+      onTap: () => _startGame(context, settings, GameMode.twoPlayers),
+    ),
+    _ModeEntry(
+      icon: Icons.flag_outlined,
+      title: GameMode.puzzle.label,
+      subtitle: '八道杀法练习 · 限步取胜',
+      accent: colors.secondary,
+      onTap: () => _openPuzzles(context),
+    ),
+  ];
+}
+
+class _ModeEntry {
+  const _ModeEntry({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.accent,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color accent;
+  final VoidCallback onTap;
 }
 
 class _TopBar extends StatelessWidget {
@@ -417,52 +417,9 @@ class _OptionsPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          Text(
-            'AI 难度',
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: colors.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final difficulty in Difficulty.values)
-                ChoicePill(
-                  label: difficulty.label,
-                  selected: settings.difficulty == difficulty,
-                  accent: colors.primary,
-                  onTap: () => settings.setDifficulty(difficulty),
-                ),
-            ],
-          ),
+          DifficultyPicker(settings: settings),
           const SizedBox(height: 14),
-          Text(
-            '先后手',
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: colors.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              ChoicePill(
-                label: '执红先行',
-                selected: settings.humanSide == 0,
-                accent: appRed,
-                onTap: () => settings.setHumanSide(0),
-              ),
-              ChoicePill(
-                label: '执黑后行',
-                selected: settings.humanSide == 1,
-                accent: appBlack,
-                onTap: () => settings.setHumanSide(1),
-              ),
-            ],
-          ),
+          SidePicker(settings: settings),
         ],
       ),
     );
