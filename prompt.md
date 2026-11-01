@@ -15,6 +15,7 @@
 - `gh`和`tea`命令必须在代码仓目录下执行
 - 首个版本号必须从0.1.0开始
 - 0.1.0版本的开发必须参考示例代码 http://192.168.31.120:3020/GitHub-g-ai-002/flutter-snake/archive/main.zip 来搭建项目基础框架, 大于0.1.0版本的开发则不用再参考
+- GitHub Actions和Gitea Actions工作流以及构建配置必须与参考示例代码 http://192.168.31.120:3020/GitHub-g-ai-002/flutter-snake/archive/main.zip 保持严格对齐
 
 
 # 开发流程
