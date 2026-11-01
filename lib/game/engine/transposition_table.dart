@@ -1,10 +1,18 @@
 import 'dart:typed_data';
 
+import 'mate_score.dart';
+
+/// 置换表条目：缓存层数、分数、边界类型与最优着法。
+///
+/// [score] 已按查询时传入的层数还原，可直接当作当前节点的分数使用。
+typedef TtEntry = ({int depth, int score, int move, int bound});
+
 /// 置换表：缓存搜索结果，供重复局面直接取分并复用最优着法。
 ///
 /// 采用定长散列槽（键值同槽覆盖），同槽已有更深条目时保留原条目。
 /// 局面键由低半 + 高半两个 32 位哈希组成，两半都匹配才算命中。
-/// 分数按杀棋距离归一化（存 `分数 + 层数`，取 `分数 - 层数`），
+/// 这里只负责存取，能否用于裁剪由搜索方判断；
+/// 杀棋分数按层数归一化（存 `分数 + 层数`，取 `分数 - 层数`），
 /// 让同一局面在不同搜索深度下都能复用。
 class TranspositionTable {
   TranspositionTable({int size = 1 << 16})
@@ -26,8 +34,6 @@ class TranspositionTable {
   /// 分数为上界（未超过原有 alpha）。
   static const int upper = 3;
 
-  static const int _mateThreshold = 999000;
-
   final int _mask;
   final Uint32List _keys;
   final Uint32List _checks;
@@ -36,42 +42,29 @@ class TranspositionTable {
   final Int32List _scores;
   final Int32List _moves;
 
-  int _hitScore = 0;
-  int _bestMove = -1;
-
-  /// 最近一次 [probe] 命中时的条目着法，未命中为 -1。
-  int get bestMove => _bestMove;
-
-  /// 最近一次 [probe] 命中时的分数（已按当前层数还原）。
-  int get score => _hitScore;
-
-  /// 查询局面，命中且可直接用于裁剪时返回 true，结果见 [score]。
-  /// 无论是否可用于裁剪，命中时 [bestMove] 都会填上条目着法。
-  bool probe(int low, int high, int depth, int alpha, int beta, int ply) {
-    _bestMove = -1;
+  /// 查询局面，未命中返回 null。
+  TtEntry? lookup(int low, int high, int ply) {
     final slot = low & _mask;
     final flag = _flags[slot];
-    if (flag == 0 || _keys[slot] != low || _checks[slot] != high) return false;
-    _bestMove = _moves[slot];
-    if (_depths[slot] < depth) return false;
-
-    final value = _fromStored(_scores[slot], ply);
-    if (flag == lower && value < beta) return false;
-    if (flag == upper && value > alpha) return false;
-    _hitScore = value;
-    return true;
+    if (flag == 0 || _keys[slot] != low || _checks[slot] != high) return null;
+    return (
+      depth: _depths[slot],
+      score: MateScore.fromStored(_scores[slot], ply),
+      move: _moves[slot],
+      bound: flag,
+    );
   }
 
-  /// 写入搜索结果；[flag] 取 [exact] / [lower] / [upper]。
-  void store(
-    int low,
-    int high,
-    int depth,
-    int score,
-    int flag,
-    int move,
-    int ply,
-  ) {
+  /// 写入搜索结果；[bound] 取 [exact] / [lower] / [upper]。
+  void store({
+    required int low,
+    required int high,
+    required int ply,
+    required int depth,
+    required int score,
+    required int bound,
+    required int move,
+  }) {
     final slot = low & _mask;
     if (_flags[slot] != 0 &&
         _keys[slot] == low &&
@@ -83,21 +76,9 @@ class TranspositionTable {
     }
     _keys[slot] = low;
     _checks[slot] = high;
-    _flags[slot] = flag;
+    _flags[slot] = bound;
     _depths[slot] = depth > 255 ? 255 : depth;
-    _scores[slot] = _toStored(score, ply);
+    _scores[slot] = MateScore.toStored(score, ply);
     _moves[slot] = move;
-  }
-
-  static int _toStored(int score, int ply) {
-    if (score > _mateThreshold) return score + ply;
-    if (score < -_mateThreshold) return score - ply;
-    return score;
-  }
-
-  static int _fromStored(int score, int ply) {
-    if (score > _mateThreshold) return score - ply;
-    if (score < -_mateThreshold) return score + ply;
-    return score;
   }
 }

@@ -3,9 +3,10 @@ import 'dart:typed_data';
 
 import 'board_utils.dart';
 import 'evaluation.dart';
+import 'mate_score.dart';
 import 'rules.dart';
+import 'search_board.dart';
 import 'transposition_table.dart';
-import 'zobrist.dart';
 
 class SearchResult {
   const SearchResult({
@@ -24,15 +25,43 @@ class SearchResult {
   final int depth;
 }
 
-/// 负极大值搜索 + Alpha-Beta 剪枝，配合置换表与迭代加深。
-class XiangqiSearch {
-  XiangqiSearch._();
+/// 搜索预算：节点上限与思考时限，先到先停。
+class SearchBudget {
+  SearchBudget({required this.maxNodes, required this.timeLimitMillis})
+    : _watch = Stopwatch()..start();
 
   /// 默认节点预算。
   static const int defaultMaxNodes = 700000;
 
-  /// 默认思考时限（毫秒），先到先停。
+  /// 默认思考时限（毫秒）。
   static const int defaultTimeLimitMillis = 4000;
+
+  final int maxNodes;
+  final int timeLimitMillis;
+  final Stopwatch _watch;
+  int nodes = 0;
+  bool _spent = false;
+
+  /// 预算已耗尽，搜索应尽快收回。
+  bool get spent => _spent;
+
+  /// 记一个节点，返回预算是否已耗尽；时限每 512 个节点检查一次。
+  bool consume() {
+    if (_spent) return true;
+    nodes++;
+    if (nodes >= maxNodes || _timedOut()) _spent = true;
+    return _spent;
+  }
+
+  bool _timedOut() =>
+      timeLimitMillis > 0 &&
+      (nodes & 511) == 0 &&
+      _watch.elapsedMilliseconds >= timeLimitMillis;
+}
+
+/// 负极大值搜索 + Alpha-Beta 剪枝，配合置换表与迭代加深。
+class XiangqiSearch {
+  XiangqiSearch._();
 
   static SearchResult bestMove({
     required Uint8List cells,
@@ -40,13 +69,12 @@ class XiangqiSearch {
     required int depth,
     int randomness = 0,
     int? seed,
-    int maxNodes = defaultMaxNodes,
-    int timeLimitMillis = defaultTimeLimitMillis,
+    int maxNodes = SearchBudget.defaultMaxNodes,
+    int timeLimitMillis = SearchBudget.defaultTimeLimitMillis,
   }) => _Searcher(
-    cells,
-    maxNodes,
-    timeLimitMillis,
-  ).run(side: side, maxDepth: depth, randomness: randomness, seed: seed);
+    SearchBoard(cells, side),
+    SearchBudget(maxNodes: maxNodes, timeLimitMillis: timeLimitMillis),
+  ).run(maxDepth: depth, randomness: randomness, seed: seed);
 }
 
 /// 根节点一轮搜索的结果；[complete] 为 false 表示预算耗尽、只搜了一部分着法。
@@ -65,15 +93,9 @@ class _RootPass {
 }
 
 class _Searcher {
-  _Searcher(Uint8List cells, int maxNodes, int timeLimitMillis)
-    : cells = Uint8List.fromList(cells),
-      _context = _SearchContext(maxNodes, timeLimitMillis);
+  _Searcher(this._board, this._budget);
 
-  static const int _mateScore = 1000000;
   static const int _infinity = 1 << 30;
-
-  /// 连杀分数超过该阈值即视为已找到杀棋，可以提前收工。
-  static const int _mateThreshold = 999000;
 
   /// 杀手着法按层记录，两层足够覆盖大多数截断。
   static const int _killerPlies = 64;
@@ -81,37 +103,33 @@ class _Searcher {
   /// 历史启发的上限，保证不会盖过杀手着法与吃子着法的权重。
   static const int _historyCap = 1 << 16;
 
-  /// 着法排序的临时缓冲区，只在一个节点的生成阶段使用，不跨递归。
-  static const int _bufferSize = 192;
+  /// 着法排序权重：置换表着法 > 吃子 > 杀手着法 > 历史启发 > 其余静默着法。
+  static const int _ttMoveWeight = 1 << 20;
+  static const int _captureWeight = 1 << 18;
+  static const int _killerWeight = 100000;
+  static const int _secondKillerWeight = 90000;
 
-  final Uint8List cells;
-  final _SearchContext _context;
+  final SearchBoard _board;
+  final SearchBudget _budget;
   final TranspositionTable _table = TranspositionTable();
   final Int32List _killers = Int32List(_killerPlies * 2);
   final Int32List _history = Int32List(cellCount * cellCount);
-  final Int32List _sortMoves = Int32List(_bufferSize);
-  final Int32List _sortScores = Int32List(_bufferSize);
 
-  int _hashLow = 0;
-  int _hashHigh = 0;
-  int _rootSide = red;
+  /// 着法排序的临时缓冲区，只在一个节点的生成阶段使用，不跨递归。
+  Int32List _sortedMoves = Int32List(96);
+  Int32List _sortedScores = Int32List(96);
 
   SearchResult run({
-    required int side,
     required int maxDepth,
     required int randomness,
     int? seed,
   }) {
-    _rootSide = side;
-    final hash = Zobrist.hashOf(cells, side);
-    _hashLow = hash.low;
-    _hashHigh = hash.high;
-    final moves = XiangqiRules.legalMoves(cells, side);
+    final moves = XiangqiRules.legalMoves(_board.cells, _board.sideToMove);
     if (moves.isEmpty) {
       return SearchResult(
         move: -1,
-        score: -_mateScore,
-        nodes: _context.nodes,
+        score: -MateScore.mate,
+        nodes: _budget.nodes,
         depth: 0,
       );
     }
@@ -125,7 +143,7 @@ class _Searcher {
     // 至少跑完第一层，避免调用方传入 0 层时拿不到任何评估。
     final limit = maxDepth < 1 ? 1 : maxDepth;
     for (var depth = 1; depth <= limit; depth++) {
-      if (_context.exhausted) break;
+      if (_budget.spent) break;
       final pass = _searchRoot(depth, ordered, randomness);
       // 未跑完的一轮只在还没有完整结果时兜底，避免半轮分数误导挑档。
       if (pass.move >= 0 && (pass.complete || completed == 0)) {
@@ -137,14 +155,14 @@ class _Searcher {
       if (!pass.complete) break;
       _sortRoot(ordered, scores);
       // 已确认杀棋，再加深也不会改变最优着法。
-      if (bestScore > _mateThreshold) break;
+      if (bestScore > MateScore.threshold) break;
     }
 
     final chosen = _chooseRoot(bestMove, scores, bestScore, randomness, seed);
     return SearchResult(
       move: chosen,
       score: scores[chosen] ?? bestScore,
-      nodes: _context.nodes,
+      nodes: _budget.nodes,
       depth: completed,
     );
   }
@@ -177,7 +195,7 @@ class _Searcher {
     var complete = true;
 
     for (final move in ordered) {
-      final captured = _apply(move);
+      _board.make(move);
       // 随机档不收敛窗口，保留全部着法的分数供后续挑档。
       final score = -_negamax(
         depth - 1,
@@ -185,8 +203,8 @@ class _Searcher {
         randomness > 0 ? _infinity : -alpha,
         1,
       );
-      _restore(move, captured);
-      if (_context.aborted) {
+      _board.unmake();
+      if (_budget.spent) {
         complete = false;
         break;
       }
@@ -215,147 +233,124 @@ class _Searcher {
   }
 
   int _negamax(int depth, int alpha, int beta, int ply) {
-    _context.nodes++;
-    if (_context.exhausted) {
-      _context.aborted = true;
-      return _evaluate(ply);
-    }
+    if (_budget.consume()) return _evaluate();
     if (depth <= 0) return _quiescence(alpha, beta, ply, 0);
 
-    final side = _sideAt(ply);
+    final side = _board.sideToMove;
     final alphaOrig = alpha;
-    if (_table.probe(_hashLow, _hashHigh, depth, alpha, beta, ply)) {
-      return _table.score;
+    final entry = _table.lookup(_board.hashLow, _board.hashHigh, ply);
+    if (entry != null &&
+        entry.depth >= depth &&
+        _cutoffAllowed(entry, alpha, beta)) {
+      return entry.score;
     }
-    final ttMove = _table.bestMove;
 
-    final moves = XiangqiRules.pseudoMoves(cells, side);
-    if (moves.isEmpty) return -_mateScore + ply;
-    _orderMoves(moves, ply, ttMove);
+    final moves = XiangqiRules.pseudoMoves(_board.cells, side);
+    if (moves.isEmpty) return -MateScore.at(ply);
+    _orderMoves(moves, ply, entry?.move ?? -1);
 
     var best = -_infinity;
     var bestMove = -1;
     var legalCount = 0;
     for (final move in moves) {
-      final captured = _apply(move);
-      if (!XiangqiRules.isPositionSafe(cells, side)) {
-        _restore(move, captured);
+      final quiet = _board.cells[moveTo(move)] == 0;
+      _board.make(move);
+      if (!XiangqiRules.isPositionSafe(_board.cells, side)) {
+        _board.unmake();
         continue;
       }
       legalCount++;
       final score = -_negamax(depth - 1, -beta, -alpha, ply + 1);
-      _restore(move, captured);
-      if (_context.aborted) return best == -_infinity ? score : best;
+      _board.unmake();
+      if (_budget.spent) return best == -_infinity ? score : best;
       if (score > best) {
         best = score;
         bestMove = move;
       }
       if (score > alpha) alpha = score;
       if (alpha >= beta) {
-        _recordCutoff(move, ply, depth, captured);
+        if (quiet) _recordCutoff(move, ply, depth);
         break;
       }
     }
-    if (legalCount == 0) return -_mateScore + ply;
+    if (legalCount == 0) return -MateScore.at(ply);
 
-    final flag = best <= alphaOrig
-        ? TranspositionTable.upper
-        : best >= beta
-        ? TranspositionTable.lower
-        : TranspositionTable.exact;
-    _table.store(_hashLow, _hashHigh, depth, best, flag, bestMove, ply);
+    _table.store(
+      low: _board.hashLow,
+      high: _board.hashHigh,
+      ply: ply,
+      depth: depth,
+      score: best,
+      bound: best <= alphaOrig
+          ? TranspositionTable.upper
+          : best >= beta
+          ? TranspositionTable.lower
+          : TranspositionTable.exact,
+      move: bestMove,
+    );
     return best;
+  }
+
+  /// 条目能否直接裁剪：下界需达到 beta，上界需低于等于 alpha，精确值直接用。
+  static bool _cutoffAllowed(TtEntry entry, int alpha, int beta) {
+    switch (entry.bound) {
+      case TranspositionTable.lower:
+        return entry.score >= beta;
+      case TranspositionTable.upper:
+        return entry.score <= alpha;
+      default:
+        return true;
+    }
   }
 
   /// 静态搜索：只展开吃子，消除固定深度搜索的"地平线效应"。
   /// 被将军时不能停招，需展开所有应将着法。
   int _quiescence(int alpha, int beta, int ply, int qdepth) {
-    _context.nodes++;
-    if (_context.exhausted) {
-      _context.aborted = true;
-      return _evaluate(ply);
-    }
+    if (_budget.consume()) return _evaluate();
+    if (qdepth >= 8) return _evaluate();
 
-    final side = _sideAt(ply);
-    final inCheck = XiangqiRules.isKingInCheck(cells, side);
-    if (qdepth >= 8) return _evaluate(ply);
+    final side = _board.sideToMove;
+    final inCheck = XiangqiRules.isKingInCheck(_board.cells, side);
     if (!inCheck) {
-      final standPat = _evaluate(ply);
+      final standPat = _evaluate();
       if (standPat >= beta) return beta;
       if (standPat > alpha) alpha = standPat;
       if (qdepth >= 4) return alpha;
     }
 
     final candidates = <int>[];
-    for (final move in XiangqiRules.pseudoMoves(cells, side)) {
-      if (inCheck || cells[moveTo(move)] != 0) candidates.add(move);
+    for (final move in XiangqiRules.pseudoMoves(_board.cells, side)) {
+      if (inCheck || _board.cells[moveTo(move)] != 0) candidates.add(move);
     }
     if (candidates.isEmpty) {
-      return inCheck ? -_mateScore + ply : alpha;
+      return inCheck ? -MateScore.at(ply) : alpha;
     }
     _orderMoves(candidates, ply, -1);
 
     var best = -_infinity;
     for (final move in candidates) {
-      final captured = _apply(move);
-      if (!XiangqiRules.isPositionSafe(cells, side)) {
-        _restore(move, captured);
+      _board.make(move);
+      if (!XiangqiRules.isPositionSafe(_board.cells, side)) {
+        _board.unmake();
         continue;
       }
       final score = -_quiescence(-beta, -alpha, ply + 1, qdepth + 1);
-      _restore(move, captured);
-      if (_context.aborted) return inCheck && best > -_infinity ? best : alpha;
+      _board.unmake();
+      if (_budget.spent) return inCheck && best > -_infinity ? best : alpha;
       if (score > best) best = score;
       if (score > alpha) alpha = score;
       if (alpha >= beta) break;
     }
-    if (inCheck && best == -_infinity) return -_mateScore + ply;
+    if (inCheck && best == -_infinity) return -MateScore.at(ply);
     return inCheck ? best : alpha;
   }
 
-  int _sideAt(int ply) => _rootSide ^ (ply & 1);
-
-  int _evaluate(int ply) =>
-      XiangqiEvaluation.evaluateForSide(cells, _sideAt(ply));
-
-  /// 搜索中落子，返回被吃的棋子；同时增量更新局面键。
-  int _apply(int move) {
-    final from = moveFrom(move);
-    final to = moveTo(move);
-    final piece = cells[from];
-    final captured = cells[to];
-    _hashLow ^= Zobrist.lowKey(piece, from) ^ Zobrist.lowKey(piece, to);
-    _hashHigh ^= Zobrist.highKey(piece, from) ^ Zobrist.highKey(piece, to);
-    if (captured != 0) {
-      _hashLow ^= Zobrist.lowKey(captured, to);
-      _hashHigh ^= Zobrist.highKey(captured, to);
-    }
-    _hashLow ^= Zobrist.sideLowKey;
-    _hashHigh ^= Zobrist.sideHighKey;
-    cells[to] = piece;
-    cells[from] = 0;
-    return captured;
-  }
-
-  void _restore(int move, int captured) {
-    final from = moveFrom(move);
-    final to = moveTo(move);
-    final piece = cells[to];
-    _hashLow ^= Zobrist.sideLowKey;
-    _hashHigh ^= Zobrist.sideHighKey;
-    _hashLow ^= Zobrist.lowKey(piece, from) ^ Zobrist.lowKey(piece, to);
-    _hashHigh ^= Zobrist.highKey(piece, from) ^ Zobrist.highKey(piece, to);
-    if (captured != 0) {
-      _hashLow ^= Zobrist.lowKey(captured, to);
-      _hashHigh ^= Zobrist.highKey(captured, to);
-    }
-    cells[from] = piece;
-    cells[to] = captured;
-  }
+  int _evaluate() =>
+      XiangqiEvaluation.evaluateForSide(_board.cells, _board.sideToMove);
 
   /// 记录截断着法：静默着法进杀手表与历史表，供同类局面优先搜索。
-  void _recordCutoff(int move, int ply, int depth, int captured) {
-    if (captured != 0 || ply >= _killerPlies) return;
+  void _recordCutoff(int move, int ply, int depth) {
+    if (ply >= _killerPlies) return;
     final index = ply * 2;
     if (_killers[index] != move) {
       _killers[index + 1] = _killers[index];
@@ -369,67 +364,53 @@ class _Searcher {
   void _orderMoves(List<int> moves, int ply, int ttMove) {
     final count = moves.length;
     if (count < 2) return;
-    if (count > _bufferSize) {
-      moves.sort(
-        (a, b) => _priority(b, ply, ttMove) - _priority(a, ply, ttMove),
-      );
-      return;
-    }
+    if (count > _sortedMoves.length) _growSorting(count);
     for (var index = 0; index < count; index++) {
       final move = moves[index];
-      _sortMoves[index] = move;
-      _sortScores[index] = _priority(move, ply, ttMove);
+      _sortedMoves[index] = move;
+      _sortedScores[index] = _priority(move, ply, ttMove);
     }
     // 插入排序：着法数量不大，且上一轮结果已让高分着法靠前。
     for (var index = 1; index < count; index++) {
-      final move = _sortMoves[index];
-      final score = _sortScores[index];
+      final move = _sortedMoves[index];
+      final score = _sortedScores[index];
       var cursor = index - 1;
-      while (cursor >= 0 && _sortScores[cursor] < score) {
-        _sortMoves[cursor + 1] = _sortMoves[cursor];
-        _sortScores[cursor + 1] = _sortScores[cursor];
+      while (cursor >= 0 && _sortedScores[cursor] < score) {
+        _sortedMoves[cursor + 1] = _sortedMoves[cursor];
+        _sortedScores[cursor + 1] = _sortedScores[cursor];
         cursor--;
       }
-      _sortMoves[cursor + 1] = move;
-      _sortScores[cursor + 1] = score;
+      _sortedMoves[cursor + 1] = move;
+      _sortedScores[cursor + 1] = score;
     }
     for (var index = 0; index < count; index++) {
-      moves[index] = _sortMoves[index];
+      moves[index] = _sortedMoves[index];
     }
   }
 
+  void _growSorting(int count) {
+    var size = _sortedMoves.length;
+    while (size < count) {
+      size *= 2;
+    }
+    _sortedMoves = Int32List(size);
+    _sortedScores = Int32List(size);
+  }
+
   int _priority(int move, int ply, int ttMove) {
-    if (move == ttMove) return 1 << 20;
-    final to = moveTo(move);
-    final captured = cells[to];
+    if (move == ttMove) return _ttMoveWeight;
+    final captured = _board.cells[moveTo(move)];
     if (captured != 0) {
-      final attacker = cells[moveFrom(move)];
-      return (1 << 18) +
+      final attacker = _board.cells[moveFrom(move)];
+      return _captureWeight +
           XiangqiEvaluation.pieceValues[typeOf(captured)] * 10 -
           XiangqiEvaluation.pieceValues[typeOf(attacker)];
     }
     if (ply < _killerPlies) {
       final index = ply * 2;
-      if (_killers[index] == move) return 100000;
-      if (_killers[index + 1] == move) return 90000;
+      if (_killers[index] == move) return _killerWeight;
+      if (_killers[index + 1] == move) return _secondKillerWeight;
     }
     return _history[move];
   }
-}
-
-class _SearchContext {
-  _SearchContext(this.maxNodes, this.timeLimitMillis);
-
-  final int maxNodes;
-  final int timeLimitMillis;
-  int nodes = 0;
-  bool aborted = false;
-  final Stopwatch _watch = Stopwatch()..start();
-
-  /// 节点数或时间任一超限即视为耗尽，时间检查每 512 个节点做一次。
-  bool get exhausted =>
-      nodes >= maxNodes ||
-      (timeLimitMillis > 0 &&
-          (nodes & 511) == 0 &&
-          _watch.elapsedMilliseconds >= timeLimitMillis);
 }

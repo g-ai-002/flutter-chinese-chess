@@ -131,4 +131,32 @@ void main() {
       expect(XiangqiRules.legalMoves(cells, red), contains(result.move));
     });
   });
+
+  group('搜索预算', () {
+    test('节点达到上限后耗尽', () {
+      final budget = SearchBudget(maxNodes: 2, timeLimitMillis: 0);
+
+      expect(budget.consume(), isFalse);
+      expect(budget.consume(), isTrue);
+      expect(budget.spent, isTrue);
+      expect(budget.nodes, 2);
+      expect(budget.consume(), isTrue);
+    });
+
+    test('不限时且节点未满时不会耗尽', () {
+      final budget = SearchBudget(maxNodes: 1000, timeLimitMillis: 0);
+
+      for (var index = 0; index < 999; index++) {
+        expect(budget.consume(), isFalse);
+      }
+      expect(budget.spent, isFalse);
+    });
+
+    test('时限为零表示不限时', () {
+      final budget = SearchBudget(maxNodes: 10000, timeLimitMillis: 0);
+
+      expect(budget.consume(), isFalse);
+      expect(budget.spent, isFalse);
+    });
+  });
 }
