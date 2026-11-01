@@ -2,6 +2,7 @@ import 'package:chinese_chess/game/ai_player.dart';
 import 'package:chinese_chess/game/board_state.dart';
 import 'package:chinese_chess/game/engine/board_utils.dart';
 import 'package:chinese_chess/game/engine/rules.dart';
+import 'package:chinese_chess/game/engine/search.dart';
 import 'package:chinese_chess/game/game_controller.dart';
 import 'package:chinese_chess/models/game_models.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -65,15 +66,15 @@ void main() {
     controller.dispose();
   });
 
-  test('引擎摘要文案保留层数与用时', () {
-    const insight = AiInsight(
-      depth: 5,
-      nodes: 123456,
-      score: -20,
-      millis: 1820,
-    );
+  test('引擎摘要取自搜索回包与实际耗时', () {
+    const reply = SearchResult(move: 12, score: -20, nodes: 123456, depth: 5);
+    final insight = AiInsight.of(reply, const Duration(milliseconds: 1820));
 
+    expect(insight.depth, 5);
+    expect(insight.nodes, 123456);
+    expect(insight.score, -20);
     expect(insight.label, 'AI 第 5 层 · 1.8s');
+    expect(insight.detail, '节点 123456 · 评分 -20');
   });
 
   test('人类执黑时 AI 先行，且此时不能悔棋', () async {

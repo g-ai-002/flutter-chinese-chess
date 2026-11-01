@@ -290,12 +290,7 @@ class GameController extends ChangeNotifier implements BoardView {
     thinking = false;
     stopwatch.stop();
     if (reply != null) {
-      aiInsight = AiInsight(
-        depth: reply.depth,
-        nodes: reply.nodes,
-        score: reply.score,
-        millis: stopwatch.elapsedMilliseconds,
-      );
+      aiInsight = AiInsight.of(reply, stopwatch.elapsed);
       LogService.info(
         'AI 完成: 深度 ${reply.depth}, 节点 ${reply.nodes}, '
         '评分 ${reply.score}, 用时 ${stopwatch.elapsedMilliseconds}ms',
