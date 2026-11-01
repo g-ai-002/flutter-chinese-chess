@@ -8,11 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 XiangqiBoard walk(List<String> notations) {
   final board = XiangqiBoard.initial();
   for (final notation in notations) {
-    final move = MoveNotation.findMove(
-      board.cells,
-      board.sideToMove,
-      notation,
-    );
+    final move = MoveNotation.findMove(board.cells, board.sideToMove, notation);
     expect(move, isNotNull, reason: '记法「$notation」在当前局面不合法');
     final from = moveFrom(move!);
     final to = moveTo(move);

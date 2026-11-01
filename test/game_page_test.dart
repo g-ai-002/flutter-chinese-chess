@@ -1,5 +1,6 @@
 import 'package:chinese_chess/models/game_models.dart';
 import 'package:chinese_chess/pages/game_page.dart';
+import 'package:chinese_chess/pages/widgets/game_dialogs.dart';
 import 'package:chinese_chess/providers/settings_provider.dart';
 import 'package:chinese_chess/services/storage_service.dart';
 import 'package:chinese_chess/theme/app_theme.dart';
@@ -116,5 +117,98 @@ void main() {
     expect(find.text('黑方行棋'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('对局页展示当前开局与推荐着法', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final storage = await StorageService.instance;
+    final settings = SettingsProvider(storage);
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: settings,
+        child: MaterialApp(
+          theme: buildLightTheme(),
+          home: const GamePage(
+            mode: GameMode.twoPlayers,
+            difficulty: Difficulty.entry,
+            humanSide: 0,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(find.text('开局 · 中炮'), findsOneWidget);
+    expect(find.text('试走 炮二平五'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('关闭设置后不再显示开局提示', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({'show_opening_hints': false});
+    StorageService.resetForTests();
+    final storage = await StorageService.instance;
+    final settings = SettingsProvider(storage);
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: settings,
+        child: MaterialApp(
+          theme: buildLightTheme(),
+          home: const GamePage(
+            mode: GameMode.twoPlayers,
+            difficulty: Difficulty.entry,
+            humanSide: 0,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(find.text('开局 · 中炮'), findsNothing);
+    expect(find.text('试走 炮二平五'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('终局弹窗提供复盘入口', (tester) async {
+    var reviewRequested = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => showGameResultDialog(
+                  context,
+                  result: const GameResult(winner: 0, reason: '绝杀'),
+                  moveCount: 12,
+                  onRestart: () {},
+                  onReview: () => reviewRequested = true,
+                ),
+                child: const Text('查看结果'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('查看结果'));
+    await tester.pumpAndSettle();
+    expect(find.text('复盘'), findsOneWidget);
+
+    await tester.tap(find.text('复盘'));
+    await tester.pumpAndSettle();
+    expect(reviewRequested, isTrue);
   });
 }

@@ -30,6 +30,7 @@ void main() {
     expect(find.text('人机对战'), findsOneWidget);
     expect(find.text('双人对弈'), findsOneWidget);
     expect(find.text('残局挑战'), findsOneWidget);
+    expect(find.text('棋谱复盘'), findsOneWidget);
     expect(find.text('AI 难度'), findsOneWidget);
     expect(find.text('执红先行'), findsOneWidget);
     expect(find.textContaining('v${AppConstants.version}'), findsOneWidget);
@@ -74,5 +75,50 @@ void main() {
     await tester.tap(find.byTooltip('切换深色'));
     await tester.pumpAndSettle();
     expect(settings.darkMode, isTrue);
+  });
+
+  testWidgets('粘贴棋谱后可直接进入复盘', (tester) async {
+    final storage = await StorageService.instance;
+    final settings = SettingsProvider(storage);
+    await tester.pumpWidget(wrap(settings));
+
+    final entry = find.text('棋谱复盘');
+    await tester.ensureVisible(entry);
+    await tester.pumpAndSettle();
+    await tester.tap(entry);
+    await tester.pumpAndSettle();
+
+    expect(find.text('导入棋谱'), findsOneWidget);
+    await tester.enterText(
+      find.byType(TextField),
+      '1. 炮二平五 马8进7\n2. 马二进三 马2进3',
+    );
+    await tester.tap(find.text('开始复盘'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+
+    expect(find.text('复盘'), findsOneWidget);
+    expect(find.text('第 0 / 4 手'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('无法解析的棋谱给出提示', (tester) async {
+    final storage = await StorageService.instance;
+    final settings = SettingsProvider(storage);
+    await tester.pumpWidget(wrap(settings));
+
+    final entry = find.text('棋谱复盘');
+    await tester.ensureVisible(entry);
+    await tester.pumpAndSettle();
+    await tester.tap(entry);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), '这不是棋谱');
+    await tester.tap(find.text('开始复盘'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+
+    expect(find.text('棋谱无法解析，请检查文本是否完整'), findsOneWidget);
   });
 }
