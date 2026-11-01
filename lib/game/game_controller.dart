@@ -6,12 +6,13 @@ import '../services/log_service.dart';
 import '../utils/constants.dart';
 import 'ai_player.dart';
 import 'board_state.dart';
+import 'board_view.dart';
 import 'engine/board_utils.dart';
 import 'engine/rules.dart';
 import 'puzzles.dart';
 
 /// 对局控制器：选择、落子、AI 回合、悔棋、终局判定。
-class GameController extends ChangeNotifier {
+class GameController extends ChangeNotifier implements BoardView {
   GameController({
     required this.mode,
     required this.difficulty,
@@ -30,14 +31,19 @@ class GameController extends ChangeNotifier {
   final GameMode mode;
   final Difficulty difficulty;
   final int humanSide;
+  @override
   final bool showHints;
   final Puzzle? puzzle;
+  @override
   final XiangqiBoard board;
   final AiMoveProvider _aiMove;
 
+  @override
   int? selected;
+  @override
   List<int> legalTargets = const [];
   bool thinking = false;
+  @override
   bool inCheck = false;
   GameResult? result;
 
@@ -55,6 +61,7 @@ class GameController extends ChangeNotifier {
     return board.history.any((record) => sideOf(record.piece) == humanSide);
   }
 
+  @override
   List<MoveRecord> get history => board.history;
 
   /// 人类已落子的步数，残局按此计算剩余步数。
@@ -78,6 +85,7 @@ class GameController extends ChangeNotifier {
     if (mode != GameMode.twoPlayers && board.sideToMove != humanSide) _think();
   }
 
+  @override
   void tapCell(int index) {
     if (!canInteractive) return;
     final piece = board.cells[index];

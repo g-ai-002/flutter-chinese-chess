@@ -51,7 +51,7 @@ class _GamePageState extends State<GamePage> {
       showHints: settings.showHints,
       puzzle: widget.puzzle,
     );
-    _game = XiangqiGame(controller: _controller);
+    _game = XiangqiGame(view: _controller);
     _controller.addListener(_onControllerChanged);
     final puzzle = widget.puzzle;
     LogService.info(

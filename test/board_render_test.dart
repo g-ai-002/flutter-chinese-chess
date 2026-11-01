@@ -16,7 +16,7 @@ Future<ByteData> _renderBoard() async {
     difficulty: Difficulty.entry,
     humanSide: 0,
   );
-  final board = BoardComponent(controller: controller)
+  final board = BoardComponent(view: controller)
     ..size = Vector2(_width, _height);
   final recorder = ui.PictureRecorder();
   board.render(ui.Canvas(recorder));

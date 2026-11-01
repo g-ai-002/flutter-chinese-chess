@@ -1,14 +1,14 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
-import '../game/game_controller.dart';
+import '../game/board_view.dart';
 import 'board_component.dart';
 
 /// Flame 游戏入口：目前只有一个棋盘组件，后续可扩展落子特效与音效。
 class XiangqiGame extends FlameGame {
-  XiangqiGame({required this.controller});
+  XiangqiGame({required this.view});
 
-  final GameController controller;
+  final BoardView view;
   BoardComponent? _board;
 
   @override
@@ -16,7 +16,7 @@ class XiangqiGame extends FlameGame {
 
   @override
   Future<void> onLoad() async {
-    final board = BoardComponent(controller: controller)
+    final board = BoardComponent(view: view)
       ..size = size.clone()
       ..position = Vector2.zero();
     _board = board;

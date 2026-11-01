@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../game/engine/board_utils.dart';
 import '../game/engine/rules.dart';
-import '../game/game_controller.dart';
+import '../game/board_view.dart';
 import '../theme/app_theme.dart';
 import '../theme/board_painting.dart';
 import '../utils/constants.dart';
@@ -21,9 +21,9 @@ const double _moveDurationSeconds = 0.17;
 
 /// Flame 棋盘组件：绘制木纹棋盘、棋子、走子提示与落子动画，并处理点击。
 class BoardComponent extends PositionComponent with TapCallbacks {
-  BoardComponent({required this.controller});
+  BoardComponent({required this.view});
 
-  final GameController controller;
+  final BoardView view;
 
   double _cell = 0;
   double _time = 0;
@@ -38,12 +38,12 @@ class BoardComponent extends PositionComponent with TapCallbacks {
     super.update(dt);
     _time += dt;
 
-    final count = controller.history.length;
+    final count = view.history.length;
     if (count != _seenMoves) {
       if (count > _seenMoves &&
           _seenMoves >= 0 &&
-          controller.history.isNotEmpty) {
-        final last = controller.history.last;
+          view.history.isNotEmpty) {
+        final last = view.history.last;
         _anim = _MoveAnim(
           from: last.from,
           to: last.to,
@@ -199,8 +199,8 @@ class BoardComponent extends PositionComponent with TapCallbacks {
   }
 
   void _drawHighlights(Canvas canvas, double cell) {
-    final lastFrom = controller.board.lastFrom;
-    final lastTo = controller.board.lastTo;
+    final lastFrom = view.board.lastFrom;
+    final lastTo = view.board.lastTo;
     if (lastFrom != null && lastTo != null) {
       final paint = Paint()
         ..style = PaintingStyle.stroke
@@ -211,7 +211,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
       _drawCellBrackets(canvas, _center(lastTo, cell), cell, paint);
     }
 
-    final selected = controller.selected;
+    final selected = view.selected;
     if (selected != null) {
       final center = _center(selected, cell);
       final radius = cell * 0.47;
@@ -230,10 +230,10 @@ class BoardComponent extends PositionComponent with TapCallbacks {
       );
     }
 
-    if (controller.showHints && controller.legalTargets.isNotEmpty) {
-      for (final index in controller.legalTargets) {
+    if (view.showHints && view.legalTargets.isNotEmpty) {
+      for (final index in view.legalTargets) {
         final center = _center(index, cell);
-        if (controller.board.cells[index] == 0) {
+        if (view.board.cells[index] == 0) {
           canvas.drawCircle(
             center,
             cell * 0.075,
@@ -252,10 +252,10 @@ class BoardComponent extends PositionComponent with TapCallbacks {
       }
     }
 
-    if (controller.inCheck) {
+    if (view.inCheck) {
       final king = XiangqiRules.findKing(
-        controller.board.cells,
-        controller.board.sideToMove,
+        view.board.cells,
+        view.board.sideToMove,
       );
       if (king != null) {
         final pulse = 0.55 + 0.45 * math.sin(_time * 5.5);
@@ -305,7 +305,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
   void _drawPieces(Canvas canvas, double cell) {
     final anim = _anim;
     for (var index = 0; index < cellCount; index++) {
-      final piece = controller.board.cells[index];
+      final piece = view.board.cells[index];
       if (piece == 0) continue;
       if (anim != null && index == anim.to) continue;
       _drawPiece(canvas, _center(index, cell), piece, cell);
@@ -458,9 +458,9 @@ class BoardComponent extends PositionComponent with TapCallbacks {
         (local.y - center.dy).abs() > _cell * 0.55) {
       return;
     }
-    final before = controller.history.length;
-    controller.tapCell(indexOf(row, col));
-    if (controller.history.length > before) {
+    final before = view.history.length;
+    view.tapCell(indexOf(row, col));
+    if (view.history.length > before) {
       HapticFeedback.selectionClick();
     }
   }
