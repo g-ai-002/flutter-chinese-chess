@@ -9,10 +9,11 @@ import 'board_state.dart';
 import 'board_view.dart';
 import 'engine/board_utils.dart';
 import 'engine/rules.dart';
+import 'match_clock.dart';
 import 'opening_book.dart';
 import 'puzzles.dart';
 
-/// 对局控制器：选择、落子、AI 回合、悔棋、终局判定。
+/// 对局控制器：选择、落子、AI 回合、悔棋、棋钟与终局判定。
 class GameController extends ChangeNotifier implements BoardView {
   GameController({
     required this.mode,
@@ -22,8 +23,10 @@ class GameController extends ChangeNotifier implements BoardView {
     XiangqiBoard? board,
     this.showHints = true,
     this.showOpeningHints = true,
+    TimeControl timeControl = TimeControl.none,
     this.puzzle,
-  }) : board = board ?? _initialBoard(puzzle),
+  }) : timeControl = puzzle == null ? timeControl : TimeControl.none,
+       board = board ?? _initialBoard(puzzle),
        _aiMove = aiMove ?? AiPlayer.chooseMove;
 
   static XiangqiBoard _initialBoard(Puzzle? puzzle) => puzzle == null
@@ -36,10 +39,18 @@ class GameController extends ChangeNotifier implements BoardView {
   @override
   final bool showHints;
   final bool showOpeningHints;
+
+  /// 本局的时间方案，残局固定为不限时。
+  final TimeControl timeControl;
   final Puzzle? puzzle;
   @override
   final XiangqiBoard board;
   final AiMoveProvider _aiMove;
+
+  /// 限时对局的棋钟，不限时或残局为 null。
+  late final MatchClock? clock = timeControl.isTimed
+      ? MatchClock(timeControl)
+      : null;
 
   @override
   int? selected;
@@ -52,6 +63,13 @@ class GameController extends ChangeNotifier implements BoardView {
 
   int _serial = 0;
   bool _disposed = false;
+
+  /// 计时基准：界面按固定间隔结算，落子时再补一次，AI 思考也算本方用时。
+  final Stopwatch _watch = Stopwatch()..start();
+  Duration _lastMark = Duration.zero;
+
+  /// 每步落子前的双方剩余时间，下标与棋谱长度对应，供悔棋还原。
+  final List<List<int>> _clockMarks = [];
 
   bool get isHumanTurn =>
       mode == GameMode.twoPlayers || board.sideToMove == humanSide;
@@ -90,8 +108,20 @@ class GameController extends ChangeNotifier implements BoardView {
   /// 页面挂载后调用；人类执黑时由 AI 先行。
   void start() {
     inCheck = XiangqiRules.isKingInCheck(board.cells, board.sideToMove);
+    _syncClock();
     _notify();
     if (mode != GameMode.twoPlayers && board.sideToMove != humanSide) _think();
+  }
+
+  /// 界面定时调用：把当前行棋方的实际用时结算给棋钟，超时即判负。
+  /// [elapsed] 仅测试用，传入时不再读取真实耗时。
+  void tickClock([Duration? elapsed]) {
+    final clock = this.clock;
+    if (clock == null || result != null || !clock.isRunning) return;
+    final expired = clock.charge(elapsed ?? _consumeElapsed());
+    if (expired == null) return;
+    LogService.warning('${sideName(expired)}超时判负');
+    _finish(GameResult(winner: opponentOf(expired), reason: '超时'));
   }
 
   @override
@@ -128,6 +158,7 @@ class GameController extends ChangeNotifier implements BoardView {
         board.sideToMove != humanSide &&
         board.history.isNotEmpty);
     result = null;
+    _restoreClock();
     _clearSelection(notify: false);
     inCheck = XiangqiRules.isKingInCheck(board.cells, board.sideToMove);
     LogService.info('悔棋，当前轮到${sideName(board.sideToMove)}');
@@ -140,6 +171,9 @@ class GameController extends ChangeNotifier implements BoardView {
     thinking = false;
     result = null;
     inCheck = false;
+    _clockMarks.clear();
+    clock?.reset();
+    _syncClock();
     _clearSelection(notify: false);
     LogService.info('重新开始对局');
     _notify();
@@ -153,11 +187,21 @@ class GameController extends ChangeNotifier implements BoardView {
     _finish(GameResult(winner: opponentOf(humanSide), reason: '认输'));
   }
 
-  /// 收敛终局：记录结果、写日志并通知界面。
+  /// 收敛终局：记录结果、停表、收掉残留选中，写日志并通知界面。
   void _finish(GameResult outcome) {
     result = outcome;
+    clock?.stop();
+    _clearSelection(notify: false);
     LogService.info('对局结束: ${outcome.title} (${outcome.reason})');
     _notify();
+  }
+
+  /// 结算当前行棋方从上次结算至今的用时。
+  Duration _consumeElapsed() {
+    final now = _watch.elapsed;
+    final delta = now - _lastMark;
+    _lastMark = now;
+    return delta;
   }
 
   void _clearSelection({bool notify = true}) {
@@ -167,9 +211,13 @@ class GameController extends ChangeNotifier implements BoardView {
   }
 
   void _play(int from, int to) {
+    // 先结算本步用时，超时则以超时结束，不再落子。
+    tickClock();
     if (result != null) return;
     final record = board.tryApply(from, to);
     if (record == null) return;
+    final clock = this.clock;
+    if (clock != null) _clockMarks.add(clock.snapshot());
     selected = null;
     legalTargets = const [];
     final captureText = record.isCapture
@@ -194,8 +242,37 @@ class GameController extends ChangeNotifier implements BoardView {
       _finish(outcome);
       return;
     }
+    _syncClock();
     _notify();
     if (mode != GameMode.twoPlayers && board.sideToMove != humanSide) _think();
+  }
+
+  /// 把计时交给当前行棋方；终局或停表时清零基准，避免把空闲时间算进去。
+  void _syncClock() {
+    final clock = this.clock;
+    if (clock == null) return;
+    _lastMark = _watch.elapsed;
+    if (result == null) {
+      clock.start(board.sideToMove);
+    } else {
+      clock.stop();
+    }
+  }
+
+  /// 悔棋后回到落子前的棋钟状态，并重新为当前行棋方计时。
+  void _restoreClock() {
+    final clock = this.clock;
+    if (clock == null) return;
+    List<int>? mark;
+    while (_clockMarks.length > board.history.length) {
+      mark = _clockMarks.removeLast();
+    }
+    if (mark == null) {
+      clock.reset();
+    } else {
+      clock.restore(mark, side: board.sideToMove);
+    }
+    _syncClock();
   }
 
   /// 依据规则裁定终局；对局继续时返回 null。

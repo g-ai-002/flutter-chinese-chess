@@ -80,6 +80,43 @@ class SidePicker extends StatelessWidget {
   }
 }
 
+/// 棋钟方案选择：首页与设置页共用。
+class TimeControlPicker extends StatelessWidget {
+  const TimeControlPicker({
+    super.key,
+    required this.settings,
+    this.label = '棋钟',
+  });
+
+  final SettingsProvider settings;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _PickerLabel(label),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final control in TimeControl.values)
+              ChoicePill(
+                label: control.label,
+                selected: settings.timeControl == control,
+                accent: colors.primary,
+                onTap: () => settings.setTimeControl(control),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
 class _PickerLabel extends StatelessWidget {
   const _PickerLabel(this.text);
 

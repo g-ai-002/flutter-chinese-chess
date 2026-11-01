@@ -12,5 +12,16 @@ String formatLogTimestamp(DateTime time) =>
     '${pad2(time.hour)}:${pad2(time.minute)}:${pad2(time.second)}.'
     '${time.millisecond.toString().padLeft(3, '0')}';
 
+/// 棋钟剩余时间：`mm:ss`，满一小时显示 `h:mm:ss`。
+String formatClock(int milliseconds) {
+  final total = (milliseconds / 1000).ceil();
+  final hours = total ~/ 3600;
+  final minutes = (total % 3600) ~/ 60;
+  final seconds = total % 60;
+  return hours > 0
+      ? '$hours:${pad2(minutes)}:${pad2(seconds)}'
+      : '${pad2(minutes)}:${pad2(seconds)}';
+}
+
 String formatLogLine(DateTime time, String level, String message) =>
     '[${formatLogTimestamp(time)}][$level] $message';

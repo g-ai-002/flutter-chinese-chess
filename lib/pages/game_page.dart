@@ -12,6 +12,7 @@ import '../services/log_service.dart';
 import '../services/sound_service.dart';
 import 'review_page.dart';
 import 'widgets/board_stage.dart';
+import 'widgets/clock_bar.dart';
 import 'widgets/game_dialogs.dart';
 import 'widgets/game_status_bar.dart';
 import 'widgets/move_list.dart';
@@ -53,15 +54,18 @@ class _GamePageState extends State<GamePage> {
       humanSide: widget.humanSide,
       showHints: settings.showHints,
       showOpeningHints: settings.showOpeningHints,
+      timeControl: settings.timeControl,
       puzzle: widget.puzzle,
     );
     _game = XiangqiGame(view: _controller, skin: settings.boardSkin);
     _controller.addListener(_onControllerChanged);
     final puzzle = widget.puzzle;
+    final clock = _controller.timeControl;
+    final clockText = clock.isTimed ? '，棋钟 ${clock.label}' : '';
     LogService.info(
       puzzle == null
           ? '开始对局: ${widget.mode.label}, 难度 ${widget.difficulty.label}, '
-                '执${widget.humanSide == red ? '红' : '黑'}'
+                '执${widget.humanSide == red ? '红' : '黑'}$clockText'
           : '开始残局: ${puzzle.title}, 限 ${puzzle.mateIn} 步',
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -218,6 +222,22 @@ class _GamePageState extends State<GamePage> {
 
   void _showRules() => showRulesDialog(context);
 
+  /// 限时对局的副标题后缀，未设棋钟时为空。
+  String get _clockSuffix {
+    final control = _controller.timeControl;
+    return control.isTimed ? ' · ${control.label}' : '';
+  }
+
+  /// 副标题：残局看步数，常规对局看难度与执子，限时对局补上棋钟。
+  String _subtitle(Puzzle? puzzle) {
+    if (puzzle != null) return '残局挑战 · 红先 ${puzzle.mateIn} 步杀';
+    if (widget.mode == GameMode.vsAi) {
+      final side = widget.humanSide == red ? '执红' : '执黑';
+      return '${widget.difficulty.label} · $side$_clockSuffix';
+    }
+    return '同屏对弈$_clockSuffix';
+  }
+
   @override
   void dispose() {
     _controller.removeListener(_onControllerChanged);
@@ -236,11 +256,7 @@ class _GamePageState extends State<GamePage> {
           children: [
             Text(puzzle?.title ?? widget.mode.label),
             Text(
-              puzzle != null
-                  ? '残局挑战 · 红先 ${puzzle.mateIn} 步杀'
-                  : widget.mode == GameMode.vsAi
-                  ? '${widget.difficulty.label} · ${widget.humanSide == red ? '执红' : '执黑'}'
-                  : '同屏对弈',
+              _subtitle(puzzle),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontSize: 11,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -324,6 +340,10 @@ class _GamePageState extends State<GamePage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         GameStatusBar(controller: _controller, humanSide: widget.humanSide),
+        if (_controller.clock != null) ...[
+          const SizedBox(height: 8),
+          ClockBar(controller: _controller),
+        ],
         if (opening != null) ...[
           const SizedBox(height: 8),
           _OpeningHint(info: opening),

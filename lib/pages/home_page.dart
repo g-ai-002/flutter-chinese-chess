@@ -506,6 +506,8 @@ class _OptionsPanel extends StatelessWidget {
           DifficultyPicker(settings: settings),
           const SizedBox(height: 14),
           SidePicker(settings: settings),
+          const SizedBox(height: 14),
+          TimeControlPicker(settings: settings),
         ],
       ),
     );

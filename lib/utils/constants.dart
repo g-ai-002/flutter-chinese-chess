@@ -21,6 +21,7 @@ class AppConstants {
   static const String prefKeyBoardSkin = 'board_skin';
   static const String prefKeySound = 'sound_enabled';
   static const String prefKeyHaptics = 'haptics_enabled';
+  static const String prefKeyTimeControl = 'time_control';
   static const String prefKeySolvedPuzzles = 'solved_puzzles';
 
   /// 单关最佳步数的存储键：`puzzle_best_<id>`。

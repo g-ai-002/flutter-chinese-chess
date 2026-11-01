@@ -34,6 +34,8 @@ class SettingsPage extends StatelessWidget {
                     DifficultyPicker(settings: settings),
                     const SizedBox(height: 16),
                     SidePicker(settings: settings, label: '默认执子'),
+                    const SizedBox(height: 16),
+                    TimeControlPicker(settings: settings),
                   ],
                 ),
                 const SizedBox(height: 12),

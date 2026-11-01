@@ -24,6 +24,28 @@ enum GameMode {
   final String label;
 }
 
+/// 限时方案：每方总时长，[none] 表示不限时。
+enum TimeControl {
+  none('不限时', 0),
+  blitz('5 分钟', 300),
+  rapid('10 分钟', 600),
+  classical('20 分钟', 1200);
+
+  const TimeControl(this.label, this.seconds);
+
+  final String label;
+  final int seconds;
+
+  bool get isTimed => seconds > 0;
+
+  int get millis => seconds * 1000;
+
+  static TimeControl byName(String? name) => values.firstWhere(
+    (item) => item.name == name,
+    orElse: () => TimeControl.none,
+  );
+}
+
 /// 对局结果。
 class GameResult {
   const GameResult({required this.winner, required this.reason});

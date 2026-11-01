@@ -49,6 +49,10 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> setShowOpeningHints(bool value) =>
       _update(() => _storage.setShowOpeningHints(value));
 
+  TimeControl get timeControl => _storage.timeControl;
+  Future<void> setTimeControl(TimeControl value) =>
+      _update(() => _storage.setTimeControl(value));
+
   bool isPuzzleSolved(String id) => _storage.isPuzzleSolved(id);
   int? puzzleBestMoves(String id) => _storage.puzzleBestMoves(id);
 

@@ -61,6 +61,13 @@ class StorageService {
   Future<void> setShowOpeningHints(bool value) =>
       _write((p) => p.setBool(AppConstants.prefKeyShowOpeningHints, value));
 
+  /// 棋钟方案，未设置或未知值回退到不限时。
+  TimeControl get timeControl => TimeControl.byName(
+    _p.getString(AppConstants.prefKeyTimeControl),
+  );
+  Future<void> setTimeControl(TimeControl value) =>
+      _write((p) => p.setString(AppConstants.prefKeyTimeControl, value.name));
+
   Difficulty get difficulty {
     final name = _p.getString(AppConstants.prefKeyDifficulty);
     return Difficulty.values.firstWhere(

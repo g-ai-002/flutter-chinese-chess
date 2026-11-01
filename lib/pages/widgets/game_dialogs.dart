@@ -179,6 +179,7 @@ void showRulesDialog(BuildContext context) {
             _RuleLine('被将军时必须应将；将死或困毙均判负。'),
             _RuleLine('连续六十回合无吃子判和；同一局面出现三次判和。'),
             _RuleLine('一方连续将军形成重复局面，判长将一方负。'),
+            _RuleLine('限时对局中本方棋钟走完即超时判负。'),
             _RuleLine('点击己方棋子选中，再点目标位置落子。'),
           ],
         ),
