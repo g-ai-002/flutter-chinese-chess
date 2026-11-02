@@ -44,7 +44,7 @@ flutter analyze
 flutter test
 ```
 
-构建产物由 CI 生成：推送 `v*` Tag 自动构建 Android / Windows / Web 并发布 Release。
+构建产物由 CI 生成：在 Actions 里手动运行 `build` 工作流，选中 `v*` Tag 运行时按该 Tag 版本构建 Android / Windows / Web 并发布 Release。
 本地无需安装 Android SDK 等大型工具链。
 
 ## 日志位置
