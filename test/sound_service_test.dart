@@ -16,40 +16,43 @@ void main() {
   final messenger =
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   late List<MethodCall> calls;
+  late List<MoveFeedback> played;
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     StorageService.resetForTests();
     calls = [];
+    played = [];
     messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
       calls.add(call);
       return null;
     });
+    SoundService.sink = played.add;
     SoundService.configure(sound: true, haptics: true);
   });
 
   tearDown(() {
+    SoundService.sink = null;
     messenger.setMockMethodCallHandler(SystemChannels.platform, null);
   });
 
   List<String> methods() => calls.map((call) => call.method).toList();
 
-  test('普通落子使用轻提示音与选择震动', () async {
+  test('普通落子播放落子音与选择震动', () async {
     SoundService.play(MoveFeedback.move);
     await Future<void>.delayed(Duration.zero);
 
-    expect(methods(), ['SystemSound.play', 'HapticFeedback.vibrate']);
-    expect(calls.first.arguments, 'SystemSoundType.click');
-    expect(calls.last.arguments, 'HapticFeedbackType.selectionClick');
+    expect(played, [MoveFeedback.move]);
+    expect(methods(), ['HapticFeedback.vibrate']);
+    expect(calls.single.arguments, 'HapticFeedbackType.selectionClick');
   });
 
-  test('吃子与将军使用提醒音与更强的震动', () async {
+  test('吃子与将军分别播放对应音效并加强震动', () async {
     SoundService.play(MoveFeedback.capture);
     SoundService.play(MoveFeedback.check);
     await Future<void>.delayed(Duration.zero);
 
-    expect(methods().where((m) => m == 'SystemSound.play'), hasLength(2));
-    expect(calls.first.arguments, 'SystemSoundType.alert');
+    expect(played, [MoveFeedback.capture, MoveFeedback.check]);
     expect(
       calls.map((call) => call.arguments),
       containsAll([
@@ -63,6 +66,7 @@ void main() {
     SoundService.tap();
     await Future<void>.delayed(Duration.zero);
 
+    expect(played, isEmpty);
     expect(methods(), ['HapticFeedback.vibrate']);
     expect(calls.single.arguments, 'HapticFeedbackType.selectionClick');
   });
@@ -86,15 +90,16 @@ void main() {
     expect(SoundService.hapticsEnabled, isFalse);
   });
 
-  test('关闭音效与震动后不再触发系统调用', () async {
+  test('关闭音效与震动后不再触发音效或系统调用', () async {
     SoundService.configure(sound: false, haptics: false);
     SoundService.play(MoveFeedback.end);
     await Future<void>.delayed(Duration.zero);
 
+    expect(played, isEmpty);
     expect(calls, isEmpty);
   });
 
-  testWidgets('对局落子会触发落子反馈', (tester) async {
+  testWidgets('对局落子会触发对应的落子音效', (tester) async {
     tester.view.physicalSize = const Size(1280, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -117,7 +122,7 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
-    calls.clear();
+    played.clear();
 
     final board = find.byKey(const ValueKey('xiangqi-board'));
     final rect = tester.getRect(board);
@@ -130,7 +135,7 @@ void main() {
     await tester.tapAt(center(5, 0));
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(methods().where((m) => m == 'SystemSound.play'), hasLength(1));
+    expect(played, [MoveFeedback.move]);
     // 选子一次轻触感 + 落子一次反馈，棋盘不再为落子重复触发触感。
     expect(methods().where((m) => m == 'HapticFeedback.vibrate'), hasLength(2));
 

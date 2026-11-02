@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'app.dart';
 import 'services/log_service.dart';
 import 'services/logging_init.dart';
+import 'services/sound_service.dart';
 import 'services/storage_service.dart';
 import 'utils/constants.dart';
 import 'utils/window_setup.dart';
@@ -25,6 +28,7 @@ Future<void> main() async {
 
   final storage = await StorageService.instance;
   LogService.info('应用启动: ${AppConstants.appName} v${AppConstants.version}');
+  unawaited(SoundService.init());
 
   runApp(XiangqiApp(storage: storage));
 }

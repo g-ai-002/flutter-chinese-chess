@@ -1,7 +1,7 @@
 name: chinese_chess
 description: 中国象棋 - 支持人机对战与双人对弈，覆盖 Android、Windows 与 Web
 publish_to: 'none'
-version: 0.6.1
+version: 0.6.2
 
 environment:
   sdk: '>=3.13.7 <4.0.0'
@@ -17,6 +17,7 @@ dependencies:
   path_provider: 2.1.6
   path: 1.9.1
   window_manager: 0.5.2
+  audioplayers: ^6.8.1
 
 dev_dependencies:
   flutter_test:
@@ -25,3 +26,12 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/audio/
+
+  fonts:
+    - family: XiangqiPieces
+      fonts:
+        - asset: assets/fonts/XiangqiPieces.ttf
+          weight: 700
