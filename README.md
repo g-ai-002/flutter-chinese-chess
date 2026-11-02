@@ -44,7 +44,7 @@ flutter analyze
 flutter test
 ```
 
-构建产物由 CI 生成：推送 `v*` Tag 会自动构建 Android / Windows / Web 并发布 Release，也可在 Actions 里手动运行 `build` 工作流。音频在运行时合成、Web 字体来自 soup_fonts，仓库不存放字体与音频文件。
+构建产物由 CI 生成：在 GitHub Actions / Gitea Actions 里手动运行 `build` 工作流，选中 `v*` Tag 时按该 Tag 的版本构建 Android / Windows / Web 并发布 Release，运行 `main` 则产出预览产物。音频在运行时合成、Web 字体来自 soup_fonts，仓库不存放字体与音频文件。
 本地无需安装 Android SDK 等大型工具链。
 
 ## 日志位置
