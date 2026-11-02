@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../flame/xiangqi_game.dart';
 import '../game/engine/board_utils.dart';
 import '../game/game_controller.dart';
-import '../game/opening_book.dart';
 import '../game/puzzles.dart';
 import '../models/game_models.dart';
 import '../providers/settings_provider.dart';
@@ -280,17 +279,27 @@ class _GamePageState extends State<GamePage> {
         ],
       ),
       body: SafeArea(
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) => PlayLayout(
-            status: _buildStatus(),
-            board: _buildBoard(),
-            actions: _buildActions(showMoves: false),
-            compactBottom: Padding(
+        child: PlayLayout(
+          // 只重建状态与操作区，棋盘与 Flame 画布保持稳定，避免浮层变化推动棋盘。
+          status: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) => _buildStatus(),
+          ),
+          board: _buildBoard(),
+          actions: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) => _buildActions(showMoves: false),
+          ),
+          compactBottom: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) => Padding(
               padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
               child: _buildActions(showMoves: true),
             ),
-            sidePanel: _buildSidePanel(),
+          ),
+          sidePanel: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) => _buildSidePanel(),
           ),
         ),
       ),
@@ -298,7 +307,6 @@ class _GamePageState extends State<GamePage> {
   }
 
   Widget _buildStatus() {
-    final opening = _controller.opening;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -307,16 +315,13 @@ class _GamePageState extends State<GamePage> {
           const SizedBox(height: 8),
           ClockBar(controller: _controller),
         ],
-        if (opening != null) ...[
-          const SizedBox(height: 8),
-          _OpeningHint(info: opening),
-        ],
       ],
     );
   }
 
-  Widget _buildBoard() =>
-      BoardStage(game: _game, gameKey: const ValueKey('xiangqi-board'));
+  Widget _buildBoard() => RepaintBoundary(
+    child: BoardStage(game: _game, gameKey: const ValueKey('xiangqi-board')),
+  );
 
   Widget _buildActions({required bool showMoves}) {
     final isAi = widget.mode == GameMode.vsAi;
@@ -345,6 +350,14 @@ class _GamePageState extends State<GamePage> {
             icon: Icons.format_list_bulleted_rounded,
             label: '棋谱',
             onPressed: _showMoveSheet,
+          ),
+        if (isAi)
+          _ActionButton(
+            icon: Icons.lightbulb_outline,
+            label: _controller.hintLoading ? '思考中' : '提示',
+            onPressed: _controller.canInteractive && !_controller.hintLoading
+                ? _controller.requestHint
+                : null,
           ),
         if (isAi)
           _ActionButton(
@@ -397,55 +410,5 @@ class _ActionButton extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-/// 开局提示：显示当前开局名称与推荐着法。
-class _OpeningHint extends StatelessWidget {
-  const _OpeningHint({required this.info});
-
-  final OpeningInfo info;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final next = info.next;
-    final hint = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: colors.primary.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: colors.primary.withValues(alpha: 0.16)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.auto_stories_outlined, size: 13, color: colors.primary),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              '开局 · ${info.name}',
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: colors.onSurface,
-              ),
-            ),
-          ),
-          if (next != null) ...[
-            const SizedBox(width: 8),
-            Text(
-              '试走 $next',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: colors.primary,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-    final note = info.note;
-    if (note == null) return hint;
-    return Tooltip(message: note, child: hint);
   }
 }

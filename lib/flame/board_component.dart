@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
@@ -12,9 +13,9 @@ import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/board_painting.dart';
 import '../theme/board_skin.dart';
-import '../utils/constants.dart';
 
 const double _moveDurationSeconds = 0.17;
+const Color _hintColor = Color(0xFFC08A2E);
 
 /// Flame 棋盘组件：绘制棋盘、棋子、走子提示与落子动画，并处理点击。
 ///
@@ -35,6 +36,13 @@ class BoardComponent extends PositionComponent with TapCallbacks {
   final Map<int, TextPainter> _piecePainters = {};
   final Map<String, TextPainter> _textPainters = {};
 
+  ui.Picture? _boardLayer;
+  ui.Picture? _pieceLayer;
+  int _pieceSignature = 0;
+  double _layerCell = 0;
+  String _layerSkin = '';
+  final Map<int, ui.Picture> _sprites = {};
+
   @override
   Future<void> onLoad() async {
     skin.addListener(_clearTextCaches);
@@ -43,12 +51,27 @@ class BoardComponent extends PositionComponent with TapCallbacks {
   @override
   void onRemove() {
     skin.removeListener(_clearTextCaches);
+    _clearTextCaches();
     super.onRemove();
   }
 
   void _clearTextCaches() {
     _piecePainters.clear();
     _textPainters.clear();
+    for (final sprite in _sprites.values) {
+      sprite.dispose();
+    }
+    _sprites.clear();
+    _invalidateLayers();
+  }
+
+  void _invalidateLayers() {
+    _boardLayer?.dispose();
+    _pieceLayer?.dispose();
+    _boardLayer = null;
+    _pieceLayer = null;
+    _layerCell = 0;
+    _layerSkin = '';
   }
 
   @override
@@ -92,14 +115,65 @@ class BoardComponent extends PositionComponent with TapCallbacks {
       _cacheCell = cell;
       _piecePainters.clear();
       _textPainters.clear();
+      for (final sprite in _sprites.values) {
+        sprite.dispose();
+      }
+      _sprites.clear();
+      _invalidateLayers();
     }
 
     canvas.save();
     canvas.translate(origin.dx, origin.dy);
-    _drawBoard(canvas, cell);
+    canvas.drawPicture(_boardPicture(cell));
     _drawHighlights(canvas, cell);
-    _drawPieces(canvas, cell);
+    if (_anim == null) {
+      canvas.drawPicture(_piecesPicture(cell));
+    } else {
+      _drawAnimatedPieces(canvas, cell);
+    }
+    _drawHint(canvas, cell);
     canvas.restore();
+  }
+
+  /// 棋盘底色、网格与河界文字只随尺寸和皮肤变化，录制为图片后逐帧复用。
+  ui.Picture _boardPicture(double cell) {
+    final cached = _boardLayer;
+    if (cached != null &&
+        (_layerCell - cell).abs() < 0.01 &&
+        _layerSkin == _skin.id) {
+      return cached;
+    }
+    _boardLayer?.dispose();
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    _drawBoard(canvas, cell);
+    _boardLayer = recorder.endRecording();
+    _layerCell = cell;
+    _layerSkin = _skin.id;
+    return _boardLayer!;
+  }
+
+  /// 静止棋子整层缓存，局面或尺寸变化时重录；落子动画期间改用棋子小图。
+  ui.Picture _piecesPicture(double cell) {
+    final signature = Object.hash(
+      Object.hashAll(view.board.cells),
+      view.history.length,
+      cell,
+      _skin.id,
+    );
+    final cached = _pieceLayer;
+    if (cached != null && _pieceSignature == signature) return cached;
+    _pieceLayer?.dispose();
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    for (var index = 0; index < cellCount; index++) {
+      final piece = view.board.cells[index];
+      if (piece == 0) continue;
+      _drawPiece(canvas, _center(index, cell), piece, cell);
+    }
+    _pieceLayer = recorder.endRecording();
+    _pieceSignature = signature;
+    return _pieceLayer!;
   }
 
   Offset _center(int index, double cell) =>
@@ -142,15 +216,11 @@ class BoardComponent extends PositionComponent with TapCallbacks {
         ..color = skin.line.withValues(alpha: 0.9),
     );
 
-    final riverStyle = TextStyle(
+    final riverStyle = pieceTextStyle(
       fontSize: cell * 0.42,
-      letterSpacing: cell * 0.16,
       fontWeight: FontWeight.w600,
       color: skin.line.withValues(alpha: 0.62),
-      fontFamily: 'KaiTi',
-      fontFamilyFallback: kKaiFontFallback,
-      height: 1,
-    );
+    ).copyWith(letterSpacing: cell * 0.16);
     _drawText(
       canvas,
       '楚  河',
@@ -274,9 +344,8 @@ class BoardComponent extends PositionComponent with TapCallbacks {
           cell * 0.48,
           Paint()
             ..style = PaintingStyle.stroke
-            ..strokeWidth = cell * 0.045
-            ..color = _skin.redInk.withValues(alpha: 0.35 + 0.35 * pulse)
-            ..maskFilter = MaskFilter.blur(BlurStyle.normal, cell * 0.05),
+            ..strokeWidth = cell * 0.06
+            ..color = _skin.redInk.withValues(alpha: 0.15 + 0.15 * pulse),
         );
         canvas.drawCircle(
           center,
@@ -287,6 +356,49 @@ class BoardComponent extends PositionComponent with TapCallbacks {
             ..color = _skin.redInk.withValues(alpha: 0.55 + 0.3 * pulse),
         );
       }
+    }
+  }
+
+  /// 提示箭头画在棋子之上，保证被提示的起点与落点清晰可见。
+  void _drawHint(Canvas canvas, double cell) {
+    final from = view.hintFrom;
+    final to = view.hintTo;
+    if (from != null && to != null && from != to) {
+      _drawHintArrow(canvas, cell, from, to);
+    }
+  }
+
+  /// 提示箭头：从起点圈向落点圈引一条带箭头的实线，采用与红黑提示都区分开的金色。
+  void _drawHintArrow(Canvas canvas, double cell, int from, int to) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = cell * 0.03
+      ..strokeCap = StrokeCap.round
+      ..color = _hintColor.withValues(alpha: 0.9);
+    final start = _center(from, cell);
+    final end = _center(to, cell);
+    canvas.drawCircle(start, cell * 0.45, paint);
+    canvas.drawCircle(end, cell * 0.45, paint);
+
+    final delta = end - start;
+    final distance = delta.distance;
+    if (distance <= cell * 0.9) return;
+    final unit = delta / distance;
+    final lineStart = start + unit * (cell * 0.42);
+    final lineEnd = end - unit * (cell * 0.42);
+    canvas.drawLine(lineStart, lineEnd, paint);
+
+    final angle = math.atan2(unit.dy, unit.dx);
+    const spread = 0.55;
+    for (final side in const [-1.0, 1.0]) {
+      final tip =
+          lineEnd -
+          Offset(
+                math.cos(angle + side * spread),
+                math.sin(angle + side * spread),
+              ) *
+              (cell * 0.24);
+      canvas.drawLine(lineEnd, tip, paint);
     }
   }
 
@@ -311,16 +423,15 @@ class BoardComponent extends PositionComponent with TapCallbacks {
     }
   }
 
-  void _drawPieces(Canvas canvas, double cell) {
-    final anim = _anim;
+  void _drawAnimatedPieces(Canvas canvas, double cell) {
+    final anim = _anim!;
     for (var index = 0; index < cellCount; index++) {
       final piece = view.board.cells[index];
       if (piece == 0) continue;
-      if (anim != null && index == anim.to) continue;
+      if (index == anim.to) continue;
       _drawPiece(canvas, _center(index, cell), piece, cell);
     }
 
-    if (anim == null) return;
     final progress = (anim.elapsed / _moveDurationSeconds).clamp(0.0, 1.0);
     final eased = progress * progress * (3 - 2 * progress);
     if (anim.captured != 0) {
@@ -352,35 +463,58 @@ class BoardComponent extends PositionComponent with TapCallbacks {
     double scale = 1,
     double opacity = 1,
   }) {
-    final face = _skin.faceOf(sideOf(piece));
-    paintPieceDisc(
-      canvas,
-      center: center,
-      radius: cell * 0.43 * scale,
-      face: face,
-      label: _piecePainter(piece, cell, face.ink, opacity),
-      borderWidth: cell * 0.045,
-      innerRingWidth: cell * 0.013,
-      shadowBlur: cell * 0.05,
-      opacity: opacity,
-    );
+    final sprite = _pieceSprite(piece, cell);
+    final box = cell * 0.43 * 2.6;
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    if (scale != 1) canvas.scale(scale);
+    canvas.translate(-box / 2, -box / 2);
+    if (opacity < 0.999) {
+      canvas.saveLayer(
+        Rect.fromLTWH(0, 0, box, box),
+        Paint()..color = Colors.white.withValues(alpha: opacity),
+      );
+      canvas.drawPicture(sprite);
+      canvas.restore();
+    } else {
+      canvas.drawPicture(sprite);
+    }
+    canvas.restore();
   }
 
-  TextPainter _piecePainter(
-    int piece,
-    double cell,
-    Color color,
-    double opacity,
-  ) {
+  /// 单枚棋子录成小图，落子动画期间只做平移缩放，避免逐帧重建渐变与文字。
+  ui.Picture _pieceSprite(int piece, double cell) {
+    final cached = _sprites[piece];
+    if (cached != null) return cached;
+    final radius = cell * 0.43;
+    final box = radius * 2.6;
+    final face = _skin.faceOf(sideOf(piece));
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    paintPieceDisc(
+      canvas,
+      center: Offset(box / 2, box / 2),
+      radius: radius,
+      face: face,
+      label: _piecePainter(piece, cell, face.ink),
+      borderWidth: cell * 0.045,
+      innerRingWidth: cell * 0.013,
+    );
+    final sprite = recorder.endRecording();
+    _sprites[piece] = sprite;
+    return sprite;
+  }
+
+  TextPainter _piecePainter(int piece, double cell, Color color) {
     final cached = _piecePainters[piece];
-    if (cached != null && opacity >= 0.999) return cached;
+    if (cached != null) return cached;
     final painter = pieceLabelPainter(
       pieceName(piece),
       fontSize: cell * 0.5,
       fontWeight: FontWeight.w600,
-      color: color.withValues(alpha: opacity),
+      color: color,
     );
-    if (opacity >= 0.999) _piecePainters[piece] = painter;
+    _piecePainters[piece] = painter;
     return painter;
   }
 

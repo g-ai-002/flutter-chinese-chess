@@ -81,6 +81,7 @@ void main() {
 
     expect(find.text('你执红'), findsOneWidget);
     expect(find.text('认输'), findsOneWidget);
+    expect(find.text('提示'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
@@ -151,6 +152,46 @@ void main() {
 
     expect(find.text('开局 · 中炮'), findsOneWidget);
     expect(find.text('试走 炮二平五'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('开局提示变化不影响棋盘位置', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final storage = await StorageService.instance;
+    final settings = SettingsProvider(storage);
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: settings,
+        child: MaterialApp(
+          theme: buildLightTheme(),
+          home: const GamePage(
+            mode: GameMode.twoPlayers,
+            difficulty: Difficulty.entry,
+            humanSide: 0,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    final board = find.byKey(const ValueKey('xiangqi-board'));
+    final before = tester.getRect(board);
+    final cell = before.width / 9;
+    Offset center(int row, int col) =>
+        before.topLeft + Offset((col + 0.5) * cell, (row + 0.5) * cell);
+
+    await tester.tapAt(center(7, 7));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tapAt(center(7, 4));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('炮二平五'), findsOneWidget);
+    expect(tester.getRect(board), before);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
@@ -250,10 +291,7 @@ void main() {
     );
 
     expect(find.textContaining('AI 第 3 层'), findsOneWidget);
-    expect(
-      find.byTooltip('节点 2048 · 评分 35'),
-      findsOneWidget,
-    );
+    expect(find.byTooltip('节点 2048 · 评分 35'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     controller.dispose();

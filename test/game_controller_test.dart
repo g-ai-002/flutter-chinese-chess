@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:chinese_chess/game/ai_player.dart';
 import 'package:chinese_chess/game/board_state.dart';
 import 'package:chinese_chess/game/engine/board_utils.dart';
@@ -177,6 +179,52 @@ void main() {
     expect(XiangqiRules.legalMoves(controller.board.cells, red).length, 44);
     controller.tapCell(indexOf(3, 0));
     expect(controller.selected, isNull);
+    controller.dispose();
+  });
+
+  test('走子提示给出合法着法、记法，并在操作后清除', () async {
+    final controller = GameController(
+      mode: GameMode.vsAi,
+      difficulty: Difficulty.entry,
+      humanSide: red,
+      aiMove: (cells, side, difficulty) async =>
+          const AiReply(move: -1, score: 0, nodes: 0, depth: 0),
+      hintMove: (cells, side) async => encodeMove(indexOf(6, 0), indexOf(5, 0)),
+    );
+    controller.start();
+
+    await controller.requestHint();
+    expect(controller.hintFrom, indexOf(6, 0));
+    expect(controller.hintTo, indexOf(5, 0));
+    expect(controller.hintNotation, '兵九进一');
+    expect(controller.hintLoading, isFalse);
+
+    controller.tapCell(indexOf(6, 0));
+    expect(controller.hintFrom, isNull);
+    expect(controller.hintTo, isNull);
+    controller.dispose();
+  });
+
+  test('提示搜索未返回时移动棋子会取消提示', () async {
+    final pending = Completer<int?>();
+    final controller = GameController(
+      mode: GameMode.vsAi,
+      difficulty: Difficulty.entry,
+      humanSide: red,
+      aiMove: (cells, side, difficulty) async =>
+          const AiReply(move: -1, score: 0, nodes: 0, depth: 0),
+      hintMove: (cells, side) => pending.future,
+    );
+    controller.start();
+
+    final request = controller.requestHint();
+    expect(controller.hintLoading, isTrue);
+    controller.tapCell(indexOf(9, 0));
+    expect(controller.hintLoading, isFalse);
+
+    pending.complete(encodeMove(indexOf(9, 0), indexOf(8, 0)));
+    await request;
+    expect(controller.hintFrom, isNull);
     controller.dispose();
   });
 }

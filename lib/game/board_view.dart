@@ -13,6 +13,11 @@ abstract class BoardView {
 
   bool get inCheck;
 
+  /// 当前展示的走子提示，起止索引为空时不画箭头。
+  int? get hintFrom;
+
+  int? get hintTo;
+
   List<MoveRecord> get history;
 
   void tapCell(int index);

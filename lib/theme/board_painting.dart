@@ -1,8 +1,24 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../game/engine/board_utils.dart';
 import '../utils/constants.dart';
 import 'app_theme.dart';
+
+/// 棋子文字样式：桌面端优先楷体，Web 端直接用内置子集，避免缺字。
+TextStyle pieceTextStyle({
+  required double fontSize,
+  required Color color,
+  FontWeight fontWeight = FontWeight.w700,
+  double height = 1,
+}) => TextStyle(
+  fontSize: fontSize,
+  fontWeight: fontWeight,
+  color: color,
+  fontFamily: kIsWeb ? kPieceFontFamily : 'KaiTi',
+  fontFamilyFallback: const [kPieceFontFamily, ...kKaiFontFallback],
+  height: height,
+);
 
 /// 棋子字面：优先楷体并统一行高，棋盘、首页缩略图与皮肤样张共用。
 TextPainter pieceLabelPainter(
@@ -13,13 +29,10 @@ TextPainter pieceLabelPainter(
 }) => TextPainter(
   text: TextSpan(
     text: text,
-    style: TextStyle(
+    style: pieceTextStyle(
       fontSize: fontSize,
-      fontWeight: fontWeight,
       color: color,
-      fontFamily: 'KaiTi',
-      fontFamilyFallback: kKaiFontFallback,
-      height: 1,
+      fontWeight: fontWeight,
     ),
   ),
   textDirection: TextDirection.ltr,
@@ -37,15 +50,18 @@ void paintPieceDisc(
   required TextPainter label,
   double borderWidth = 1.6,
   double innerRingWidth = 0,
-  double shadowBlur = 2,
   double opacity = 1,
 }) {
+  // 用两层半透明圆代替模糊投影：Web 上逐子高斯模糊开销过高。
   canvas.drawCircle(
-    center.translate(0, radius * 0.08),
+    center.translate(0, radius * 0.10),
     radius * 1.02,
-    Paint()
-      ..color = Colors.black.withValues(alpha: 0.18 * opacity)
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, shadowBlur),
+    Paint()..color = Colors.black.withValues(alpha: 0.10 * opacity),
+  );
+  canvas.drawCircle(
+    center.translate(0, radius * 0.06),
+    radius * 1.01,
+    Paint()..color = Colors.black.withValues(alpha: 0.08 * opacity),
   );
   canvas.drawCircle(
     center,

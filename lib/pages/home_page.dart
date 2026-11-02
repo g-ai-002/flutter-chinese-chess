@@ -9,6 +9,7 @@ import '../models/game_models.dart';
 import '../providers/settings_provider.dart';
 import '../services/log_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/board_painting.dart';
 import '../utils/constants.dart';
 import 'game_page.dart';
 import 'puzzle_page.dart';
@@ -306,13 +307,7 @@ class _TopBar extends StatelessWidget {
           ),
           child: Text(
             '象',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: colors.primary,
-              fontFamily: 'KaiTi',
-              fontFamilyFallback: kKaiFontFallback,
-            ),
+            style: pieceTextStyle(fontSize: 20, color: colors.primary),
           ),
         ),
         const SizedBox(width: 10),

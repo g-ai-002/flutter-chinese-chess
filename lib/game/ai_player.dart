@@ -14,6 +14,9 @@ typedef AiMoveProvider = Future<AiReply> Function(
   Difficulty difficulty,
 );
 
+/// 走子提示：返回编码后的着法，无可用着法时返回 null。
+typedef HintMoveProvider = Future<int?> Function(Uint8List cells, int side);
+
 /// 一次 AI 搜索的摘要，供界面展示引擎状态。
 class AiInsight {
   const AiInsight({required this.reply, required this.millis});
@@ -61,11 +64,27 @@ class AiPlayer {
     );
   }
 
+  /// 人机对战的走子提示：浅层搜索，不引入随机性，返回编码后的着法。
+  static Future<int?> hintMove(Uint8List cells, int side) async {
+    const limits = kIsWeb
+        ? (depth: 2, timeLimitMillis: 350)
+        : (depth: 3, timeLimitMillis: 800);
+    final reply = await compute(
+      _runSearch,
+      _AiRequest(
+        Uint8List.fromList(cells),
+        side,
+        limits.depth,
+        0,
+        limits.timeLimitMillis,
+      ),
+    );
+    return reply.move >= 0 ? reply.move : null;
+  }
+
   /// 实际搜索深度与时限。Web 端算力有限且同线程执行，深度与时限都压一档，
   /// 避免界面长时间无响应。
-  static ({int depth, int timeLimitMillis}) _limitsFor(
-    Difficulty difficulty,
-  ) {
+  static ({int depth, int timeLimitMillis}) _limitsFor(Difficulty difficulty) {
     if (!kIsWeb) {
       return (
         depth: difficulty.depth,
@@ -74,7 +93,7 @@ class AiPlayer {
     }
     return (
       depth: difficulty.depth <= 1 ? 1 : difficulty.depth - 1,
-      timeLimitMillis: min(difficulty.timeLimitMillis, 2000),
+      timeLimitMillis: min(difficulty.timeLimitMillis, 900),
     );
   }
 }

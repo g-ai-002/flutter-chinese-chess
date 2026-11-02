@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../models/game_models.dart';
@@ -10,6 +12,7 @@ import 'board_view.dart';
 import 'engine/board_utils.dart';
 import 'engine/rules.dart';
 import 'match_clock.dart';
+import 'notation.dart';
 import 'opening_book.dart';
 import 'puzzles.dart';
 
@@ -20,6 +23,7 @@ class GameController extends ChangeNotifier implements BoardView {
     required this.difficulty,
     required this.humanSide,
     AiMoveProvider? aiMove,
+    HintMoveProvider? hintMove,
     XiangqiBoard? board,
     this.showHints = true,
     this.showOpeningHints = true,
@@ -27,7 +31,8 @@ class GameController extends ChangeNotifier implements BoardView {
     this.puzzle,
   }) : timeControl = puzzle == null ? timeControl : TimeControl.none,
        board = board ?? _initialBoard(puzzle),
-       _aiMove = aiMove ?? AiPlayer.chooseMove;
+       _aiMove = aiMove ?? AiPlayer.chooseMove,
+       _hintMove = hintMove ?? AiPlayer.hintMove;
 
   static XiangqiBoard _initialBoard(Puzzle? puzzle) => puzzle == null
       ? XiangqiBoard.initial()
@@ -46,6 +51,7 @@ class GameController extends ChangeNotifier implements BoardView {
   @override
   final XiangqiBoard board;
   final AiMoveProvider _aiMove;
+  final HintMoveProvider _hintMove;
 
   /// 限时对局的计时簿记，不限时或残局为 null。
   late final ClockTracker? _tracker = timeControl.isTimed
@@ -67,7 +73,17 @@ class GameController extends ChangeNotifier implements BoardView {
   /// 最近一次 AI 搜索摘要，供界面展示引擎层数与用时。
   AiInsight? aiInsight;
 
+  /// 走子提示的起止索引与记法，超时后自动清除。
+  @override
+  int? hintFrom;
+  @override
+  int? hintTo;
+  String? hintNotation;
+  bool hintLoading = false;
+
   int _serial = 0;
+  int _hintSerial = 0;
+  Timer? _hintTimer;
   bool _disposed = false;
 
   bool get isHumanTurn =>
@@ -104,6 +120,61 @@ class GameController extends ChangeNotifier implements BoardView {
   /// 残局挑战是否已通关。
   bool get puzzleCleared => puzzle != null && result?.winner == humanSide;
 
+  /// 为当前行棋方请求一条走子提示，结果以箭头形式展示 6 秒。
+  Future<void> requestHint() async {
+    if (!canInteractive || hintLoading) return;
+    final serial = ++_hintSerial;
+    final side = board.sideToMove;
+    hintLoading = true;
+    hintFrom = null;
+    hintTo = null;
+    hintNotation = null;
+    _hintTimer?.cancel();
+    _hintTimer = null;
+    _notify();
+    // Web 端搜索与界面同线程，先让「正在寻找提示」完成一帧绘制。
+    if (kIsWeb) await Future<void>.delayed(Duration.zero);
+    if (_disposed || serial != _hintSerial) return;
+
+    int? move;
+    try {
+      move = await _hintMove(Uint8List.fromList(board.cells), side);
+    } catch (error, stack) {
+      LogService.error('提示搜索失败', error, stack);
+    }
+    if (_disposed || serial != _hintSerial) return;
+
+    hintLoading = false;
+    if (move != null &&
+        side == board.sideToMove &&
+        canInteractive &&
+        XiangqiRules.isPlayable(
+          board.cells,
+          side,
+          moveFrom(move),
+          moveTo(move),
+        )) {
+      hintFrom = moveFrom(move);
+      hintTo = moveTo(move);
+      hintNotation = MoveNotation.describe(board.cells, hintFrom!, hintTo!);
+      _hintTimer = Timer(const Duration(seconds: 6), clearHint);
+      LogService.info('走子提示: $hintNotation');
+    }
+    _notify();
+  }
+
+  /// 清除提示并取消尚未返回的提示搜索。
+  void clearHint({bool notify = true}) {
+    _hintSerial++;
+    _hintTimer?.cancel();
+    _hintTimer = null;
+    hintLoading = false;
+    hintFrom = null;
+    hintTo = null;
+    hintNotation = null;
+    if (notify) _notify();
+  }
+
   /// 页面挂载后调用；人类执黑时由 AI 先行。
   void start() {
     inCheck = XiangqiRules.isKingInCheck(board.cells, board.sideToMove);
@@ -125,6 +196,7 @@ class GameController extends ChangeNotifier implements BoardView {
   @override
   void tapCell(int index) {
     if (!canInteractive) return;
+    clearHint(notify: false);
     final piece = board.cells[index];
     if (selected != null && legalTargets.contains(index)) {
       _play(selected!, index);
@@ -149,6 +221,7 @@ class GameController extends ChangeNotifier implements BoardView {
   void undo() {
     if (!canUndo) return;
     _serial++;
+    clearHint(notify: false);
     thinking = false;
     do {
       board.undoLast();
@@ -165,6 +238,7 @@ class GameController extends ChangeNotifier implements BoardView {
 
   void restart() {
     _serial++;
+    clearHint(notify: false);
     board.reset();
     thinking = false;
     result = null;
@@ -180,6 +254,7 @@ class GameController extends ChangeNotifier implements BoardView {
   void resign() {
     if (result != null) return;
     _serial++;
+    clearHint(notify: false);
     thinking = false;
     _finish(GameResult(winner: opponentOf(humanSide), reason: '认输'));
   }
@@ -188,6 +263,7 @@ class GameController extends ChangeNotifier implements BoardView {
   void _finish(GameResult outcome) {
     result = outcome;
     _tracker?.stop();
+    clearHint(notify: false);
     _clearSelection(notify: false);
     LogService.info('对局结束: ${outcome.title} (${outcome.reason})');
     _notify();
@@ -203,6 +279,7 @@ class GameController extends ChangeNotifier implements BoardView {
     // 先结算本步用时，超时则以超时结束，不再落子。
     tickClock();
     if (result != null) return;
+    clearHint(notify: false);
     final record = board.tryApply(from, to);
     if (record == null) return;
     _tracker?.mark();
@@ -274,9 +351,13 @@ class GameController extends ChangeNotifier implements BoardView {
 
   Future<void> _think() async {
     if (thinking || result != null) return;
+    clearHint(notify: false);
     thinking = true;
-    _notify();
     final serial = ++_serial;
+    _notify();
+    // Web 端搜索与界面同线程，先让「AI 思考中」完成一帧绘制。
+    if (kIsWeb) await Future<void>.delayed(Duration.zero);
+    if (_disposed || serial != _serial) return;
     final side = board.sideToMove;
     final stopwatch = Stopwatch()..start();
     AiReply? reply;
@@ -320,6 +401,9 @@ class GameController extends ChangeNotifier implements BoardView {
   void dispose() {
     _disposed = true;
     _serial++;
+    _hintSerial++;
+    _hintTimer?.cancel();
+    _hintTimer = null;
     super.dispose();
   }
 }

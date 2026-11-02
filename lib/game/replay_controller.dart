@@ -44,6 +44,12 @@ class ReplayController extends ChangeNotifier implements BoardView {
       XiangqiRules.isKingInCheck(_board.cells, _board.sideToMove);
 
   @override
+  int? get hintFrom => null;
+
+  @override
+  int? get hintTo => null;
+
+  @override
   List<MoveRecord> get history => _board.history;
 
   int get cursor => _cursor;
