@@ -74,7 +74,7 @@ class SettingsPage extends StatelessWidget {
                   children: [
                     _SwitchRow(
                       title: '落子音效',
-                      subtitle: '落子、吃子与将军时播放系统提示音',
+                      subtitle: '运行时合成落子、吃子与将军音效',
                       value: settings.soundEnabled,
                       onChanged: settings.setSoundEnabled,
                     ),

@@ -7,14 +7,14 @@ const List<String> kKaiFontFallback = [
   'Noto Sans CJK SC',
 ];
 
-/// 随包棋子字体：Web 端没有系统楷体，用内置子集保证「卒」等字形完整。
-const String kPieceFontFamily = 'XiangqiPieces';
+/// Web 端字体：CanvasKit 没有系统中文字体回退，使用 soup_fonts 的思源黑体。
+const String kWebFontFamily = 'SourceHanSansCN';
 
 class AppConstants {
   AppConstants._();
 
   static const String appName = '中国象棋';
-  static const String version = '0.6.2';
+  static const String version = '0.6.3';
 
   static const String prefKeyDarkMode = 'dark_mode';
   static const String prefKeyDifficulty = 'difficulty';

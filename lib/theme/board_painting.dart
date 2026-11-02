@@ -5,7 +5,7 @@ import '../game/engine/board_utils.dart';
 import '../utils/constants.dart';
 import 'app_theme.dart';
 
-/// 棋子文字样式：桌面端优先楷体，Web 端直接用内置子集，避免缺字。
+/// 棋子文字样式：桌面端优先系统楷体，Web 端使用 soup_fonts 的思源黑体，避免缺字。
 TextStyle pieceTextStyle({
   required double fontSize,
   required Color color,
@@ -15,12 +15,12 @@ TextStyle pieceTextStyle({
   fontSize: fontSize,
   fontWeight: fontWeight,
   color: color,
-  fontFamily: kIsWeb ? kPieceFontFamily : 'KaiTi',
-  fontFamilyFallback: const [kPieceFontFamily, ...kKaiFontFallback],
+  fontFamily: kIsWeb ? kWebFontFamily : 'KaiTi',
+  fontFamilyFallback: kIsWeb ? null : kKaiFontFallback,
   height: height,
 );
 
-/// 棋子字面：优先楷体并统一行高，棋盘、首页缩略图与皮肤样张共用。
+/// 棋子字面：统一行高，棋盘、首页缩略图与皮肤样张共用。
 TextPainter pieceLabelPainter(
   String text, {
   required double fontSize,

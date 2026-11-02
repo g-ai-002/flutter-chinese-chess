@@ -16,10 +16,12 @@ class XiangqiApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fontFamily =
-        !kIsWeb && defaultTargetPlatform == TargetPlatform.windows
-        ? 'Microsoft YaHei UI'
-        : null;
+    String? fontFamily;
+    if (kIsWeb) {
+      fontFamily = kWebFontFamily;
+    } else if (defaultTargetPlatform == TargetPlatform.windows) {
+      fontFamily = 'Microsoft YaHei UI';
+    }
     return ChangeNotifierProvider(
       create: (_) => SettingsProvider(storage),
       child: Consumer<SettingsProvider>(
