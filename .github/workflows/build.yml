@@ -313,6 +313,10 @@ jobs:
           set -euo pipefail
           flutter create --platforms=web --project-name ${{ needs.metadata.outputs.project_name }} .
 
+          # SoLoud 的 Web 端必须先加载它自带的 WASM 加载器，否则 init() 报模块错误。
+          sed -i 's|<body>|<body>\n  <script src="assets/packages/flutter_soloud/web/init_soloud.js" defer></script>|' web/index.html
+          grep -n 'init_soloud.js' web/index.html
+
           app_desc=$(grep '^description:' pubspec.yaml | sed -E 's/^description:[[:space:]]*//')
           app_title=$(echo "$app_desc" | sed -E 's/[[:space:]]*-.*$//')
           echo "📌 站点标题: $app_title"
