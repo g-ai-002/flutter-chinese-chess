@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_soloud/flutter_soloud.dart';
 
 import 'log_service.dart';
 import 'tone_synth.dart';
@@ -12,9 +12,9 @@ enum MoveFeedback { move, capture, check, end }
 
 /// 落子音效与触感反馈。
 ///
-/// 音效由 [synthesizeWav] 在运行时合成，不随包携带音频文件；
-/// Android、Windows 与 Web 通过内存字节播放，Web 的自动播放限制会在
-/// 用户首次操作页面后解除。
+/// 音效由 [synthesizeWav] 在运行时合成，不随包携带音频文件；合成好的
+/// WAV 交给 flutter_soloud 的内存音源播放，Android、Windows 与 Web 共用
+/// 同一套实现，Web 的自动播放限制会在用户首次操作页面后解除。
 class SoundService {
   SoundService._();
 
@@ -25,7 +25,7 @@ class SoundService {
   @visibleForTesting
   static void Function(MoveFeedback feedback)? sink;
 
-  static final Map<MoveFeedback, AudioPlayer> _players = {};
+  static final Map<MoveFeedback, AudioSource> _sources = {};
   static final Map<MoveFeedback, Uint8List> _clips = {};
   static Future<void>? _loading;
   static bool _loadFailed = false;
@@ -80,35 +80,31 @@ class SoundService {
     hapticsEnabled = haptics;
   }
 
-  /// 预合成音效并准备播放器；失败时保持静默，不影响对局。
+  /// 预合成音效并载入 SoLoud 音源；失败时保持静默，不影响对局。
   static Future<void> init() => _ensureLoaded();
 
   static Future<void> _ensureLoaded() {
-    if (_loadFailed || _players.isNotEmpty) return Future.value();
+    if (_loadFailed || _sources.isNotEmpty) return Future.value();
     return _loading ??= _load();
   }
 
   static Future<void> _load() async {
     try {
+      final soloud = SoLoud.instance;
+      if (!soloud.isInitialized) await soloud.init();
       for (final feedback in MoveFeedback.values) {
-        final player = AudioPlayer(playerId: 'xiangqi-${feedback.name}');
-        await player.setReleaseMode(ReleaseMode.stop);
-        await player.setSource(_sourceOf(feedback));
-        _players[feedback] = player;
+        _sources[feedback] = await soloud.loadMem(
+          'xiangqi-${feedback.name}.wav',
+          clipOf(feedback),
+        );
       }
     } catch (error) {
       _loadFailed = true;
-      for (final player in _players.values) {
-        unawaited(player.dispose());
-      }
-      _players.clear();
+      _disposeAll();
       debugPrint('[SoundService] 音效初始化失败，已静音: $error');
       LogService.warning('音效初始化失败，已静音: $error');
     }
   }
-
-  static BytesSource _sourceOf(MoveFeedback feedback) =>
-      BytesSource(clipOf(feedback), mimeType: 'audio/wav');
 
   /// 某个反馈对应的合成音频，供测试校验音效配方。
   @visibleForTesting
@@ -144,22 +140,36 @@ class SoundService {
   static Future<void> _play(MoveFeedback feedback) async {
     try {
       await _ensureLoaded();
-      final player = _players[feedback];
-      if (player == null) return;
-      await player.stop();
-      await player.resume();
+      final source = _sources[feedback];
+      if (source == null) return;
+      final soloud = SoLoud.instance;
+      soloud.stopAudioSource(source);
+      soloud.play(source);
     } catch (error) {
       debugPrint('[SoundService] 播放失败: $error');
+    }
+  }
+
+  static void _disposeAll() {
+    final sources = _sources.values.toList();
+    _sources.clear();
+    for (final source in sources) {
+      unawaited(_dispose(source));
+    }
+  }
+
+  static Future<void> _dispose(AudioSource source) async {
+    try {
+      await SoLoud.instance.disposeSource(source);
+    } catch (_) {
+      // 音源已失效时无需再处理。
     }
   }
 
   @visibleForTesting
   static void reset() {
     sink = null;
-    for (final player in _players.values) {
-      unawaited(player.dispose());
-    }
-    _players.clear();
+    _disposeAll();
     _clips.clear();
     _loading = null;
     _loadFailed = false;
