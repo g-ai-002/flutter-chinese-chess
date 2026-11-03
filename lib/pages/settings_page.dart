@@ -50,6 +50,7 @@ class SettingsPage extends StatelessWidget {
                       subtitle: '暖墨底色，夜间对弈更舒适',
                       value: settings.darkMode,
                       onChanged: settings.setDarkMode,
+                      switchKey: const ValueKey('switch-dark'),
                     ),
                     const SizedBox(height: 10),
                     _SwitchRow(
@@ -57,6 +58,7 @@ class SettingsPage extends StatelessWidget {
                       subtitle: '选中棋子后标出所有合法落点',
                       value: settings.showHints,
                       onChanged: settings.setShowHints,
+                      switchKey: const ValueKey('switch-hints'),
                     ),
                     const SizedBox(height: 10),
                     _SwitchRow(
@@ -64,6 +66,7 @@ class SettingsPage extends StatelessWidget {
                       subtitle: '对局前段显示开局名称与推荐着法',
                       value: settings.showOpeningHints,
                       onChanged: settings.setShowOpeningHints,
+                      switchKey: const ValueKey('switch-opening'),
                     ),
                   ],
                 ),
@@ -77,6 +80,15 @@ class SettingsPage extends StatelessWidget {
                       subtitle: '运行时合成落子、吃子与将军音效',
                       value: settings.soundEnabled,
                       onChanged: settings.setSoundEnabled,
+                      switchKey: const ValueKey('switch-sound'),
+                    ),
+                    const SizedBox(height: 10),
+                    _SwitchRow(
+                      title: '背景音乐',
+                      subtitle: '五声音阶循环，运行时合成，可随时关闭',
+                      value: settings.musicEnabled,
+                      onChanged: settings.setMusicEnabled,
+                      switchKey: const ValueKey('switch-music'),
                     ),
                     const SizedBox(height: 10),
                     _SwitchRow(
@@ -84,6 +96,7 @@ class SettingsPage extends StatelessWidget {
                       subtitle: '吃子与将军时给出不同强度的触感',
                       value: settings.hapticsEnabled,
                       onChanged: settings.setHapticsEnabled,
+                      switchKey: const ValueKey('switch-haptics'),
                     ),
                   ],
                 ),
@@ -243,12 +256,14 @@ class _SwitchRow extends StatelessWidget {
     required this.subtitle,
     required this.value,
     required this.onChanged,
+    this.switchKey,
   });
 
   final String title;
   final String subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
+  final Key? switchKey;
 
   @override
   Widget build(BuildContext context) {
@@ -272,6 +287,7 @@ class _SwitchRow extends StatelessWidget {
           ),
         ),
         Switch.adaptive(
+          key: switchKey,
           value: value,
           onChanged: onChanged,
           activeTrackColor: colors.primary,

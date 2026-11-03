@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../models/game_models.dart';
+import '../services/music_service.dart';
 import '../services/sound_service.dart';
 import '../services/storage_service.dart';
 import '../theme/board_skin.dart';
@@ -33,6 +36,13 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> setSoundEnabled(bool value) => _update(() async {
     await _storage.setSoundEnabled(value);
     _syncFeedback();
+  });
+
+  bool get musicEnabled => _storage.musicEnabled;
+  Future<void> setMusicEnabled(bool value) => _update(() async {
+    await _storage.setMusicEnabled(value);
+    // 音频启停不阻塞开关反馈，加载失败时 MusicService 自行记录日志。
+    unawaited(MusicService.setEnabled(value));
   });
 
   bool get hapticsEnabled => _storage.hapticsEnabled;

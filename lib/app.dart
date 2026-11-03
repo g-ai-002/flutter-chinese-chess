@@ -5,14 +5,48 @@ import 'package:provider/provider.dart';
 
 import 'pages/home_page.dart';
 import 'providers/settings_provider.dart';
+import 'services/music_service.dart';
 import 'services/storage_service.dart';
 import 'theme/app_theme.dart';
 import 'utils/constants.dart';
 
-class XiangqiApp extends StatelessWidget {
+class XiangqiApp extends StatefulWidget {
   const XiangqiApp({super.key, required this.storage});
 
   final StorageService storage;
+
+  @override
+  State<XiangqiApp> createState() => _XiangqiAppState();
+}
+
+class _XiangqiAppState extends State<XiangqiApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        MusicService.resumeForLifecycle();
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+        MusicService.pauseForLifecycle();
+        break;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +57,7 @@ class XiangqiApp extends StatelessWidget {
       fontFamily = 'Microsoft YaHei UI';
     }
     return ChangeNotifierProvider(
-      create: (_) => SettingsProvider(storage),
+      create: (_) => SettingsProvider(widget.storage),
       child: Consumer<SettingsProvider>(
         builder: (context, settings, _) {
           return MaterialApp(
@@ -39,6 +73,14 @@ class XiangqiApp extends StatelessWidget {
             ],
             supportedLocales: const [Locale('zh', 'CN')],
             locale: const Locale('zh', 'CN'),
+            // Web 首次点击用于解除浏览器的自动播放限制。
+            builder: (context, child) => Listener(
+              behavior: HitTestBehavior.translucent,
+              onPointerDown: kIsWeb
+                  ? (_) => MusicService.retryOnInteraction()
+                  : null,
+              child: child ?? const SizedBox.shrink(),
+            ),
             home: const HomePage(),
           );
         },

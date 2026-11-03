@@ -14,7 +14,7 @@ class AppConstants {
   AppConstants._();
 
   static const String appName = '中国象棋';
-  static const String version = '0.6.4';
+  static const String version = '0.6.5';
 
   static const String prefKeyDarkMode = 'dark_mode';
   static const String prefKeyDifficulty = 'difficulty';
@@ -23,6 +23,7 @@ class AppConstants {
   static const String prefKeyShowOpeningHints = 'show_opening_hints';
   static const String prefKeyBoardSkin = 'board_skin';
   static const String prefKeySound = 'sound_enabled';
+  static const String prefKeyMusic = 'music_enabled';
   static const String prefKeyHaptics = 'haptics_enabled';
   static const String prefKeyTimeControl = 'time_control';
   static const String prefKeySolvedPuzzles = 'solved_puzzles';

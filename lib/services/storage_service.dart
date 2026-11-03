@@ -52,6 +52,10 @@ class StorageService {
   Future<void> setSoundEnabled(bool value) =>
       _write((p) => p.setBool(AppConstants.prefKeySound, value));
 
+  bool get musicEnabled => _p.getBool(AppConstants.prefKeyMusic) ?? true;
+  Future<void> setMusicEnabled(bool value) =>
+      _write((p) => p.setBool(AppConstants.prefKeyMusic, value));
+
   bool get hapticsEnabled => _p.getBool(AppConstants.prefKeyHaptics) ?? true;
   Future<void> setHapticsEnabled(bool value) =>
       _write((p) => p.setBool(AppConstants.prefKeyHaptics, value));

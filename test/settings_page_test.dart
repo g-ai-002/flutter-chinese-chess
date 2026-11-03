@@ -34,18 +34,25 @@ void main() {
     expect(find.text('显示可走位置'), findsOneWidget);
     expect(find.text('开局提示'), findsOneWidget);
 
-    // 开关顺序：深色模式、显示可走位置、开局提示。
-    await tester.ensureVisible(find.byType(Switch).at(1));
+    // 开关按 Key 定位，避免列表懒加载导致索引漂移。
+    await tester.ensureVisible(find.byKey(const ValueKey('switch-hints')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(Switch).at(1));
+    await tester.tap(find.byKey(const ValueKey('switch-hints')));
     await tester.pumpAndSettle();
     expect(settings.showHints, isFalse);
     expect(storage.showHints, isFalse);
 
-    await tester.tap(find.byType(Switch).at(2));
+    await tester.tap(find.byKey(const ValueKey('switch-opening')));
     await tester.pumpAndSettle();
     expect(settings.showOpeningHints, isFalse);
     expect(storage.showOpeningHints, isFalse);
+
+    await tester.ensureVisible(find.byKey(const ValueKey('switch-music')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('switch-music')));
+    await tester.pumpAndSettle();
+    expect(settings.musicEnabled, isFalse);
+    expect(storage.musicEnabled, isFalse);
 
     await tester.drag(find.byType(ListView), const Offset(0, -900));
     await tester.pumpAndSettle();

@@ -14,8 +14,12 @@ import '../theme/app_theme.dart';
 import '../theme/board_painting.dart';
 import '../theme/board_skin.dart';
 
-const double _moveDurationSeconds = 0.17;
-const Color _hintColor = Color(0xFFC08A2E);
+const double _moveDurationSeconds = 0.24;
+const double _landingDurationSeconds = 0.34;
+const double _shatterDurationSeconds = 0.55;
+const double _trailGap = 0.10;
+const Color _hintColor = Color(0xFF8C5A0F);
+const Color _hintOutline = Color(0xE62A1C08);
 
 /// Flame 棋盘组件：绘制棋盘、棋子、走子提示与落子动画，并处理点击。
 ///
@@ -27,6 +31,9 @@ class BoardComponent extends PositionComponent with TapCallbacks {
   final ValueListenable<BoardSkin> skin;
 
   BoardSkin get _skin => skin.value;
+
+  @visibleForTesting
+  bool get isAnimating => _anim != null;
 
   double _cell = 0;
   double _time = 0;
@@ -98,7 +105,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
     final anim = _anim;
     if (anim != null) {
       anim.elapsed += dt;
-      if (anim.elapsed >= _moveDurationSeconds) _anim = null;
+      if (anim.elapsed >= anim.totalDuration) _anim = null;
     }
   }
 
@@ -369,16 +376,26 @@ class BoardComponent extends PositionComponent with TapCallbacks {
   }
 
   /// 提示箭头：从起点圈向落点圈引一条带箭头的实线，采用与红黑提示都区分开的金色。
+  ///
+  /// 先铺一层深色描边再画金色主体，浅色与深色棋盘上都能看清。
   void _drawHintArrow(Canvas canvas, double cell, int from, int to) {
+    final outline = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = cell * 0.095
+      ..strokeCap = StrokeCap.round
+      ..color = _hintOutline;
     final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = cell * 0.03
+      ..strokeWidth = cell * 0.052
       ..strokeCap = StrokeCap.round
-      ..color = _hintColor.withValues(alpha: 0.9);
+      ..color = _hintColor.withValues(alpha: 0.96);
     final start = _center(from, cell);
     final end = _center(to, cell);
-    canvas.drawCircle(start, cell * 0.45, paint);
-    canvas.drawCircle(end, cell * 0.45, paint);
+    final radius = cell * 0.46;
+    canvas.drawCircle(start, radius, outline);
+    canvas.drawCircle(start, radius, paint);
+    canvas.drawCircle(end, radius, outline);
+    canvas.drawCircle(end, radius, paint);
 
     final delta = end - start;
     final distance = delta.distance;
@@ -386,6 +403,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
     final unit = delta / distance;
     final lineStart = start + unit * (cell * 0.42);
     final lineEnd = end - unit * (cell * 0.42);
+    canvas.drawLine(lineStart, lineEnd, outline);
     canvas.drawLine(lineStart, lineEnd, paint);
 
     final angle = math.atan2(unit.dy, unit.dx);
@@ -397,7 +415,8 @@ class BoardComponent extends PositionComponent with TapCallbacks {
                 math.cos(angle + side * spread),
                 math.sin(angle + side * spread),
               ) *
-              (cell * 0.24);
+              (cell * 0.30);
+      canvas.drawLine(lineEnd, tip, outline);
       canvas.drawLine(lineEnd, tip, paint);
     }
   }
@@ -432,28 +451,104 @@ class BoardComponent extends PositionComponent with TapCallbacks {
       _drawPiece(canvas, _center(index, cell), piece, cell);
     }
 
-    final progress = (anim.elapsed / _moveDurationSeconds).clamp(0.0, 1.0);
-    final eased = progress * progress * (3 - 2 * progress);
-    if (anim.captured != 0) {
-      _drawPiece(
-        canvas,
-        _center(anim.to, cell),
-        anim.captured,
-        cell,
-        opacity: 0.35,
-      );
-    }
     final from = _center(anim.from, cell);
     final to = _center(anim.to, cell);
-    final position = Offset.lerp(from, to, eased)!;
+    final progress = anim.travel;
+    final eased = _ease(progress);
+    if (anim.captured != 0 && !anim.landed) {
+      _drawPiece(canvas, to, anim.captured, cell);
+    }
+
+    // 残影：沿路径取三个更早的位置，合并到同一图层绘制，避免逐帧多次 saveLayer。
+    if (!anim.landed) {
+      final ghosts = <(Offset, double)>[];
+      for (var step = 3; step >= 1; step--) {
+        final trail = progress - _trailGap * step;
+        if (trail <= 0) continue;
+        ghosts.add((Offset.lerp(from, to, _ease(trail))!, 1 - 0.015 * step));
+      }
+      if (ghosts.isNotEmpty) {
+        canvas.saveLayer(
+          Rect.fromLTWH(0, 0, size.x, size.y),
+          Paint()..color = Colors.white.withValues(alpha: 0.18),
+        );
+        for (final (position, scale) in ghosts) {
+          _drawPiece(canvas, position, anim.piece, cell, scale: scale);
+        }
+        canvas.restore();
+      }
+    }
+
     _drawPiece(
       canvas,
-      position,
+      Offset.lerp(from, to, eased)!,
       anim.piece,
       cell,
-      scale: 1 + 0.05 * math.sin(math.pi * progress),
+      scale: 1 + 0.06 * math.sin(math.pi * progress),
+    );
+
+    if (anim.landed) {
+      _drawLanding(canvas, to, cell, anim);
+      if (anim.captured != 0) _drawPowder(canvas, to, cell, anim);
+    }
+  }
+
+  /// 落点涟漪：一圈由内向外扩散的细环，移动与吃子都会出现。
+  void _drawLanding(Canvas canvas, Offset center, double cell, _MoveAnim anim) {
+    final t = anim.landing;
+    if (t >= 1) return;
+    final fade = 1 - t;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = cell * 0.045 * fade
+      ..color = _skin.redInk.withValues(alpha: 0.42 * fade);
+    canvas.drawCircle(center, cell * (0.30 + 0.30 * t), paint);
+    canvas.drawCircle(
+      center,
+      cell * (0.22 + 0.20 * t),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = cell * 0.03 * fade
+        ..color = _skin.redInk.withValues(alpha: 0.24 * fade),
     );
   }
+
+  /// 被吃棋子碎裂：落点闪白后向四周飞散木质粉末，受重力逐渐下坠。
+  void _drawPowder(Canvas canvas, Offset center, double cell, _MoveAnim anim) {
+    final t = anim.shatter;
+    if (t <= 0) return;
+    final face = _skin.faceOf(sideOf(anim.captured));
+    final colors = [face.light, face.dark, face.ink];
+    if (t < 0.35) {
+      final flash = 1 - t / 0.35;
+      canvas.drawCircle(
+        center,
+        cell * (0.18 + 0.22 * (t / 0.35)),
+        Paint()..color = face.light.withValues(alpha: 0.55 * flash),
+      );
+    }
+    for (final particle in anim.powder) {
+      final local = ((t - particle.delay) / (1 - particle.delay)).clamp(
+        0.0,
+        1.0,
+      );
+      if (local <= 0) continue;
+      final travel = 1 - math.pow(1 - local, 3).toDouble();
+      final distance = particle.distance * cell * travel;
+      final offset = Offset(
+        math.cos(particle.angle) * distance,
+        math.sin(particle.angle) * distance + cell * 0.55 * local * local,
+      );
+      final alpha = (1 - local) * (1 - local);
+      canvas.drawCircle(
+        center + offset,
+        particle.size * cell * (1 - 0.45 * local),
+        Paint()..color = colors[particle.shade].withValues(alpha: 0.95 * alpha),
+      );
+    }
+  }
+
+  double _ease(double t) => t * t * (3 - 2 * t);
 
   void _drawPiece(
     Canvas canvas,
@@ -567,11 +662,65 @@ class _MoveAnim {
     required this.to,
     required this.piece,
     required this.captured,
-  });
+  }) : powder = captured == 0 ? const [] : _buildPowder(from, to, captured);
 
   final int from;
   final int to;
   final int piece;
   final int captured;
+  final List<_Powder> powder;
   double elapsed = 0;
+
+  double get totalDuration =>
+      _moveDurationSeconds +
+      (captured == 0 ? _landingDurationSeconds : _shatterDurationSeconds);
+
+  /// 棋子从起点到落点的进度。
+  double get travel => (elapsed / _moveDurationSeconds).clamp(0.0, 1.0);
+
+  bool get landed => elapsed >= _moveDurationSeconds;
+
+  /// 落点涟漪进度。
+  double get landing =>
+      ((elapsed - _moveDurationSeconds) / _landingDurationSeconds).clamp(
+        0.0,
+        1.0,
+      );
+
+  /// 粉末飞散进度。
+  double get shatter =>
+      ((elapsed - _moveDurationSeconds) / _shatterDurationSeconds).clamp(
+        0.0,
+        1.0,
+      );
+}
+
+class _Powder {
+  const _Powder({
+    required this.angle,
+    required this.distance,
+    required this.size,
+    required this.delay,
+    required this.shade,
+  });
+
+  final double angle;
+  final double distance;
+  final double size;
+  final double delay;
+  final int shade;
+}
+
+/// 以着法坐标作种子，同一手棋的粉末每次播放保持一致。
+List<_Powder> _buildPowder(int from, int to, int captured) {
+  final random = math.Random((from + 1) * 7919 + (to + 1) * 104729 + captured);
+  return List.generate(20, (_) {
+    return _Powder(
+      angle: random.nextDouble() * math.pi * 2,
+      distance: 0.32 + random.nextDouble() * 0.95,
+      size: 0.012 + random.nextDouble() * 0.022,
+      delay: random.nextDouble() * 0.18,
+      shade: random.nextInt(3),
+    );
+  });
 }

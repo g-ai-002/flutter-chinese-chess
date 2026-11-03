@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/foundation.dart';
 
 import '../models/game_models.dart';
@@ -51,7 +49,7 @@ class AiPlayer {
     int side,
     Difficulty difficulty,
   ) {
-    final limits = _limitsFor(difficulty);
+    final limits = limitsFor(difficulty);
     return compute(
       _runSearch,
       _AiRequest(
@@ -66,9 +64,7 @@ class AiPlayer {
 
   /// 人机对战的走子提示：浅层搜索，不引入随机性，返回编码后的着法。
   static Future<int?> hintMove(Uint8List cells, int side) async {
-    const limits = kIsWeb
-        ? (depth: 2, timeLimitMillis: 350)
-        : (depth: 3, timeLimitMillis: 800);
+    const limits = (depth: 3, timeLimitMillis: 800);
     final reply = await compute(
       _runSearch,
       _AiRequest(
@@ -82,20 +78,10 @@ class AiPlayer {
     return reply.move >= 0 ? reply.move : null;
   }
 
-  /// 实际搜索深度与时限。Web 端算力有限且同线程执行，深度与时限都压一档，
-  /// 避免界面长时间无响应。
-  static ({int depth, int timeLimitMillis}) _limitsFor(Difficulty difficulty) {
-    if (!kIsWeb) {
-      return (
-        depth: difficulty.depth,
-        timeLimitMillis: difficulty.timeLimitMillis,
-      );
-    }
-    return (
-      depth: difficulty.depth <= 1 ? 1 : difficulty.depth - 1,
-      timeLimitMillis: min(difficulty.timeLimitMillis, 900),
-    );
-  }
+  /// 实际搜索深度与时限：三端使用同一套难度参数，Web 不再降档。
+  @visibleForTesting
+  static ({int depth, int timeLimitMillis}) limitsFor(Difficulty difficulty) =>
+      (depth: difficulty.depth, timeLimitMillis: difficulty.timeLimitMillis);
 }
 
 class _AiRequest {

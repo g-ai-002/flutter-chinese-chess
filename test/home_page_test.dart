@@ -21,7 +21,7 @@ void main() {
     StorageService.resetForTests();
   });
 
-  testWidgets('首页展示品牌、模式入口与对局设置', (tester) async {
+  testWidgets('首页展示品牌与模式入口，不再重复对局设置', (tester) async {
     final storage = await StorageService.instance;
     final settings = SettingsProvider(storage);
     await tester.pumpWidget(wrap(settings));
@@ -31,39 +31,45 @@ void main() {
     expect(find.text('双人对弈'), findsOneWidget);
     expect(find.text('残局挑战'), findsOneWidget);
     expect(find.text('棋谱复盘'), findsOneWidget);
-    expect(find.text('AI 难度'), findsOneWidget);
-    expect(find.text('执红先行'), findsOneWidget);
+    expect(find.text('对局设置'), findsNothing);
+    expect(find.text('AI 难度'), findsNothing);
     expect(find.textContaining('v${AppConstants.version}'), findsOneWidget);
   });
 
-  testWidgets('切换先后手会持久化到设置', (tester) async {
+  testWidgets('折叠屏展开宽度下四个模式入口排成两列', (tester) async {
+    tester.view.physicalSize = const Size(673, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     final storage = await StorageService.instance;
     final settings = SettingsProvider(storage);
     await tester.pumpWidget(wrap(settings));
 
-    final target = find.text('执黑后行');
-    await tester.ensureVisible(target);
-    await tester.pumpAndSettle();
-    await tester.tap(target);
-    await tester.pumpAndSettle();
+    final ai = tester.getTopLeft(find.text('人机对战'));
+    final duel = tester.getTopLeft(find.text('双人对弈'));
+    final puzzle = tester.getTopLeft(find.text('残局挑战'));
+    final review = tester.getTopLeft(find.text('棋谱复盘'));
 
-    expect(settings.humanSide, 1);
-    expect(storage.humanSide, 1);
+    expect(duel.dy, closeTo(ai.dy, 0.5));
+    expect(duel.dx, greaterThan(ai.dx));
+    expect(puzzle.dy, greaterThan(ai.dy));
+    expect(review.dy, closeTo(puzzle.dy, 0.5));
   });
 
-  testWidgets('切换难度会持久化到设置', (tester) async {
+  testWidgets('窄屏下模式入口保持单列', (tester) async {
+    tester.view.physicalSize = const Size(420, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     final storage = await StorageService.instance;
     final settings = SettingsProvider(storage);
     await tester.pumpWidget(wrap(settings));
 
-    final target = find.text('高手');
-    await tester.ensureVisible(target);
-    await tester.pumpAndSettle();
-    await tester.tap(target);
-    await tester.pumpAndSettle();
-
-    expect(settings.difficulty.label, '高手');
-    expect(storage.difficulty.name, 'expert');
+    final ai = tester.getTopLeft(find.text('人机对战'));
+    final duel = tester.getTopLeft(find.text('双人对弈'));
+    expect(duel.dy, greaterThan(ai.dy));
   });
 
   testWidgets('深色模式按钮切换主题偏好', (tester) async {

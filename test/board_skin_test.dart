@@ -102,18 +102,18 @@ void main() {
     expect(settings.boardSkin.id, 'jade');
     expect(storage.boardSkinId, 'jade');
 
-    final soundSwitch = find.text('落子音效');
+    final soundSwitch = find.byKey(const ValueKey('switch-sound'));
     await tester.ensureVisible(soundSwitch);
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(Switch).at(3));
+    await tester.tap(soundSwitch);
     await tester.pumpAndSettle();
     expect(settings.soundEnabled, isFalse);
     expect(storage.soundEnabled, isFalse);
 
-    final hapticsSwitch = find.text('震动反馈');
+    final hapticsSwitch = find.byKey(const ValueKey('switch-haptics'));
     await tester.ensureVisible(hapticsSwitch);
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(Switch).at(4));
+    await tester.tap(hapticsSwitch);
     await tester.pumpAndSettle();
     expect(settings.hapticsEnabled, isFalse);
     expect(storage.hapticsEnabled, isFalse);

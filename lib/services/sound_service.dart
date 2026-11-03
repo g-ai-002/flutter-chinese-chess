@@ -50,18 +50,32 @@ class SoundService {
     ],
     MoveFeedback.capture: [
       SynthNote(
+        frequency: 960,
+        start: 0,
+        duration: 0.035,
+        gain: 0.42,
+        noise: 0.55,
+      ),
+      SynthNote(
         frequency: 430,
         start: 0,
         duration: 0.09,
         gain: 0.7,
-        noise: 0.16,
+        noise: 0.22,
       ),
       SynthNote(
         frequency: 175,
         start: 0.008,
         duration: 0.17,
         gain: 0.75,
-        noise: 0.24,
+        noise: 0.3,
+      ),
+      SynthNote(
+        frequency: 720,
+        start: 0.045,
+        duration: 0.12,
+        gain: 0.28,
+        noise: 0.42,
       ),
     ],
     MoveFeedback.check: [
@@ -108,10 +122,8 @@ class SoundService {
 
   /// 某个反馈对应的合成音频，供测试校验音效配方。
   @visibleForTesting
-  static Uint8List clipOf(MoveFeedback feedback) => _clips.putIfAbsent(
-    feedback,
-    () => synthesizeWav(_presets[feedback]!),
-  );
+  static Uint8List clipOf(MoveFeedback feedback) =>
+      _clips.putIfAbsent(feedback, () => synthesizeWav(_presets[feedback]!));
 
   /// 选中棋子的轻触感：只走触感，不播放提示音。
   static void tap() {

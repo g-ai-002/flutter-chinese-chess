@@ -17,8 +17,6 @@ import 'review_page.dart';
 import 'settings_page.dart';
 import 'widgets/board_preview.dart';
 import 'widgets/entry_tile.dart';
-import 'widgets/preference_pickers.dart';
-import 'widgets/section_card.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -45,18 +43,15 @@ class HomePage extends StatelessWidget {
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 720;
+              // 折叠屏展开约 600dp 起即可并排两张入口卡片。
+              final twoColumns = constraints.maxWidth >= 600;
+              final horizontal = constraints.maxWidth >= 900 ? 40.0 : 20.0;
               final contentWidth = math.min(
-                constraints.maxWidth - (wide ? 80 : 40),
+                constraints.maxWidth - horizontal * 2,
                 780.0,
               );
               return SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  wide ? 40 : 20,
-                  14,
-                  wide ? 40 : 20,
-                  24,
-                ),
+                padding: EdgeInsets.fromLTRB(horizontal, 14, horizontal, 24),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
                     minHeight: math.max(0, constraints.maxHeight - 38),
@@ -71,7 +66,7 @@ class HomePage extends StatelessWidget {
                           const SizedBox(height: 22),
                           _Hero(skin: settings.boardSkin),
                           const SizedBox(height: 30),
-                          if (wide)
+                          if (twoColumns)
                             Wrap(
                               spacing: 12,
                               runSpacing: 12,
@@ -92,26 +87,6 @@ class HomePage extends StatelessWidget {
                                 ],
                               ],
                             ),
-                          const SizedBox(height: 18),
-                          SectionCard(
-                            title: '对局设置',
-                            icon: Icons.tune_rounded,
-                            radius: 16,
-                            color: colors.surface.withValues(alpha: 0.7),
-                            trailing: Text(
-                              '自动记忆',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: colors.onSurfaceVariant,
-                              ),
-                            ),
-                            children: [
-                              DifficultyPicker(settings: settings),
-                              const SizedBox(height: 14),
-                              SidePicker(settings: settings),
-                              const SizedBox(height: 14),
-                              TimeControlPicker(settings: settings),
-                            ],
-                          ),
                           const SizedBox(height: 24),
                           Text(
                             'v${AppConstants.version} · 本地运行，无需联网',
