@@ -29,13 +29,13 @@
 
 ## 下载
 
-v0.6.5（当前版本）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.6.5)
+v0.6.6（当前版本）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.6.6)
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64) | `flutter-chinese-chess-0.6.5-android-aarch64.apk` |
-| Windows (x64, Win10+) | `flutter-chinese-chess-0.6.5-windows-x86_64.zip` |
-| Web | `flutter-chinese-chess-0.6.5-web.zip`（解压后起静态服务器） |
+| Android (arm64) | `flutter-chinese-chess-0.6.6-android-aarch64.apk` |
+| Windows (x64, Win10+) | `flutter-chinese-chess-0.6.6-windows-x86_64.zip` |
+| Web | `flutter-chinese-chess-0.6.6-web.zip`（解压后起静态服务器） |
 
 ## 开发
 
@@ -74,16 +74,17 @@ lib/
 
 | 版本 | 说明 |
 | --- | --- |
+| v0.6.6 | 修复 Issue #5：Web 端局面哈希随机键不再因 32 位截断抛错，AI 与走子提示恢复可用 |
 | v0.6.5 | 修复 v0.6.4 反馈：折叠屏两列入口、Web AI 对齐、提示增强、落子残影与吃子粉末、背景音乐 |
 | v0.6.4 | 构建发布改为在 Actions 手动运行并选定 Tag，推送 Tag 不再自动出包 |
 | v0.6.3 | 修复 v0.6.2 反馈：音效改为运行时合成、Web 字体改用 soup_fonts，仓库不再存放字体与音频 |
 | v0.6.2 | 修复 v0.6.1 反馈：棋盘位置固定、走子提示与渲染流畅度 |
-| v0.6.1 | 重构引擎增量代码：杀棋分数、搜索棋盘与置换表职责收敛，状态胶囊统一 |
 
 ### 更早版本
 
 | 版本 | 说明 |
 | --- | --- |
+| v0.6.1 | 重构引擎增量代码：杀棋分数、搜索棋盘与置换表职责收敛，状态胶囊统一 |
 | v0.6.0 | AI 引擎升级：迭代加深、置换表、杀手着法与历史启发，高手档提到 5 层 |
 | v0.5.1 | 重构棋钟簿记、偏好选择器与入口卡片，对局页与复盘页共用布局骨架 |
 | v0.5.0 | 新增限时对局：5 / 10 / 20 分钟棋钟、超时判负，悔棋还原用时 |
