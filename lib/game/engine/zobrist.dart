@@ -25,7 +25,10 @@ class Zobrist {
     return keys;
   }
 
-  static int _nextKey(Random random) => random.nextInt(1 << 32);
+  /// 随机键由两段 16 位拼接：dart2js 的移位按 32 位截断，`1 << 32` 在 Web 上等于 0，
+  /// 直接 `nextInt(1 << 32)` 会抛 RangeError，导致 Web 端搜索与走子提示全部失效。
+  static int _nextKey(Random random) =>
+      random.nextInt(0x10000) * 0x10000 + random.nextInt(0x10000);
 
   /// 指定棋子落在指定格子上的低半键。
   static int lowKey(int piece, int cell) => _low[piece * cellCount + cell];

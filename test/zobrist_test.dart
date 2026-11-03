@@ -14,7 +14,17 @@ void main() {
       expect(second.low, first.low);
       expect(second.high, first.high);
       expect(first.low, greaterThanOrEqualTo(0));
-      expect(first.low, lessThan(1 << 32));
+      expect(first.low, lessThan(0x100000000));
+    });
+
+    test('随机键铺满 32 位，不因 Web 移位截断退化为低位', () {
+      final keys = [
+        for (var cell = 0; cell < cellCount; cell += 9)
+          Zobrist.lowKey(pieceOf(red, typeRook), cell),
+      ];
+
+      expect(keys.every((key) => key >= 0 && key < 0x100000000), isTrue);
+      expect(keys.any((key) => key > 0x7FFFFFFF), isTrue);
     });
 
     test('行棋方不同则键不同', () {
