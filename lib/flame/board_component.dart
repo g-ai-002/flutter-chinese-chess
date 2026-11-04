@@ -1,4 +1,6 @@
+import 'dart:collection';
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
@@ -18,6 +20,7 @@ const double _moveDurationSeconds = 0.24;
 const double _landingDurationSeconds = 0.34;
 const double _shatterDurationSeconds = 0.55;
 const double _trailGap = 0.10;
+const int _maxAnimSteps = 2;
 const Color _hintColor = Color(0xFF8C5A0F);
 const Color _hintOutline = Color(0xE62A1C08);
 
@@ -33,12 +36,13 @@ class BoardComponent extends PositionComponent with TapCallbacks {
   BoardSkin get _skin => skin.value;
 
   @visibleForTesting
-  bool get isAnimating => _anim != null;
+  bool get isAnimating => _anim != null || _pending.isNotEmpty;
 
   double _cell = 0;
   double _time = 0;
   int _seenMoves = -1;
   _MoveAnim? _anim;
+  final ListQueue<_MoveAnim> _pending = ListQueue<_MoveAnim>();
   double _cacheCell = 0;
   final Map<int, TextPainter> _piecePainters = {};
   final Map<String, TextPainter> _textPainters = {};
@@ -85,27 +89,69 @@ class BoardComponent extends PositionComponent with TapCallbacks {
   void update(double dt) {
     super.update(dt);
     _time += dt;
-
-    final count = view.history.length;
-    if (count != _seenMoves) {
-      if (count > _seenMoves && _seenMoves >= 0 && view.history.isNotEmpty) {
-        final last = view.history.last;
-        _anim = _MoveAnim(
-          from: last.from,
-          to: last.to,
-          piece: last.piece,
-          captured: last.captured,
-        );
-      } else {
-        _anim = null;
-      }
-      _seenMoves = count;
-    }
+    _syncMoves();
 
     final anim = _anim;
-    if (anim != null) {
-      anim.elapsed += dt;
-      if (anim.elapsed >= anim.totalDuration) _anim = null;
+    if (anim == null) return;
+    anim.elapsed += dt;
+    // 上一手还没播完就来了下一手（例如 AI 立刻回棋）时接着播，不把动画顶掉。
+    while (_anim != null && _anim!.elapsed >= _anim!.totalDuration) {
+      final overflow = _anim!.elapsed - _anim!.totalDuration;
+      if (_pending.isEmpty) {
+        _anim = null;
+      } else {
+        final next = _pending.removeFirst();
+        next.elapsed = overflow;
+        _anim = next;
+      }
+    }
+  }
+
+  /// 把新落下的着法排进动画队列；悔棋、重开或一次前进多手时直接对齐当前局面。
+  void _syncMoves() {
+    final history = view.history;
+    final count = history.length;
+    if (count == _seenMoves) return;
+    if (count < _seenMoves || _seenMoves < 0) {
+      _anim = null;
+      _pending.clear();
+      _seenMoves = count;
+      return;
+    }
+
+    final steps = <_MoveAnim>[?_anim, ..._pending];
+    for (var index = _seenMoves; index < count; index++) {
+      final record = history[index];
+      steps.add(
+        _MoveAnim(
+          from: record.from,
+          to: record.to,
+          piece: record.piece,
+          captured: record.captured,
+        ),
+      );
+    }
+    _seenMoves = count;
+    // 复盘拖动进度条等一次前进多手的情况只播最后一手，避免越播越慢。
+    if (steps.length > _maxAnimSteps) steps.removeRange(0, steps.length - 1);
+
+    _anim = steps.removeAt(0);
+    _pending
+      ..clear()
+      ..addAll(steps);
+    _attachSnapshots();
+  }
+
+  /// 后续着法可能已经把棋盘改了，按倒序回退出每一手落子后的局面，
+  /// 让排队的动画各自拿着落子当时的棋面播放。
+  void _attachSnapshots() {
+    final steps = <_MoveAnim>[?_anim, ..._pending];
+    final working = Uint8List.fromList(view.board.cells);
+    for (var index = steps.length - 1; index >= 0; index--) {
+      final step = steps[index];
+      step.cells = Uint8List.fromList(working);
+      working[step.from] = step.piece;
+      working[step.to] = step.captured;
     }
   }
 
@@ -445,7 +491,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
   void _drawAnimatedPieces(Canvas canvas, double cell) {
     final anim = _anim!;
     for (var index = 0; index < cellCount; index++) {
-      final piece = view.board.cells[index];
+      final piece = anim.cells[index];
       if (piece == 0) continue;
       if (index == anim.to) continue;
       _drawPiece(canvas, _center(index, cell), piece, cell);
@@ -670,6 +716,9 @@ class _MoveAnim {
   final int captured;
   final List<_Powder> powder;
   double elapsed = 0;
+
+  /// 这一手落子之后的棋面，排队播放时用它绘制背景棋子。
+  Uint8List cells = Uint8List(cellCount);
 
   double get totalDuration =>
       _moveDurationSeconds +

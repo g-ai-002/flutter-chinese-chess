@@ -58,6 +58,12 @@ class _FakeView implements BoardView {
       ),
     );
   }
+
+  void undo() {
+    final record = history.removeLast();
+    board.cells[record.from] = record.piece;
+    board.cells[record.to] = record.captured;
+  }
 }
 
 BoardComponent _build(_FakeView view) =>
@@ -99,6 +105,54 @@ void main() {
     _render(board);
     board.update(1.0);
     expect(board.isAnimating, isFalse);
+  });
+
+  testWidgets('两手棋在一帧内落下时依次播放，不会被顶掉', (tester) async {
+    final view = _FakeView();
+    final board = _build(view);
+    board.update(0.016);
+
+    // 我方落子后 AI 立刻回棋：棋盘与历史在一帧内前进了两手。
+    view.addMove(
+      from: indexOf(6, 0),
+      to: indexOf(5, 0),
+      piece: pieceOf(red, typePawn),
+    );
+    view.addMove(
+      from: indexOf(3, 0),
+      to: indexOf(4, 0),
+      piece: pieceOf(black, typePawn),
+    );
+    board.update(0.016);
+    expect(board.isAnimating, isTrue);
+
+    // 第一手播完后接着播第二手，而不是直接收场。
+    board.update(0.62);
+    expect(board.isAnimating, isTrue);
+    _render(board);
+
+    board.update(1.0);
+    expect(board.isAnimating, isFalse);
+    _render(board);
+  });
+
+  testWidgets('悔棋回退历史后立即回到静止图层', (tester) async {
+    final view = _FakeView();
+    final board = _build(view);
+    board.update(0.016);
+
+    view.addMove(
+      from: indexOf(6, 0),
+      to: indexOf(5, 0),
+      piece: pieceOf(red, typePawn),
+    );
+    board.update(0.05);
+    expect(board.isAnimating, isTrue);
+
+    view.undo();
+    board.update(0.016);
+    expect(board.isAnimating, isFalse);
+    _render(board);
   });
 
   testWidgets('走子提示箭头可以在棋盘上绘制', (tester) async {
