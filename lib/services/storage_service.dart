@@ -71,6 +71,7 @@ class StorageService {
   Future<void> setTimeControl(TimeControl value) =>
       _write((p) => p.setString(AppConstants.prefKeyTimeControl, value.name));
 
+  /// AI 难度，未设置或未知值回退到默认难度（高手）。
   Difficulty get difficulty =>
       Difficulty.byName(_p.getString(AppConstants.prefKeyDifficulty));
 

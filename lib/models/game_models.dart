@@ -20,9 +20,10 @@ enum Difficulty {
   /// 单步思考时限（毫秒），与节点预算先到先停。
   final int timeLimitMillis;
 
+  /// 未设置或未知值时回退到默认难度（高手）。
   static Difficulty byName(String? name) => values.firstWhere(
     (item) => item.name == name,
-    orElse: () => Difficulty.normal,
+    orElse: () => Difficulty.expert,
   );
 }
 
