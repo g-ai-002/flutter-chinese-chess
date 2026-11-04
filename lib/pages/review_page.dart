@@ -114,7 +114,8 @@ class _ReviewPageState extends State<ReviewPage> {
   Future<void> _saveArchive() async {
     final now = DateTime.now();
     final name =
-        'game_${formatDateKey(now)}_${pad2(now.hour)}${pad2(now.minute)}.txt';
+        'game_${formatDateKey(now)}_${pad2(now.hour)}${pad2(now.minute)}'
+        '${pad2(now.second)}.txt';
     final path = await FileSystemService.instance.saveText(
       name,
       _archiveText(),
