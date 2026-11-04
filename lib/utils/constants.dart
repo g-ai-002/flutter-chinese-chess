@@ -14,7 +14,7 @@ class AppConstants {
   AppConstants._();
 
   static const String appName = '中国象棋';
-  static const String version = '0.6.6';
+  static const String version = '0.7.0';
 
   static const String prefKeyDarkMode = 'dark_mode';
   static const String prefKeyDifficulty = 'difficulty';
@@ -27,6 +27,7 @@ class AppConstants {
   static const String prefKeyHaptics = 'haptics_enabled';
   static const String prefKeyTimeControl = 'time_control';
   static const String prefKeySolvedPuzzles = 'solved_puzzles';
+  static const String prefKeyGameHistory = 'game_history';
 
   /// 单关最佳步数的存储键：`puzzle_best_<id>`。
   static String puzzleBestKey(String id) => 'puzzle_best_$id';

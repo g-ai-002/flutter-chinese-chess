@@ -1,5 +1,6 @@
 import 'package:chinese_chess/pages/home_page.dart';
 import 'package:chinese_chess/providers/settings_provider.dart';
+import 'package:chinese_chess/services/game_history_service.dart';
 import 'package:chinese_chess/services/storage_service.dart';
 import 'package:chinese_chess/theme/app_theme.dart';
 import 'package:chinese_chess/utils/constants.dart';
@@ -19,6 +20,7 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     StorageService.resetForTests();
+    GameHistoryService.instance.resetForTest();
   });
 
   testWidgets('首页展示品牌与模式入口，不再重复对局设置', (tester) async {
@@ -83,7 +85,7 @@ void main() {
     expect(settings.darkMode, isTrue);
   });
 
-  testWidgets('粘贴棋谱后可直接进入复盘', (tester) async {
+  testWidgets('棋谱复盘入口打开棋谱库并支持粘贴导入', (tester) async {
     final storage = await StorageService.instance;
     final settings = SettingsProvider(storage);
     await tester.pumpWidget(wrap(settings));
@@ -94,14 +96,19 @@ void main() {
     await tester.tap(entry);
     await tester.pumpAndSettle();
 
-    expect(find.text('导入棋谱'), findsOneWidget);
+    expect(find.text('棋谱'), findsOneWidget);
+    expect(find.text('还没有棋谱'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('导入棋谱'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget);
     await tester.enterText(
       find.byType(TextField),
       '1. 炮二平五 马8进7\n2. 马二进三 马2进3',
     );
     await tester.tap(find.text('开始复盘'));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 60));
+    await tester.pump(const Duration(milliseconds: 200));
 
     expect(find.text('复盘'), findsOneWidget);
     expect(find.text('第 0 / 4 手'), findsOneWidget);
@@ -120,6 +127,8 @@ void main() {
     await tester.tap(entry);
     await tester.pumpAndSettle();
 
+    await tester.tap(find.byTooltip('导入棋谱'));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '这不是棋谱');
     await tester.tap(find.text('开始复盘'));
     await tester.pump();

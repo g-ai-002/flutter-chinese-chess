@@ -4,16 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../game/engine/board_utils.dart';
-import '../game/game_archive.dart';
 import '../models/game_models.dart';
 import '../providers/settings_provider.dart';
-import '../services/log_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/board_painting.dart';
 import '../utils/constants.dart';
+import 'game_history_page.dart';
 import 'game_page.dart';
 import 'puzzle_page.dart';
-import 'review_page.dart';
 import 'settings_page.dart';
 import 'widgets/board_preview.dart';
 import 'widgets/entry_tile.dart';
@@ -128,32 +126,10 @@ class HomePage extends StatelessWidget {
         .push(MaterialPageRoute<void>(builder: (_) => const PuzzlePage()));
   }
 
-  /// 粘贴棋谱文本并复盘，解析失败时留在首页提示。
-  Future<void> _importArchive(BuildContext context) async {
-    final text = await showDialog<String>(
-      context: context,
-      builder: (_) => const _ImportDialog(),
-    );
-    if (text == null || text.trim().isEmpty) return;
-
-    final archive = GameArchive.decode(text);
-    if (!context.mounted) return;
-    if (archive == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('棋谱无法解析，请检查文本是否完整')));
-      return;
-    }
-    LogService.info('导入棋谱: ${archive.title}, 共 ${archive.moveCount} 手');
+  /// 棋谱库：最近 20 局回放与导入导出入口。
+  void _openArchives(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => ReviewPage(
-          title: archive.title,
-          result: archive.result,
-          moves: archive.moves,
-          layout: archive.layout,
-          startSide: archive.startSide,
-        ),
-      ),
+      MaterialPageRoute<void>(builder: (_) => const GameHistoryPage()),
     );
   }
 
@@ -193,72 +169,10 @@ class HomePage extends StatelessWidget {
         accent: appWood,
       ),
       title: '棋谱复盘',
-      subtitle: '导入棋谱 · 逐手回放',
-      onTap: () => _importArchive(context),
+      subtitle: '最近 20 局 · 导入导出',
+      onTap: () => _openArchives(context),
     ),
   ];
-}
-
-/// 导入棋谱弹窗：文本框自行持有控制器，关闭动画结束时一并释放。
-class _ImportDialog extends StatefulWidget {
-  const _ImportDialog();
-
-  @override
-  State<_ImportDialog> createState() => _ImportDialogState();
-}
-
-class _ImportDialogState extends State<_ImportDialog> {
-  final TextEditingController _input = TextEditingController();
-
-  @override
-  void dispose() {
-    _input.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return AlertDialog(
-      title: const Text('导入棋谱'),
-      content: SizedBox(
-        width: 520,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '粘贴导出的棋谱文本，也支持「1. 炮二平五 马8进7」这类纯记法。',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _input,
-              minLines: 5,
-              maxLines: 8,
-              style: theme.textTheme.bodySmall,
-              decoration: const InputDecoration(
-                hintText: '在此粘贴棋谱…',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_input.text),
-          child: const Text('开始复盘'),
-        ),
-      ],
-    );
-  }
 }
 
 class _TopBar extends StatelessWidget {

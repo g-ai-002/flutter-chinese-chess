@@ -42,19 +42,56 @@ class FileSystemService {
   /// 保存文本到 `<用户目录>/FlutterChineseChess/records`，返回文件路径。
   Future<String?> saveText(String fileName, String content) async {
     try {
-      final base = await _baseDir();
-      final dir = Directory(
-        '${base.path}${Platform.pathSeparator}$appDirName'
-        '${Platform.pathSeparator}records',
-      );
-      if (!await dir.exists()) await dir.create(recursive: true);
+      final dir = await _recordsDir();
       final file = File('${dir.path}${Platform.pathSeparator}$fileName');
-      await file.writeAsString(content);
+      await file.writeAsString(content, flush: true);
       return file.path;
     } catch (e, stack) {
       LogService.error('保存文本失败: $fileName', e, stack);
       return null;
     }
+  }
+
+  /// 已导出的棋谱文件名（仅 .txt），新文件在前，供复盘页从文件导入。
+  Future<List<String>> listRecordFiles() async {
+    try {
+      final dir = await _recordsDir();
+      final names = <String>[];
+      await for (final entity in dir.list()) {
+        if (entity is! File) continue;
+        final name = entity.uri.pathSegments.last;
+        if (name.toLowerCase().endsWith('.txt')) names.add(name);
+      }
+      names.sort((a, b) => b.compareTo(a));
+      return names;
+    } catch (e, stack) {
+      LogService.error('读取棋谱目录失败', e, stack);
+      return const [];
+    }
+  }
+
+  /// 读取 records 目录下的棋谱文本，文件名非法或读取失败时返回 null。
+  Future<String?> readRecordFile(String fileName) async {
+    if (fileName.contains('/') || fileName.contains('\\')) return null;
+    try {
+      final dir = await _recordsDir();
+      final file = File('${dir.path}${Platform.pathSeparator}$fileName');
+      if (!await file.exists()) return null;
+      return await file.readAsString();
+    } catch (e, stack) {
+      LogService.error('读取棋谱失败: $fileName', e, stack);
+      return null;
+    }
+  }
+
+  Future<Directory> _recordsDir() async {
+    final base = await _baseDir();
+    final dir = Directory(
+      '${base.path}${Platform.pathSeparator}$appDirName'
+      '${Platform.pathSeparator}records',
+    );
+    if (!await dir.exists()) await dir.create(recursive: true);
+    return dir;
   }
 
   /// 打开系统文件管理器定位到目录，失败返回 false。

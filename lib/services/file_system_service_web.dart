@@ -12,5 +12,10 @@ class FileSystemService {
 
   Future<String?> saveText(String fileName, String content) async => null;
 
+  /// 浏览器没有本地棋谱目录，导入统一使用粘贴文本。
+  Future<List<String>> listRecordFiles() async => const [];
+
+  Future<String?> readRecordFile(String fileName) async => null;
+
   Future<bool> openDirectory(String path) async => false;
 }

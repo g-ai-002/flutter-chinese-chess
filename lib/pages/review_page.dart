@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -14,7 +15,6 @@ import '../providers/settings_provider.dart';
 import '../services/file_system_service.dart';
 import '../services/log_service.dart';
 import '../utils/formatters.dart';
-import '../utils/platform_info.dart';
 import 'widgets/board_stage.dart';
 import 'widgets/move_list.dart';
 import 'widgets/move_panel.dart';
@@ -29,6 +29,7 @@ class ReviewPage extends StatefulWidget {
     required this.layout,
     this.startSide = red,
     this.result,
+    this.date,
   });
 
   final String title;
@@ -36,6 +37,9 @@ class ReviewPage extends StatefulWidget {
   final List<String> layout;
   final int startSide;
   final String? result;
+
+  /// 棋谱结束时间，导出时写入「日期」；为空时取当前时间。
+  final DateTime? date;
 
   @override
   State<ReviewPage> createState() => _ReviewPageState();
@@ -130,6 +134,7 @@ class _ReviewPageState extends State<ReviewPage> {
     startSide: widget.startSide,
     title: widget.title,
     result: widget.result,
+    date: widget.date,
   );
 
   @override
@@ -156,7 +161,7 @@ class _ReviewPageState extends State<ReviewPage> {
             onPressed: _copyArchive,
             icon: const Icon(Icons.copy_all_outlined, size: 21),
           ),
-          if (isDesktopPlatform)
+          if (!kIsWeb)
             IconButton(
               tooltip: '保存棋谱',
               onPressed: _saveArchive,

@@ -47,7 +47,7 @@ class GameArchive {
       ..writeln('版本: $formatVersion')
       ..writeln('标题: $title')
       ..writeln('结果: ${result ?? '进行中'}')
-      ..writeln('日期: ${_formatDate(date ?? DateTime.now())}')
+      ..writeln('日期: ${formatDateTime(date ?? DateTime.now())}')
       ..writeln('布局: ${layout.join('/')}')
       ..writeln('先手: ${startSide == red ? '红' : '黑'}')
       ..writeln(
@@ -145,8 +145,4 @@ class GameArchive {
     for (final token in text.split(RegExp(r'\s+')))
       if (token.isNotEmpty) token,
   ];
-
-  static String _formatDate(DateTime time) =>
-      '${time.year}-${pad2(time.month)}-${pad2(time.day)} '
-      '${pad2(time.hour)}:${pad2(time.minute)}';
 }

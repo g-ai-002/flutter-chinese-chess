@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'app.dart';
+import 'services/game_history_service.dart';
 import 'services/log_service.dart';
 import 'services/logging_init.dart';
 import 'services/music_service.dart';
@@ -28,6 +29,7 @@ Future<void> main() async {
   await initLogging();
 
   final storage = await StorageService.instance;
+  await GameHistoryService.instance.load();
   LogService.info('应用启动: ${AppConstants.appName} v${AppConstants.version}');
   unawaited(SoundService.init());
   MusicService.enabled = storage.musicEnabled;

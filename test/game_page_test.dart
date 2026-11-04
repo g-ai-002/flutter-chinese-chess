@@ -8,6 +8,7 @@ import 'package:chinese_chess/pages/game_page.dart';
 import 'package:chinese_chess/pages/widgets/game_dialogs.dart';
 import 'package:chinese_chess/pages/widgets/game_status_bar.dart';
 import 'package:chinese_chess/providers/settings_provider.dart';
+import 'package:chinese_chess/services/game_history_service.dart';
 import 'package:chinese_chess/services/storage_service.dart';
 import 'package:chinese_chess/theme/app_theme.dart';
 import 'package:flame/game.dart';
@@ -22,6 +23,7 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     StorageService.resetForTests();
+    GameHistoryService.instance.resetForTest();
   });
 
   testWidgets('双人对局页展示行棋方与操作按钮', (tester) async {
@@ -332,6 +334,55 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
     controller.dispose();
+  });
+
+  testWidgets('终局后自动写入棋谱库', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final storage = await StorageService.instance;
+    final settings = SettingsProvider(storage);
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: settings,
+        child: MaterialApp(
+          theme: buildLightTheme(),
+          home: const GamePage(
+            mode: GameMode.vsAi,
+            difficulty: Difficulty.entry,
+            humanSide: red,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    final board = find.byKey(const ValueKey('xiangqi-board'));
+    final rect = tester.getRect(board);
+    final cell = rect.width / 9;
+    Offset center(int row, int col) =>
+        rect.topLeft + Offset((col + 0.5) * cell, (row + 0.5) * cell);
+
+    await tester.tapAt(center(6, 0));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tapAt(center(5, 0));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.text('认输'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.widgetWithText(FilledButton, '认输'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final records = GameHistoryService.instance.records;
+    expect(records, hasLength(1));
+    expect(records.single.result, contains('认输'));
+    expect(records.single.moveCount, greaterThanOrEqualTo(1));
+
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 
   testWidgets('终局弹窗提供复盘入口', (tester) async {

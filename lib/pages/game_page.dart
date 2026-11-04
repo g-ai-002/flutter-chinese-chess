@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -6,7 +8,9 @@ import '../game/engine/board_utils.dart';
 import '../game/game_controller.dart';
 import '../game/puzzles.dart';
 import '../models/game_models.dart';
+import '../models/saved_game.dart';
 import '../providers/settings_provider.dart';
+import '../services/game_history_service.dart';
 import '../services/log_service.dart';
 import '../services/sound_service.dart';
 import 'review_page.dart';
@@ -41,12 +45,15 @@ class GamePage extends StatefulWidget {
 class _GamePageState extends State<GamePage> {
   late final GameController _controller;
   late final XiangqiGame _game;
+  late DateTime _startedAt;
+  late String _gameId;
   bool _resultShown = false;
   int _seenMoves = 0;
 
   @override
   void initState() {
     super.initState();
+    _resetGameIdentity();
     final settings = context.read<SettingsProvider>();
     _controller = GameController(
       mode: widget.mode,
@@ -92,6 +99,7 @@ class _GamePageState extends State<GamePage> {
     _resultShown = true;
     SoundService.play(MoveFeedback.end);
     final puzzle = widget.puzzle;
+    if (puzzle == null) _archiveGame(result);
     final cleared = puzzle != null && _controller.puzzleCleared;
     final moves = _controller.humanMoves;
     if (puzzle != null && cleared) {
@@ -143,19 +151,44 @@ class _GamePageState extends State<GamePage> {
 
   void _restart() {
     _resultShown = false;
+    _resetGameIdentity();
     _controller.restart();
+  }
+
+  void _resetGameIdentity() {
+    _startedAt = DateTime.now();
+    _gameId = 'game_${_startedAt.microsecondsSinceEpoch}';
+  }
+
+  String get _gameTitle => widget.mode == GameMode.twoPlayers
+      ? widget.mode.label
+      : '${widget.mode.label} · ${widget.difficulty.label}';
+
+  /// 终局后写入最近对局；悔棋后重判沿用同一 id，覆盖旧结果而不是新增一条。
+  void _archiveGame(GameResult result) {
+    if (_controller.history.isEmpty) return;
+    unawaited(
+      GameHistoryService.instance.record(
+        SavedGame(
+          id: _gameId,
+          title: _gameTitle,
+          endedAt: DateTime.now(),
+          layout: _controller.board.startLayout,
+          startSide: _controller.board.startSide,
+          moves: _controller.history,
+          result: '${result.title}（${result.reason}）',
+        ),
+      ),
+    );
   }
 
   /// 终局后进入复盘，棋谱快照与开局布局一并带过去。
   void _openReview() {
     final result = _controller.result;
-    final title = widget.mode == GameMode.twoPlayers
-        ? widget.mode.label
-        : '${widget.mode.label} · ${widget.difficulty.label}';
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ReviewPage(
-          title: title,
+          title: _gameTitle,
           result: result == null ? null : '${result.title}（${result.reason}）',
           moves: List.of(_controller.history),
           layout: _controller.board.startLayout,
@@ -337,7 +370,7 @@ class _GamePageState extends State<GamePage> {
         _ActionButton(
           icon: Icons.refresh_rounded,
           label: '重开',
-          onPressed: _controller.restart,
+          onPressed: _restart,
         ),
         if (widget.puzzle != null)
           _ActionButton(
