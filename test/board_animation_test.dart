@@ -4,6 +4,7 @@ import 'package:chinese_chess/flame/board_component.dart';
 import 'package:chinese_chess/game/board_state.dart';
 import 'package:chinese_chess/game/board_view.dart';
 import 'package:chinese_chess/game/engine/board_utils.dart';
+import 'package:chinese_chess/game/logic_rate.dart';
 import 'package:chinese_chess/models/move_record.dart';
 import 'package:chinese_chess/theme/board_skin.dart';
 import 'package:flame/components.dart';
@@ -153,6 +154,29 @@ void main() {
     board.update(0.016);
     expect(board.isAnimating, isFalse);
     _render(board);
+  });
+
+  testWidgets('逻辑刷新率决定动画推进步长', (tester) async {
+    final view = _FakeView();
+    final board = BoardComponent(
+      view: view,
+      skin: ValueNotifier(woodSkin),
+      logicRate: LogicRate.hz30,
+    )..size = Vector2(480, 540);
+
+    view.addMove(
+      from: indexOf(6, 0),
+      to: indexOf(5, 0),
+      piece: pieceOf(red, typePawn),
+    );
+    // 60fps 渲染下，30Hz 逻辑每两帧才推进一次；未满一步不开始动画。
+    board.update(0.017);
+    expect(board.isAnimating, isFalse);
+    board.update(0.017);
+    expect(board.isAnimating, isTrue);
+    _render(board);
+    board.update(1.0);
+    expect(board.isAnimating, isFalse);
   });
 
   testWidgets('走子提示箭头可以在棋盘上绘制', (tester) async {

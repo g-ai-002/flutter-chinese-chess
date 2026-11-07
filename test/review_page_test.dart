@@ -1,6 +1,7 @@
 import 'package:chinese_chess/flame/xiangqi_game.dart';
 import 'package:chinese_chess/game/board_state.dart';
 import 'package:chinese_chess/game/engine/rules.dart';
+import 'package:chinese_chess/game/logic_rate.dart';
 import 'package:chinese_chess/game/notation.dart';
 import 'package:chinese_chess/models/move_record.dart';
 import 'package:chinese_chess/pages/review_page.dart';
@@ -130,7 +131,7 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('复盘棋盘跟随设置中的皮肤', (tester) async {
+  testWidgets('复盘棋盘跟随设置中的皮肤与逻辑刷新率', (tester) async {
     tester.view.physicalSize = const Size(1280, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -138,6 +139,7 @@ void main() {
 
     final settings = await _newSettings();
     await settings.setBoardSkin(jadeSkin);
+    await settings.setLogicRate(LogicRate.hz30);
     await tester.pumpWidget(_wrap(settings));
     await tester.pump();
 
@@ -148,6 +150,7 @@ void main() {
         .game!;
 
     expect(game().skin.id, 'jade');
+    expect(game().logicRate, LogicRate.hz30);
 
     await settings.setBoardSkin(inkSkin);
     await tester.pump();

@@ -1,3 +1,4 @@
+import 'package:chinese_chess/game/logic_rate.dart';
 import 'package:chinese_chess/pages/settings_page.dart';
 import 'package:chinese_chess/providers/settings_provider.dart';
 import 'package:chinese_chess/services/storage_service.dart';
@@ -84,5 +85,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(settings.humanSide, 1);
     expect(storage.humanSide, 1);
+
+    expect(find.text('逻辑刷新率'), findsOneWidget);
+    await tester.ensureVisible(find.text('30 Hz 省电'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('30 Hz 省电'));
+    await tester.pumpAndSettle();
+    expect(settings.logicRate, LogicRate.hz30);
+    expect(storage.logicRate, LogicRate.hz30);
   });
 }
