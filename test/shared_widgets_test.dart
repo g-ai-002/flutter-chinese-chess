@@ -35,6 +35,29 @@ Widget _wrap(Widget child) => MaterialApp(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  group('棋盘尺寸', () {
+    test('按 9:10 宽高比取可用空间', () {
+      expect(boardFitSize(const Size(1200, 600)), const Size(540, 600));
+    });
+
+    test('宽度受限时按宽度换算高度', () {
+      final size = boardFitSize(const Size(300, 900));
+      expect(size.width, 300);
+      expect(size.height, closeTo(300 * 10 / 9, 0.001));
+    });
+
+    test('超大窗口下宽度封顶', () {
+      final size = boardFitSize(const Size(4000, 4000));
+      expect(size.width, kBoardMaxWidth);
+      expect(size.height, closeTo(kBoardMaxWidth * 10 / 9, 0.001));
+    });
+
+    test('可用空间为空时返回零尺寸', () {
+      expect(boardFitSize(Size.zero), Size.zero);
+      expect(boardFitSize(const Size(320, 0)), Size.zero);
+    });
+  });
+
   group('棋盘舞台', () {
     testWidgets('按 9:10 宽高比取可用空间', (tester) async {
       final replay = _emptyReplay();

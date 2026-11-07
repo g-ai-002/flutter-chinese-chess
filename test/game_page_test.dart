@@ -53,6 +53,16 @@ void main() {
     expect(find.text('悔棋'), findsOneWidget);
     expect(find.text('重开'), findsOneWidget);
     expect(find.text('棋谱'), findsOneWidget);
+    // 棋盘独占整个安全区，不再被应用栏与上下状态条挤压。
+    expect(find.byType(AppBar), findsNothing);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('xiangqi-board'))),
+      const Size(810, 900),
+    );
+
+    await tester.tap(find.text('棋谱'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('尚未落子'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
@@ -124,6 +134,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('兵九进一'), findsOneWidget);
+    expect(find.text('上一手'), findsOneWidget);
     expect(find.text('黑方行棋'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
