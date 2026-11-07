@@ -25,18 +25,19 @@
 - 🈶 Web 字体：使用 soup_fonts 思源黑体，仓库不存放字体文件，「卒」等字形完整
 - 🎯 选中高亮、合法落点提示（可在设置中关闭）
 - 📱 响应式布局：手机 / 折叠屏 / 平板 / Windows 窗口自适应，折叠屏展开时首页入口两列排布
+- 🖼️ 悬浮 HUD：对局页没有应用栏与占位状态条，棋盘独占安全区，标题、棋钟、行棋方、提示与操作挂在棋盘四周，提示变化不会挪动棋盘
 - 🌓 深色模式、简体中文、Windows 优先使用 Microsoft YaHei UI
 - 🧾 日志按天写入用户目录，设置页可直接查看最近日志
 
 ## 下载
 
-v0.6.6（最新发布）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.6.6)
+v0.7.2（最新发布）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.7.2)
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64) | `flutter-chinese-chess-0.6.6-android-aarch64.apk` |
-| Windows (x64, Win10+) | `flutter-chinese-chess-0.6.6-windows-x86_64.zip` |
-| Web | `flutter-chinese-chess-0.6.6-web.zip`（解压后起静态服务器） |
+| Android (arm64) | `flutter-chinese-chess-0.7.2-android-aarch64.apk` |
+| Windows (x64, Win10+) | `flutter-chinese-chess-0.7.2-windows-x86_64.zip` |
+| Web | `flutter-chinese-chess-0.7.2-web.zip`（解压后起静态服务器） |
 
 ## 开发
 
@@ -75,16 +76,17 @@ lib/
 
 | 版本 | 说明 |
 | --- | --- |
+| v0.7.2 | 重构对局页布局：去掉应用栏与占位状态条，棋盘独占安全区，提示信息悬浮在棋盘四周 |
 | v0.7.1 | 修复 v0.7.0 反馈：默认难度改为高手，我方落子动画与吃子特效不再被 AI 回棋顶掉 |
 | v0.7.0 | 新增棋谱库：自动保留最近 20 局回放，复盘支持粘贴/文件导入与文本导出 |
 | v0.6.6 | 修复 Issue #5：Web 端局面哈希随机键不再因 32 位截断抛错，AI 与走子提示恢复可用 |
 | v0.6.5 | 修复 v0.6.4 反馈：折叠屏两列入口、Web AI 对齐、提示增强、落子残影与吃子粉末、背景音乐 |
-| v0.6.4 | 构建发布改为在 Actions 手动运行并选定 Tag，推送 Tag 不再自动出包 |
 
 ### 更早版本
 
 | 版本 | 说明 |
 | --- | --- |
+| v0.6.4 | 构建发布改为在 Actions 手动运行并选定 Tag，推送 Tag 不再自动出包 |
 | v0.6.3 | 修复 v0.6.2 反馈：音效改为运行时合成、Web 字体改用 soup_fonts，仓库不再存放字体与音频 |
 | v0.6.2 | 修复 v0.6.1 反馈：棋盘位置固定、走子提示与渲染流畅度 |
 | v0.6.1 | 重构引擎增量代码：杀棋分数、搜索棋盘与置换表职责收敛，状态胶囊统一 |
