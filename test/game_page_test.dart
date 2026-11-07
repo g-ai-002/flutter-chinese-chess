@@ -68,6 +68,44 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('小屏横屏用紧凑 HUD，操作只留图标', (tester) async {
+    tester.view.physicalSize = const Size(568, 320);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final storage = await StorageService.instance;
+    final settings = SettingsProvider(storage);
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: settings,
+        child: MaterialApp(
+          theme: buildLightTheme(),
+          home: const GamePage(
+            mode: GameMode.vsAi,
+            difficulty: Difficulty.entry,
+            humanSide: 0,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    // 棋盘占满整个横屏高度，按钮收成图标，副标题与次要提示隐藏。
+    expect(
+      tester.getSize(find.byKey(const ValueKey('xiangqi-board'))).height,
+      320,
+    );
+    expect(find.text('悔棋'), findsNothing);
+    expect(find.byTooltip('悔棋'), findsOneWidget);
+    expect(find.byTooltip('认输'), findsOneWidget);
+    expect(find.text('入门 · 执红'), findsNothing);
+    expect(find.text('红方行棋'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('人机对局页展示认输按钮与执子信息', (tester) async {
     tester.view.physicalSize = const Size(1280, 900);
     tester.view.devicePixelRatio = 1.0;

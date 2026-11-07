@@ -90,9 +90,7 @@ void main() {
       await pumpAt(tester, const Size(1280, 900));
       final before = tester.getRect(find.byKey(_boardKey));
 
-      await tester.pumpWidget(
-        _hud(status: '提示 炮二平五 · 开局 · 中炮对屏风马 · 试走 马8进7'),
-      );
+      await tester.pumpWidget(_hud(status: '提示 炮二平五 · 开局 · 中炮对屏风马 · 试走 马8进7'));
       await tester.pump();
       expect(tester.getRect(find.byKey(_boardKey)), before);
 
@@ -107,14 +105,91 @@ void main() {
       await pumpAt(tester, const Size(420, 900));
       final before = tester.getRect(find.byKey(_boardKey));
 
-      await tester.pumpWidget(
-        _hud(status: '提示 炮二平五 · 开局 · 中炮对屏风马 · 试走 马8进7'),
-      );
+      await tester.pumpWidget(_hud(status: '提示 炮二平五 · 开局 · 中炮对屏风马 · 试走 马8进7'));
       await tester.pump();
       expect(tester.getRect(find.byKey(_boardKey)), before);
       expect(tester.takeException(), isNull);
 
       await tester.pumpWidget(const SizedBox.shrink());
+    });
+
+    testWidgets('小屏横屏用两侧栏，棋盘占满高度', (tester) async {
+      await pumpAt(tester, const Size(568, 320));
+
+      final board = tester.getRect(find.byKey(_boardKey));
+      expect(board.height, 320);
+      expect(board.width, closeTo(288, 0.01));
+      for (final label in ['标题', '棋钟', '红方行棋', '操作']) {
+        expect(
+          tester.getRect(find.text(label)).overlaps(board),
+          isFalse,
+          reason: label,
+        );
+      }
+    });
+
+    testWidgets('矮窗口改用紧凑横条，棋盘不再被压成细条', (tester) async {
+      await pumpAt(tester, const Size(500, 400));
+
+      final board = tester.getRect(find.byKey(_boardKey));
+      expect(board.height, closeTo(288, 0.01));
+      expect(board.width, greaterThan(240));
+      for (final label in ['标题', '棋钟', '红方行棋', '操作']) {
+        expect(
+          tester.getRect(find.text(label)).overlaps(board),
+          isFalse,
+          reason: label,
+        );
+      }
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('系统字号放大后 HUD 仍不压到棋盘', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 1.4;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pumpAt(tester, const Size(420, 900));
+
+      final board = tester.getRect(find.byKey(_boardKey));
+      expect(board.width, 420);
+      for (final label in ['标题', '棋钟', '红方行棋', '操作']) {
+        expect(
+          tester.getRect(find.text(label)).overlaps(board),
+          isFalse,
+          reason: label,
+        );
+      }
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
+    testWidgets('常见设备尺寸下棋盘都不会被 HUD 覆盖', (tester) async {
+      const sizes = [
+        Size(360, 640),
+        Size(420, 900),
+        Size(500, 400),
+        Size(568, 320),
+        Size(673, 900),
+        Size(800, 600),
+        Size(900, 420),
+        Size(1024, 768),
+        Size(1280, 800),
+        Size(1920, 1080),
+      ];
+      for (final size in sizes) {
+        await pumpAt(tester, size);
+        final board = tester.getRect(find.byKey(_boardKey));
+        expect(board.width, greaterThan(0), reason: '$size');
+        for (final label in ['标题', '棋钟', '红方行棋', '操作']) {
+          expect(
+            tester.getRect(find.text(label)).overlaps(board),
+            isFalse,
+            reason: '$size $label',
+          );
+        }
+        expect(tester.takeException(), isNull, reason: '$size');
+        await tester.pumpWidget(const SizedBox.shrink());
+      }
     });
   });
 }

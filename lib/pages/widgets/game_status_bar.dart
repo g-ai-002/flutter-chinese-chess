@@ -7,6 +7,7 @@ import '../../game/opening_book.dart';
 import '../../models/game_models.dart';
 import '../../models/move_record.dart';
 import '../../theme/app_theme.dart';
+import 'board_hud.dart';
 import 'status_chip.dart';
 
 /// 对局状态区：行棋方、上一手、将军提示、走子提示、开局与执子信息。
@@ -24,6 +25,7 @@ class GameStatusBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (HudScope.compactOf(context)) return _compactChip(context);
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final side = controller.board.sideToMove;
@@ -85,6 +87,55 @@ class GameStatusBar extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  /// 紧凑模式：行棋方与即时状态合并成一行，余下的横向空间留给操作按钮。
+  Widget _compactChip(BuildContext context) {
+    final theme = Theme.of(context);
+    final side = controller.board.sideToMove;
+    final sideColor = sideColorOf(side);
+    final detail = _compactDetail();
+    final text = detail == null
+        ? '${sideName(side)}行棋'
+        : '${sideName(side)}行棋 · $detail';
+    return StatusChip(
+      accent: sideColor,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(color: sideColor, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: sideColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 紧凑模式下只保留最需要立刻知道的一条信息。
+  String? _compactDetail() {
+    if (controller.thinking) return 'AI 思考中';
+    if (controller.hintLoading) return '寻找提示';
+    final hint = controller.hintNotation;
+    if (hint != null) return '提示 $hint';
+    if (controller.inCheck) return '将军';
+    final puzzle = controller.puzzle;
+    if (puzzle != null) return '剩 ${controller.remainingMoves ?? 0} 步';
+    return null;
   }
 
   /// 行棋方右侧的即时状态：思考中 > 提示 > 将军 > 引擎摘要 > 开局。

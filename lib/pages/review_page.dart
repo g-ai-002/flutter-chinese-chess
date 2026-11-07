@@ -14,6 +14,7 @@ import '../models/move_record.dart';
 import '../providers/settings_provider.dart';
 import '../services/file_system_service.dart';
 import '../services/log_service.dart';
+import '../utils/board_display_mode.dart';
 import '../utils/formatters.dart';
 import 'widgets/board_stage.dart';
 import 'widgets/move_list.dart';
@@ -140,58 +141,60 @@ class _ReviewPageState extends State<ReviewPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 58,
-        title: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('复盘'),
-            Text(
-              widget.title,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontSize: 11,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+    return BoardDisplayMode(
+      child: Scaffold(
+        appBar: AppBar(
+          toolbarHeight: 58,
+          title: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('复盘'),
+              Text(
+                widget.title,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontSize: 11,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              tooltip: '复制棋谱',
+              onPressed: _copyArchive,
+              icon: const Icon(Icons.copy_all_outlined, size: 21),
             ),
+            if (!kIsWeb)
+              IconButton(
+                tooltip: '保存棋谱',
+                onPressed: _saveArchive,
+                icon: const Icon(Icons.save_alt, size: 21),
+              ),
+            const SizedBox(width: 4),
           ],
         ),
-        actions: [
-          IconButton(
-            tooltip: '复制棋谱',
-            onPressed: _copyArchive,
-            icon: const Icon(Icons.copy_all_outlined, size: 21),
-          ),
-          if (!kIsWeb)
-            IconButton(
-              tooltip: '保存棋谱',
-              onPressed: _saveArchive,
-              icon: const Icon(Icons.save_alt, size: 21),
-            ),
-          const SizedBox(width: 4),
-        ],
-      ),
-      body: SafeArea(
-        child: AnimatedBuilder(
-          animation: _replay,
-          builder: (context, _) => PlayLayout(
-            board: _buildBoard(),
-            actions: _buildControls(),
-            compactBottom: Column(
-              children: [
-                _buildControls(),
-                SizedBox(
-                  height: 132,
-                  child: MoveList(
-                    history: widget.moves,
-                    highlightIndex: _replay.cursor - 1,
-                    onTapIndex: (index) => _replay.jumpTo(index + 1),
-                    padding: const EdgeInsets.only(bottom: 6),
+        body: SafeArea(
+          child: AnimatedBuilder(
+            animation: _replay,
+            builder: (context, _) => PlayLayout(
+              board: _buildBoard(),
+              actions: _buildControls(),
+              compactBottom: Column(
+                children: [
+                  _buildControls(),
+                  SizedBox(
+                    height: 132,
+                    child: MoveList(
+                      history: widget.moves,
+                      highlightIndex: _replay.cursor - 1,
+                      onTapIndex: (index) => _replay.jumpTo(index + 1),
+                      padding: const EdgeInsets.only(bottom: 6),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
+              sidePanel: _buildSidePanel(),
             ),
-            sidePanel: _buildSidePanel(),
           ),
         ),
       ),

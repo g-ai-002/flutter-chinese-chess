@@ -13,6 +13,7 @@ import '../providers/settings_provider.dart';
 import '../services/game_history_service.dart';
 import '../services/log_service.dart';
 import '../services/sound_service.dart';
+import '../utils/board_display_mode.dart';
 import 'review_page.dart';
 import 'widgets/board_hud.dart';
 import 'widgets/board_stage.dart';
@@ -302,21 +303,23 @@ class _GamePageState extends State<GamePage> {
   @override
   Widget build(BuildContext context) {
     // 没有 AppBar 与上下状态条，棋盘独占整块安全区；提示信息以悬浮卡片挂在四周。
-    return Scaffold(
-      body: SafeArea(
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, board) => BoardHud(
-            board: board!,
-            topStart: _buildTitle(),
-            topEnd: _buildTools(),
-            bottomStart: GameStatusBar(
-              controller: _controller,
-              humanSide: widget.humanSide,
+    return BoardDisplayMode(
+      child: Scaffold(
+        body: SafeArea(
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, board) => BoardHud(
+              board: board!,
+              topStart: _buildTitle(),
+              topEnd: _buildTools(),
+              bottomStart: GameStatusBar(
+                controller: _controller,
+                humanSide: widget.humanSide,
+              ),
+              bottomEnd: _buildActions(),
             ),
-            bottomEnd: _buildActions(),
+            child: _buildBoard(),
           ),
-          child: _buildBoard(),
         ),
       ),
     );
@@ -349,14 +352,9 @@ class _GamePageState extends State<GamePage> {
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleSmall,
               ),
-              Text(
-                _subtitle(widget.puzzle),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontSize: 11,
-                  color: colors.onSurfaceVariant,
-                ),
+              _HudSubtitle(
+                text: _subtitle(widget.puzzle),
+                color: colors.onSurfaceVariant,
               ),
             ],
           ),
@@ -454,28 +452,56 @@ class _ActionButton extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final enabled = onPressed != null;
-    return TextButton(
+    // 紧凑 HUD 里只留图标，一串按钮并排也不会把状态卡挤下去。
+    final compact = HudScope.compactOf(context);
+    final button = TextButton(
       onPressed: onPressed,
       style: TextButton.styleFrom(
-        minimumSize: const Size(54, 44),
+        minimumSize: Size(compact ? 38 : 54, compact ? 38 : 44),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 2 : 4,
+          vertical: compact ? 0 : 2,
+        ),
         foregroundColor: enabled ? colors.onSurface : colors.onSurfaceVariant,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 20),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontSize: 10.5,
-              color: enabled ? colors.onSurface : colors.onSurfaceVariant,
+      child: compact
+          ? Icon(icon, size: 21)
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 20),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontSize: 10.5,
+                    color: enabled ? colors.onSurface : colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
+    );
+    return compact ? Tooltip(message: label, child: button) : button;
+  }
+}
+
+/// 标题卡副标题：紧凑 HUD 里隐藏，给标题留出更多宽度。
+class _HudSubtitle extends StatelessWidget {
+  const _HudSubtitle({required this.text, required this.color});
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    if (HudScope.compactOf(context)) return const SizedBox.shrink();
+    return Text(
+      text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: Theme.of(context).textTheme.bodySmall
+          ?.copyWith(fontSize: 11, color: color),
     );
   }
 }
