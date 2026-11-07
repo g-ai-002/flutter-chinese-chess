@@ -59,6 +59,28 @@ void main() {
     expect(review.dy, closeTo(puzzle.dy, 0.5));
   });
 
+  testWidgets('宽屏首页改为左右两栏，入口无需滚动即可见', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final storage = await StorageService.instance;
+    final settings = SettingsProvider(storage);
+    await tester.pumpWidget(wrap(settings));
+
+    // 主视觉在左、入口在右，四个入口都在首屏内。
+    final hero = tester.getCenter(find.text('楚 河 · 漢 界'));
+    final ai = tester.getRect(find.text('人机对战'));
+    expect(ai.left, greaterThan(hero.dx));
+    for (final label in ['人机对战', '双人对弈', '残局挑战', '棋谱复盘']) {
+      final rect = tester.getRect(find.text(label));
+      expect(rect.top, greaterThanOrEqualTo(0), reason: label);
+      expect(rect.bottom, lessThan(900), reason: label);
+    }
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('窄屏下模式入口保持单列', (tester) async {
     tester.view.physicalSize = const Size(420, 900);
     tester.view.devicePixelRatio = 1.0;

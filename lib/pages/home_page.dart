@@ -41,13 +41,11 @@ class HomePage extends StatelessWidget {
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              // 折叠屏展开约 600dp 起即可并排两张入口卡片。
-              final twoColumns = constraints.maxWidth >= 600;
+              // 宽屏改为「左侧主视觉 + 右侧入口」两栏，一屏放下全部入口。
+              final wide =
+                  constraints.maxWidth >= 960 && constraints.maxHeight >= 620;
               final horizontal = constraints.maxWidth >= 900 ? 40.0 : 20.0;
-              final contentWidth = math.min(
-                constraints.maxWidth - horizontal * 2,
-                780.0,
-              );
+              final maxContent = wide ? 1180.0 : 780.0;
               return SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(horizontal, 14, horizontal, 24),
                 child: ConstrainedBox(
@@ -56,35 +54,30 @@ class HomePage extends StatelessWidget {
                   ),
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 780),
+                      constraints: BoxConstraints(maxWidth: maxContent),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           _TopBar(darkMode: settings.darkMode),
                           const SizedBox(height: 22),
-                          _Hero(skin: settings.boardSkin),
-                          const SizedBox(height: 30),
-                          if (twoColumns)
-                            Wrap(
-                              spacing: 12,
-                              runSpacing: 12,
+                          if (wide)
+                            Row(
                               children: [
-                                for (final card in modeCards)
-                                  SizedBox(
-                                    width: (contentWidth - 12) / 2,
-                                    child: card,
-                                  ),
+                                Expanded(
+                                  child: _Hero(skin: settings.boardSkin),
+                                ),
+                                const SizedBox(width: 40),
+                                SizedBox(
+                                  width: 520,
+                                  child: _ModeEntries(cards: modeCards),
+                                ),
                               ],
                             )
-                          else
-                            Column(
-                              children: [
-                                for (var i = 0; i < modeCards.length; i++) ...[
-                                  if (i > 0) const SizedBox(height: 12),
-                                  modeCards[i],
-                                ],
-                              ],
-                            ),
+                          else ...[
+                            _Hero(skin: settings.boardSkin),
+                            const SizedBox(height: 30),
+                            _ModeEntries(cards: modeCards),
+                          ],
                           const SizedBox(height: 24),
                           Text(
                             'v${AppConstants.version} · 本地运行，无需联网',
@@ -128,9 +121,8 @@ class HomePage extends StatelessWidget {
 
   /// 棋谱库：最近 20 局回放与导入导出入口。
   void _openArchives(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const GameHistoryPage()),
-    );
+    Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => const GameHistoryPage()));
   }
 
   /// 首页四个模式入口，宽屏两列、窄屏堆叠都复用同一份定义。
@@ -173,6 +165,32 @@ class HomePage extends StatelessWidget {
       onTap: () => _openArchives(context),
     ),
   ];
+}
+
+/// 模式入口网格：可用宽度够时两列，窄屏单列，两种排布共用同一份卡片定义。
+class _ModeEntries extends StatelessWidget {
+  const _ModeEntries({required this.cards});
+
+  final List<Widget> cards;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final twoColumns = constraints.maxWidth >= 480;
+        final width = twoColumns
+            ? (constraints.maxWidth - 12) / 2
+            : constraints.maxWidth;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            for (final card in cards) SizedBox(width: width, child: card),
+          ],
+        );
+      },
+    );
+  }
 }
 
 class _TopBar extends StatelessWidget {
