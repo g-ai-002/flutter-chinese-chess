@@ -25,11 +25,12 @@ const double _compactHeight = 520;
 /// 上下排布时预留给标题行与状态、操作行的固定高度。
 ///
 /// 用固定值而不是测量结果，棋盘尺寸只随窗口大小变化，不会因为提示文字
-/// 变长或消失而重新计算布局。紧凑档只留一行图标，占用的高度更少。
+/// 变长或消失而重新计算布局。窄屏的状态胶囊最多折成两行，预留要够放下
+/// 「状态 + 操作」两张卡片；紧凑档只留一行图标，占用的高度更少。
 const double _wideTopReserve = 64;
 const double _narrowTopReserve = 118;
 const double _wideBottomReserve = 76;
-const double _narrowBottomReserve = 132;
+const double _narrowBottomReserve = 148;
 const double _compactTopReserve = 52;
 const double _compactBottomReserve = 60;
 
