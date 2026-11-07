@@ -2,15 +2,22 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
 import '../game/board_view.dart';
+import '../game/logic_rate.dart';
 import '../theme/board_skin.dart';
 import 'board_component.dart';
 
 /// Flame 游戏入口：目前只有一个棋盘组件，后续可扩展落子特效与音效。
 class XiangqiGame extends FlameGame {
-  XiangqiGame({required this.view, BoardSkin skin = kDefaultBoardSkin})
-    : _skin = ValueNotifier(skin);
+  XiangqiGame({
+    required this.view,
+    BoardSkin skin = kDefaultBoardSkin,
+    this.logicRate = LogicRate.hz60,
+  }) : _skin = ValueNotifier(skin);
 
   final BoardView view;
+
+  /// 棋盘逻辑更新速率，见 [LogicRate]。
+  final LogicRate logicRate;
   final ValueNotifier<BoardSkin> _skin;
   BoardComponent? _board;
 
@@ -23,7 +30,7 @@ class XiangqiGame extends FlameGame {
 
   @override
   Future<void> onLoad() async {
-    final board = BoardComponent(view: view, skin: _skin);
+    final board = BoardComponent(view: view, skin: _skin, logicRate: logicRate);
     _board = board;
     _fit(board);
     await add(board);

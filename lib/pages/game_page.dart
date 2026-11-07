@@ -64,11 +64,17 @@ class _GamePageState extends State<GamePage> {
       timeControl: settings.timeControl,
       puzzle: widget.puzzle,
     );
-    _game = XiangqiGame(view: _controller, skin: settings.boardSkin);
+    _game = XiangqiGame(
+      view: _controller,
+      skin: settings.boardSkin,
+      logicRate: settings.logicRate,
+    );
     _controller.addListener(_onControllerChanged);
     final puzzle = widget.puzzle;
     final clock = _controller.timeControl;
-    final clockText = clock.isTimed ? '，棋钟 ${clock.label}' : '';
+    final clockText =
+        '，逻辑 ${settings.logicRate.label}'
+        '${clock.isTimed ? '，棋钟 ${clock.label}' : ''}';
     LogService.info(
       puzzle == null
           ? '开始对局: ${widget.mode.label}, 难度 ${widget.difficulty.label}, '

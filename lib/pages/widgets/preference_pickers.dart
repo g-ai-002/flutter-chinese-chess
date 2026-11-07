@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../game/engine/board_utils.dart';
+import '../../game/logic_rate.dart';
 import '../../models/game_models.dart';
 import '../../providers/settings_provider.dart';
 import '../../theme/app_theme.dart';
@@ -87,6 +88,29 @@ class TimeControlPicker extends StatelessWidget {
             selected: settings.timeControl == control,
             accent: colors.primary,
             onTap: () => settings.setTimeControl(control),
+          ),
+      ],
+    );
+  }
+}
+
+/// 棋盘逻辑速率选择：设置页使用，默认 60Hz。
+class LogicRatePicker extends StatelessWidget {
+  const LogicRatePicker({super.key, required this.settings});
+
+  final SettingsProvider settings;
+
+  @override
+  Widget build(BuildContext context) {
+    return _PickerGroup(
+      label: '逻辑刷新率',
+      children: [
+        for (final rate in LogicRate.values)
+          ChoicePill(
+            label: rate.label,
+            selected: settings.logicRate == rate,
+            accent: Theme.of(context).colorScheme.primary,
+            onTap: () => settings.setLogicRate(rate),
           ),
       ],
     );

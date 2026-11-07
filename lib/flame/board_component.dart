@@ -1,6 +1,5 @@
 import 'dart:collection';
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
@@ -11,6 +10,7 @@ import 'package:flutter/material.dart';
 import '../game/engine/board_utils.dart';
 import '../game/engine/rules.dart';
 import '../game/board_view.dart';
+import '../game/logic_rate.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/board_painting.dart';
@@ -28,10 +28,15 @@ const Color _hintOutline = Color(0xE62A1C08);
 ///
 /// 皮肤通过 [skin] 监听，切换皮肤时清空文字缓存并按新配色重绘。
 class BoardComponent extends PositionComponent with TapCallbacks {
-  BoardComponent({required this.view, required this.skin});
+  BoardComponent({
+    required this.view,
+    required this.skin,
+    LogicRate logicRate = LogicRate.hz60,
+  }) : _stepper = FixedStepClock(logicRate.step);
 
   final BoardView view;
   final ValueListenable<BoardSkin> skin;
+  final FixedStepClock _stepper;
 
   BoardSkin get _skin => skin.value;
 
@@ -40,7 +45,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
 
   double _cell = 0;
   double _time = 0;
-  int _seenMoves = -1;
+  int _seenMoves = 0;
   _MoveAnim? _anim;
   final ListQueue<_MoveAnim> _pending = ListQueue<_MoveAnim>();
   double _cacheCell = 0;
@@ -88,12 +93,17 @@ class BoardComponent extends PositionComponent with TapCallbacks {
   @override
   void update(double dt) {
     super.update(dt);
-    _time += dt;
+    _stepper.advance(dt, _stepLogic);
+  }
+
+  /// 推进一个逻辑步：记录时间、同步新着法并推进落子动画。
+  void _stepLogic(double span) {
+    _time += span;
     _syncMoves();
 
     final anim = _anim;
     if (anim == null) return;
-    anim.elapsed += dt;
+    anim.elapsed += span;
     // 上一手还没播完就来了下一手（例如 AI 立刻回棋）时接着播，不把动画顶掉。
     while (_anim != null && _anim!.elapsed >= _anim!.totalDuration) {
       final overflow = _anim!.elapsed - _anim!.totalDuration;
@@ -112,7 +122,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
     final history = view.history;
     final count = history.length;
     if (count == _seenMoves) return;
-    if (count < _seenMoves || _seenMoves < 0) {
+    if (count < _seenMoves) {
       _anim = null;
       _pending.clear();
       _seenMoves = count;
@@ -602,7 +612,6 @@ class BoardComponent extends PositionComponent with TapCallbacks {
     int piece,
     double cell, {
     double scale = 1,
-    double opacity = 1,
   }) {
     final sprite = _pieceSprite(piece, cell);
     final box = cell * 0.43 * 2.6;
@@ -610,16 +619,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
     canvas.translate(center.dx, center.dy);
     if (scale != 1) canvas.scale(scale);
     canvas.translate(-box / 2, -box / 2);
-    if (opacity < 0.999) {
-      canvas.saveLayer(
-        Rect.fromLTWH(0, 0, box, box),
-        Paint()..color = Colors.white.withValues(alpha: opacity),
-      );
-      canvas.drawPicture(sprite);
-      canvas.restore();
-    } else {
-      canvas.drawPicture(sprite);
-    }
+    canvas.drawPicture(sprite);
     canvas.restore();
   }
 

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../game/logic_rate.dart';
 import '../models/game_models.dart';
 import '../services/music_service.dart';
 import '../services/sound_service.dart';
@@ -62,6 +63,10 @@ class SettingsProvider extends ChangeNotifier {
   TimeControl get timeControl => _storage.timeControl;
   Future<void> setTimeControl(TimeControl value) =>
       _update(() => _storage.setTimeControl(value));
+
+  LogicRate get logicRate => _storage.logicRate;
+  Future<void> setLogicRate(LogicRate value) =>
+      _update(() => _storage.setLogicRate(value));
 
   bool isPuzzleSolved(String id) => _storage.isPuzzleSolved(id);
   int? puzzleBestMoves(String id) => _storage.puzzleBestMoves(id);

@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../game/logic_rate.dart';
 import '../models/game_models.dart';
 import '../utils/constants.dart';
 
@@ -70,6 +71,12 @@ class StorageService {
       TimeControl.byName(_p.getString(AppConstants.prefKeyTimeControl));
   Future<void> setTimeControl(TimeControl value) =>
       _write((p) => p.setString(AppConstants.prefKeyTimeControl, value.name));
+
+  /// 棋盘逻辑更新速率，未设置或未知值回退到 60Hz。
+  LogicRate get logicRate =>
+      LogicRate.byName(_p.getString(AppConstants.prefKeyLogicRate));
+  Future<void> setLogicRate(LogicRate value) =>
+      _write((p) => p.setString(AppConstants.prefKeyLogicRate, value.name));
 
   /// AI 难度，未设置或未知值回退到默认难度（高手）。
   Difficulty get difficulty =>
