@@ -46,17 +46,19 @@ class _ClockBarState extends State<ClockBar> {
     final clock = widget.controller.clock;
     if (clock == null) return const SizedBox.shrink();
     final active = widget.controller.result == null ? clock.activeSide : null;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    // 用 Wrap 排布：侧栏这类窄空间里两块棋钟自动上下错开，不会横向溢出。
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 10,
+      runSpacing: 4,
       children: [
-        for (final side in const [red, black]) ...[
-          if (side != red) const SizedBox(width: 10),
+        for (final side in const [red, black])
           _ClockChip(
             side: side,
             remainingMs: clock.remainingMs(side),
             active: active == side,
           ),
-        ],
       ],
     );
   }

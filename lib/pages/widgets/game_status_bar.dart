@@ -3,11 +3,15 @@ import 'package:flutter/material.dart';
 import '../../game/ai_player.dart';
 import '../../game/engine/board_utils.dart';
 import '../../game/game_controller.dart';
+import '../../game/opening_book.dart';
 import '../../models/game_models.dart';
+import '../../models/move_record.dart';
 import '../../theme/app_theme.dart';
 import 'status_chip.dart';
 
-/// 对局状态条：行棋方、AI 思考中、将军提示与执子信息。
+/// 对局状态区：行棋方、上一手、将军提示、走子提示、开局与执子信息。
+///
+/// 用 [Wrap] 排布，窄屏或侧栏里自动换行，不会因为提示变长而溢出。
 class GameStatusBar extends StatelessWidget {
   const GameStatusBar({
     super.key,
@@ -26,59 +30,60 @@ class GameStatusBar extends StatelessWidget {
     final sideColor = sideColorOf(side);
     final isAiMode = controller.mode == GameMode.vsAi;
     final puzzle = controller.puzzle;
+    final history = controller.history;
+    final lastMove = history.isEmpty ? null : history.last;
 
-    return SizedBox(
-      height: 30,
-      child: Row(
-        children: [
-          StatusChip(
-            accent: sideColor,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: sideColor,
-                    shape: BoxShape.circle,
-                  ),
+    return Wrap(
+      spacing: 8,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        StatusChip(
+          accent: sideColor,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: sideColor,
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(width: 7),
-                Text(
-                  '${sideName(side)}行棋',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: sideColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          Flexible(flex: 4, child: _status(theme)),
-          const Spacer(),
-          if (puzzle != null)
-            StatusChip(
-              accent: colors.primaryContainer,
-              filled: true,
-              child: Text(
-                '限 ${puzzle.mateIn} 步 · 剩 ${controller.remainingMoves ?? 0} 步',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colors.onPrimaryContainer,
+              ),
+              const SizedBox(width: 7),
+              Text(
+                '${sideName(side)}行棋',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: sideColor,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-            )
-          else
-            Text(
-              isAiMode ? (humanSide == red ? '你执红' : '你执黑') : '同屏对弈',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colors.onSurfaceVariant,
+            ],
+          ),
+        ),
+        _status(theme),
+        if (lastMove != null) _LastMoveChip(record: lastMove),
+        if (puzzle != null)
+          StatusChip(
+            accent: colors.primaryContainer,
+            filled: true,
+            child: Text(
+              '限 ${puzzle.mateIn} 步 · 剩 ${controller.remainingMoves ?? 0} 步',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: colors.onPrimaryContainer,
+                fontWeight: FontWeight.w600,
               ),
             ),
-        ],
-      ),
+          )
+        else
+          Text(
+            isAiMode ? (humanSide == red ? '你执红' : '你执黑') : '同屏对弈',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+      ],
     );
   }
 
@@ -114,52 +119,99 @@ class GameStatusBar extends StatelessWidget {
       return _InsightLabel(insight: insight);
     }
     final opening = controller.opening;
-    if (opening != null) {
-      final next = opening.next;
-      return Tooltip(
-        message: opening.note ?? '',
-        child: StatusChip(
-          accent: theme.colorScheme.tertiary,
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.auto_stories_outlined,
-                size: 13,
-                color: theme.colorScheme.tertiary,
+    if (opening != null) return _OpeningChip(opening: opening);
+    return const SizedBox.shrink();
+  }
+}
+
+/// 上一手的中文记法，让不打开棋谱也能确认对手刚走了什么。
+class _LastMoveChip extends StatelessWidget {
+  const _LastMoveChip({required this.record});
+
+  final MoveRecord record;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return StatusChip(
+      accent: colors.onSurfaceVariant,
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '上一手',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            record.notation,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: colors.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 开局名称与推荐着法，悬停可看要点。
+class _OpeningChip extends StatelessWidget {
+  const _OpeningChip({required this.opening});
+
+  final OpeningInfo opening;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final next = opening.next;
+    return Tooltip(
+      message: opening.note ?? '',
+      child: StatusChip(
+        accent: theme.colorScheme.tertiary,
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.auto_stories_outlined,
+              size: 13,
+              color: theme.colorScheme.tertiary,
+            ),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                '开局 · ${opening.name}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
-              const SizedBox(width: 5),
+            ),
+            if (next != null) ...[
+              const SizedBox(width: 8),
               Flexible(
                 child: Text(
-                  '开局 · ${opening.name}',
+                  '试走 $next',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurface,
+                    color: theme.colorScheme.tertiary,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              if (next != null) ...[
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    '试走 $next',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.tertiary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
             ],
-          ),
+          ],
         ),
-      );
-    }
-    return const SizedBox.shrink();
+      ),
+    );
   }
 }
 

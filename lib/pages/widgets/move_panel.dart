@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/move_record.dart';
 import 'move_list.dart';
 
-/// 棋谱侧栏：标题、手数、棋谱列表与底部说明，对局页与复盘页共用。
+/// 棋谱侧栏：标题、手数、棋谱列表与底部说明，复盘页使用。
 class MovePanel extends StatelessWidget {
   const MovePanel({
     super.key,

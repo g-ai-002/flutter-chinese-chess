@@ -14,13 +14,12 @@ import '../services/game_history_service.dart';
 import '../services/log_service.dart';
 import '../services/sound_service.dart';
 import 'review_page.dart';
+import 'widgets/board_hud.dart';
 import 'widgets/board_stage.dart';
 import 'widgets/clock_bar.dart';
 import 'widgets/game_dialogs.dart';
 import 'widgets/game_status_bar.dart';
 import 'widgets/move_list.dart';
-import 'widgets/move_panel.dart';
-import 'widgets/play_layout.dart';
 
 class GamePage extends StatefulWidget {
   const GamePage({
@@ -249,9 +248,30 @@ class _GamePageState extends State<GamePage> {
         height: MediaQuery.of(sheetContext).size.height * 0.55,
         child: AnimatedBuilder(
           animation: _controller,
-          builder: (context, _) => MoveList(
-            history: _controller.history,
-            padding: const EdgeInsets.fromLTRB(8, 4, 8, 16),
+          builder: (context, _) => Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Row(
+                  children: [
+                    Text('棋谱', style: Theme.of(context).textTheme.titleSmall),
+                    const Spacer(),
+                    Text(
+                      '${_controller.history.length} 手',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: MoveList(
+                  history: _controller.history,
+                  padding: const EdgeInsets.fromLTRB(8, 4, 8, 16),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -260,20 +280,16 @@ class _GamePageState extends State<GamePage> {
 
   void _showRules() => showRulesDialog(context);
 
-  /// 限时对局的副标题后缀，未设棋钟时为空。
-  String get _clockSuffix {
-    final control = _controller.timeControl;
-    return control.isTimed ? ' · ${control.label}' : '';
-  }
-
   /// 副标题：残局看步数，常规对局看难度与执子，限时对局补上棋钟。
   String _subtitle(Puzzle? puzzle) {
     if (puzzle != null) return '残局挑战 · 红先 ${puzzle.mateIn} 步杀';
+    final control = _controller.timeControl;
+    final clock = control.isTimed ? ' · ${control.label}' : '';
     if (widget.mode == GameMode.vsAi) {
       final side = widget.humanSide == red ? '执红' : '执黑';
-      return '${widget.difficulty.label} · $side$_clockSuffix';
+      return '${widget.difficulty.label} · $side$clock';
     }
-    return '同屏对弈$_clockSuffix';
+    return '同屏对弈$clock';
   }
 
   @override
@@ -285,69 +301,88 @@ class _GamePageState extends State<GamePage> {
 
   @override
   Widget build(BuildContext context) {
-    final puzzle = widget.puzzle;
+    // 没有 AppBar 与上下状态条，棋盘独占整块安全区；提示信息以悬浮卡片挂在四周。
     return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 58,
-        title: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(puzzle?.title ?? widget.mode.label),
-            Text(
-              _subtitle(puzzle),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontSize: 11,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: '行棋规则',
-            onPressed: _showRules,
-            icon: const Icon(Icons.help_outline, size: 21),
-          ),
-          const SizedBox(width: 4),
-        ],
-      ),
       body: SafeArea(
-        child: PlayLayout(
-          // 只重建状态与操作区，棋盘与 Flame 画布保持稳定，避免浮层变化推动棋盘。
-          status: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, _) => _buildStatus(),
-          ),
-          board: _buildBoard(),
-          actions: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, _) => _buildActions(showMoves: false),
-          ),
-          compactBottom: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, _) => Padding(
-              padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
-              child: _buildActions(showMoves: true),
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, board) => BoardHud(
+            board: board!,
+            topStart: _buildTitle(),
+            topEnd: _buildTools(),
+            bottomStart: GameStatusBar(
+              controller: _controller,
+              humanSide: widget.humanSide,
             ),
+            bottomEnd: _buildActions(),
           ),
-          sidePanel: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, _) => _buildSidePanel(),
-          ),
+          child: _buildBoard(),
         ),
       ),
     );
   }
 
-  Widget _buildStatus() {
-    return Column(
+  /// 标题卡：返回 + 对局名称与副标题，不再占用独立的应用栏。
+  Widget _buildTitle() {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        GameStatusBar(controller: _controller, humanSide: widget.humanSide),
+        IconButton(
+          tooltip: '返回',
+          onPressed: () => Navigator.of(context).maybePop(),
+          icon: const Icon(Icons.arrow_back_rounded, size: 20),
+          padding: EdgeInsets.zero,
+          visualDensity: VisualDensity.compact,
+          constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+        ),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.puzzle?.title ?? widget.mode.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleSmall,
+              ),
+              Text(
+                _subtitle(widget.puzzle),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontSize: 11,
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 右上角工具卡：棋钟与规则入口，未设棋钟时只留规则按钮。
+  Widget _buildTools() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
         if (_controller.clock != null) ...[
-          const SizedBox(height: 8),
-          ClockBar(controller: _controller),
+          // 侧栏较窄时棋钟自行折行，避免把卡片撑破。
+          Flexible(child: ClockBar(controller: _controller)),
+          const SizedBox(width: 6),
         ],
+        IconButton(
+          tooltip: '行棋规则',
+          onPressed: _showRules,
+          icon: const Icon(Icons.help_outline, size: 20),
+          padding: EdgeInsets.zero,
+          visualDensity: VisualDensity.compact,
+          constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+        ),
       ],
     );
   }
@@ -356,11 +391,12 @@ class _GamePageState extends State<GamePage> {
     child: BoardStage(game: _game, gameKey: const ValueKey('xiangqi-board')),
   );
 
-  Widget _buildActions({required bool showMoves}) {
+  Widget _buildActions() {
     final isAi = widget.mode == GameMode.vsAi;
     return Wrap(
-      alignment: WrapAlignment.center,
+      alignment: WrapAlignment.end,
       spacing: 2,
+      runSpacing: 2,
       children: [
         _ActionButton(
           icon: Icons.undo_rounded,
@@ -378,12 +414,6 @@ class _GamePageState extends State<GamePage> {
             label: '提示',
             onPressed: _showPuzzleHint,
           ),
-        if (showMoves)
-          _ActionButton(
-            icon: Icons.format_list_bulleted_rounded,
-            label: '棋谱',
-            onPressed: _showMoveSheet,
-          ),
         if (isAi)
           _ActionButton(
             icon: Icons.lightbulb_outline,
@@ -398,12 +428,14 @@ class _GamePageState extends State<GamePage> {
             label: '认输',
             onPressed: _controller.result == null ? _confirmResign : null,
           ),
+        _ActionButton(
+          icon: Icons.format_list_bulleted_rounded,
+          label: '棋谱',
+          onPressed: _showMoveSheet,
+        ),
       ],
     );
   }
-
-  Widget _buildSidePanel() =>
-      MovePanel(history: _controller.history, footer: '提示：点击棋子选中，再点目标位置落子。');
 }
 
 class _ActionButton extends StatelessWidget {
@@ -425,18 +457,20 @@ class _ActionButton extends StatelessWidget {
     return TextButton(
       onPressed: onPressed,
       style: TextButton.styleFrom(
-        minimumSize: const Size(64, 52),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        minimumSize: const Size(54, 44),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
         foregroundColor: enabled ? colors.onSurface : colors.onSurfaceVariant,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 21),
-          const SizedBox(height: 4),
+          Icon(icon, size: 20),
+          const SizedBox(height: 2),
           Text(
             label,
             style: theme.textTheme.labelSmall?.copyWith(
+              fontSize: 10.5,
               color: enabled ? colors.onSurface : colors.onSurfaceVariant,
             ),
           ),

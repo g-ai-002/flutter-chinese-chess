@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-/// 对局页与复盘页共用的棋盘布局骨架。
+/// 复盘页的棋盘布局骨架，对局页改用悬浮 HUD 后不再需要预留占位。
 ///
 /// 宽屏为「左侧棋盘 + 右侧 292 棋谱栏」两栏，窄屏为上下堆叠；
-/// 两页只需提供棋盘、棋谱栏与各自的顶部状态区和底部操作区。
+/// 页面只需提供棋盘、棋谱栏与各自的顶部状态区和底部操作区。
 class PlayLayout extends StatelessWidget {
   const PlayLayout({
     super.key,
