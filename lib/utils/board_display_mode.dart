@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,12 +11,16 @@ import 'board_layout.dart';
 /// 棋盘是 9:10 的竖向网格，横屏会把屏幕高度对折给棋盘，多数手机上棋盘反而
 /// 更小，因此按实际可用的棋盘面积比较：横屏更大才旋转并隐藏系统栏，否则
 /// 保持用户当前的竖屏方向。平板、桌面与 Web 从不改变方向。
-bool shouldImmersiveLandscape(Size size) =>
-    !kIsWeb &&
-    defaultTargetPlatform == TargetPlatform.android &&
-    size.height > size.width &&
-    size.shortestSide < 600 &&
-    gridFitsBetterLandscape(size);
+bool shouldImmersiveLandscape(Size size) {
+  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
+  // 统一折算成竖屏尺寸再比较：横屏后宽高互换，判定结果必须保持不变，
+  // 否则会在锁定与恢复之间来回旋转。
+  final portrait = Size(
+    math.min(size.width, size.height),
+    math.max(size.width, size.height),
+  );
+  return portrait.shortestSide < 600 && gridFitsBetterLandscape(portrait);
+}
 
 /// 棋盘页显示模式：满足 [shouldImmersiveLandscape] 时切到横屏并隐藏系统栏，
 /// 离开后恢复系统栏与自动旋转。多个棋盘页叠放时按引用计数只在最后一个退出时恢复。

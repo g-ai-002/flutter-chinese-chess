@@ -35,13 +35,13 @@
 
 ## 下载
 
-v0.8.0（最新发布）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.8.0)
+v0.8.1（最新发布）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.8.1)
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64) | `flutter-chinese-chess-0.8.0-android-aarch64.apk` |
-| Windows (x64, Win10+) | `flutter-chinese-chess-0.8.0-windows-x86_64.zip` |
-| Web | `flutter-chinese-chess-0.8.0-web.zip`（解压后起静态服务器） |
+| Android (arm64) | `flutter-chinese-chess-0.8.1-android-aarch64.apk` |
+| Windows (x64, Win10+) | `flutter-chinese-chess-0.8.1-windows-x86_64.zip` |
+| Web | `flutter-chinese-chess-0.8.1-web.zip`（解压后起静态服务器） |
 
 ## 开发
 
@@ -80,16 +80,16 @@ lib/
 
 | 版本 | 说明 |
 | --- | --- |
+| v0.8.1 | 修复横屏判定随宽高互换翻转导致的来回旋转，锁定横屏后判定保持不变 |
 | v0.8.0 | 对齐最新界面规范：棋盘居中、提示在上/左、按钮在下，按面积决定横屏；退出对局不残留后台任务；新增人机战绩 |
 | v0.7.4 | 性能优化：棋盘逻辑改为固定步长推进，可选 30 / 60 / 120Hz 逻辑刷新率，默认 60Hz |
 | v0.7.3 | 优化各设备显示：HUD 自适应密度与字号、窄屏横屏全屏、宽屏首页两栏 |
 | v0.7.2 | 重构对局页布局：去掉应用栏与占位状态条，棋盘独占安全区，提示信息悬浮在棋盘四周 |
-| v0.7.1 | 修复 v0.7.0 反馈：默认难度改为高手，我方落子动画与吃子特效不再被 AI 回棋顶掉 |
-
 ### 更早版本
 
 | 版本 | 说明 |
 | --- | --- |
+| v0.7.1 | 修复 v0.7.0 反馈：默认难度改为高手，我方落子动画与吃子特效不再被 AI 回棋顶掉 |
 | v0.7.0 | 新增棋谱库：自动保留最近 20 局回放，复盘支持粘贴/文件导入与文本导出 |
 | v0.6.6 | 修复 Issue #5：Web 端局面哈希不再因 32 位截断抛错，AI 与走子提示恢复可用 |
 | v0.6.5 | 修复 v0.6.4 反馈：折叠屏两列入口、Web AI 对齐、提示增强、落子残影与吃子粉末、背景音乐 |

@@ -21,6 +21,8 @@ void main() {
   test('接近方形的小屏横过来棋盘更大，才值得横屏', () {
     expect(gridFitsBetterLandscape(const Size(460, 500)), isTrue);
     expect(shouldImmersiveLandscape(const Size(460, 500)), isTrue);
+    // 旋转后宽高互换，判定不变，避免锁定与恢复之间来回旋转。
+    expect(shouldImmersiveLandscape(const Size(500, 460)), isTrue);
   });
 
   test('已经是横屏、平板与桌面都不强制改变方向', () {
