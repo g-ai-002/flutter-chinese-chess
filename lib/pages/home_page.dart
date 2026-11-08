@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../game/engine/board_utils.dart';
+import '../game/game_statistics.dart';
 import '../models/game_models.dart';
 import '../providers/settings_provider.dart';
 import '../theme/app_theme.dart';
@@ -79,6 +80,8 @@ class HomePage extends StatelessWidget {
                             _ModeEntries(cards: modeCards),
                           ],
                           const SizedBox(height: 24),
+                          _StatsLine(stats: settings.statistics),
+                          const SizedBox(height: 10),
                           Text(
                             'v${AppConstants.version} · 本地运行，无需联网',
                             style: theme.textTheme.bodySmall?.copyWith(
@@ -301,6 +304,38 @@ class _Hero extends StatelessWidget {
           '落子无悔，方寸之间见乾坤',
           style: theme.textTheme.bodySmall?.copyWith(
             color: colors.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 首页底部的人机战绩一行：胜平负、胜率与当前连胜。
+class _StatsLine extends StatelessWidget {
+  const _StatsLine({required this.stats});
+
+  final GameStatistics stats;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.emoji_events_outlined, size: 15, color: colors.primary),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            stats.total == 0
+                ? stats.summary
+                : '${stats.summary} · 最佳连胜 ${stats.bestStreak}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
           ),
         ),
       ],

@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../game/game_statistics.dart';
 import '../game/logic_rate.dart';
 import '../models/game_models.dart';
 import '../utils/constants.dart';
@@ -61,11 +62,6 @@ class StorageService {
   Future<void> setHapticsEnabled(bool value) =>
       _write((p) => p.setBool(AppConstants.prefKeyHaptics, value));
 
-  bool get showOpeningHints =>
-      _p.getBool(AppConstants.prefKeyShowOpeningHints) ?? true;
-  Future<void> setShowOpeningHints(bool value) =>
-      _write((p) => p.setBool(AppConstants.prefKeyShowOpeningHints, value));
-
   /// 棋钟方案，未设置或未知值回退到不限时。
   TimeControl get timeControl =>
       TimeControl.byName(_p.getString(AppConstants.prefKeyTimeControl));
@@ -108,6 +104,26 @@ class StorageService {
     if (best == null || moves < best) {
       await p.setInt(AppConstants.puzzleBestKey(id), moves);
     }
+    return true;
+  });
+
+  /// 人机对战累计战绩，未打过时为全零。
+  GameStatistics get gameStatistics => GameStatistics(
+    wins: _p.getInt(AppConstants.prefKeyStatsWins) ?? 0,
+    losses: _p.getInt(AppConstants.prefKeyStatsLosses) ?? 0,
+    draws: _p.getInt(AppConstants.prefKeyStatsDraws) ?? 0,
+    streak: _p.getInt(AppConstants.prefKeyStatsStreak) ?? 0,
+    bestStreak: _p.getInt(AppConstants.prefKeyStatsBestStreak) ?? 0,
+  );
+
+  /// 记一局人机对战：胜为 true、和为 null、负为 false。
+  Future<void> recordHumanResult(bool? won) => _write((p) async {
+    final next = gameStatistics.record(won);
+    await p.setInt(AppConstants.prefKeyStatsWins, next.wins);
+    await p.setInt(AppConstants.prefKeyStatsLosses, next.losses);
+    await p.setInt(AppConstants.prefKeyStatsDraws, next.draws);
+    await p.setInt(AppConstants.prefKeyStatsStreak, next.streak);
+    await p.setInt(AppConstants.prefKeyStatsBestStreak, next.bestStreak);
     return true;
   });
 }

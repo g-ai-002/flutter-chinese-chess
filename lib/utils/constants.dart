@@ -14,13 +14,12 @@ class AppConstants {
   AppConstants._();
 
   static const String appName = '中国象棋';
-  static const String version = '0.7.4';
+  static const String version = '0.8.0';
 
   static const String prefKeyDarkMode = 'dark_mode';
   static const String prefKeyDifficulty = 'difficulty';
   static const String prefKeyHumanSide = 'human_side';
   static const String prefKeyShowHints = 'show_hints';
-  static const String prefKeyShowOpeningHints = 'show_opening_hints';
   static const String prefKeyBoardSkin = 'board_skin';
   static const String prefKeySound = 'sound_enabled';
   static const String prefKeyMusic = 'music_enabled';
@@ -29,6 +28,11 @@ class AppConstants {
   static const String prefKeyLogicRate = 'logic_rate';
   static const String prefKeySolvedPuzzles = 'solved_puzzles';
   static const String prefKeyGameHistory = 'game_history';
+  static const String prefKeyStatsWins = 'stats_wins';
+  static const String prefKeyStatsLosses = 'stats_losses';
+  static const String prefKeyStatsDraws = 'stats_draws';
+  static const String prefKeyStatsStreak = 'stats_streak';
+  static const String prefKeyStatsBestStreak = 'stats_best_streak';
 
   /// 单关最佳步数的存储键：`puzzle_best_<id>`。
   static String puzzleBestKey(String id) => 'puzzle_best_$id';

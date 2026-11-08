@@ -53,11 +53,11 @@ void main() {
     expect(find.text('悔棋'), findsOneWidget);
     expect(find.text('重开'), findsOneWidget);
     expect(find.text('棋谱'), findsOneWidget);
-    // 棋盘独占整个安全区，不再被应用栏与上下状态条挤压。
+    // 没有应用栏，棋盘居中，底部只留控制按钮的位置。
     expect(find.byType(AppBar), findsNothing);
     expect(
-      tester.getSize(find.byKey(const ValueKey('xiangqi-board'))),
-      const Size(810, 900),
+      tester.getSize(find.byKey(const ValueKey('xiangqi-board'))).height,
+      closeTo(838, 0.5),
     );
 
     await tester.tap(find.text('棋谱'));
@@ -91,10 +91,10 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
 
-    // 棋盘占满整个横屏高度，按钮收成图标，副标题与次要提示隐藏。
+    // 棋盘占满两侧栏之间的高度，按钮收成图标，副标题与次要提示隐藏。
     expect(
       tester.getSize(find.byKey(const ValueKey('xiangqi-board'))).height,
-      320,
+      closeTo(320 - 54, 0.5),
     );
     expect(find.text('悔棋'), findsNothing);
     expect(find.byTooltip('悔棋'), findsOneWidget);
@@ -132,7 +132,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
 
     final board = tester.getRect(find.byKey(const ValueKey('xiangqi-board')));
-    for (final label in ['红方行棋', '开局 · 中炮', '试走 炮二平五', '你执红', '悔棋', '棋谱']) {
+    for (final label in ['红方行棋', '你执红', '悔棋', '棋谱']) {
       expect(
         tester.getRect(find.text(label)).overlaps(board),
         isFalse,
@@ -216,36 +216,7 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('对局页展示当前开局与推荐着法', (tester) async {
-    tester.view.physicalSize = const Size(1280, 900);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final storage = await StorageService.instance;
-    final settings = SettingsProvider(storage);
-    await tester.pumpWidget(
-      ChangeNotifierProvider.value(
-        value: settings,
-        child: MaterialApp(
-          theme: buildLightTheme(),
-          home: const GamePage(
-            mode: GameMode.twoPlayers,
-            difficulty: Difficulty.entry,
-            humanSide: 0,
-          ),
-        ),
-      ),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 50));
-
-    expect(find.text('开局 · 中炮'), findsOneWidget);
-    expect(find.text('试走 炮二平五'), findsOneWidget);
-
-    await tester.pumpWidget(const SizedBox.shrink());
-  });
-
-  testWidgets('开局提示变化不影响棋盘位置', (tester) async {
+  testWidgets('落子后提示信息变化不影响棋盘位置', (tester) async {
     tester.view.physicalSize = const Size(1280, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -279,39 +250,8 @@ void main() {
     await tester.tapAt(center(7, 4));
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('炮二平五'), findsOneWidget);
+    expect(find.text('上一手'), findsOneWidget);
     expect(tester.getRect(board), before);
-
-    await tester.pumpWidget(const SizedBox.shrink());
-  });
-
-  testWidgets('关闭设置后不再显示开局提示', (tester) async {
-    tester.view.physicalSize = const Size(1280, 900);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    SharedPreferences.setMockInitialValues({'show_opening_hints': false});
-    StorageService.resetForTests();
-    final storage = await StorageService.instance;
-    final settings = SettingsProvider(storage);
-    await tester.pumpWidget(
-      ChangeNotifierProvider.value(
-        value: settings,
-        child: MaterialApp(
-          theme: buildLightTheme(),
-          home: const GamePage(
-            mode: GameMode.twoPlayers,
-            difficulty: Difficulty.entry,
-            humanSide: 0,
-          ),
-        ),
-      ),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 50));
-
-    expect(find.text('开局 · 中炮'), findsNothing);
-    expect(find.text('试走 炮二平五'), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });

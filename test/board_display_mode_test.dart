@@ -1,4 +1,5 @@
 import 'package:chinese_chess/utils/board_display_mode.dart';
+import 'package:chinese_chess/utils/board_layout.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,25 +10,36 @@ void main() {
 
   tearDown(() => debugDefaultTargetPlatformOverride = null);
 
-  test('手机与折叠屏折叠态进入横屏全屏', () {
-    expect(shouldImmersiveLandscape(const Size(420, 900)), isTrue);
-    expect(shouldImmersiveLandscape(const Size(900, 420)), isTrue);
-    expect(shouldImmersiveLandscape(const Size(344, 882)), isTrue);
+  test('竖屏手机横过来棋盘更小，保持竖屏', () {
+    expect(gridFitsBetterLandscape(const Size(420, 900)), isFalse);
+    expect(gridFitsBetterLandscape(const Size(360, 640)), isFalse);
+    expect(gridFitsBetterLandscape(const Size(344, 882)), isFalse);
+    expect(shouldImmersiveLandscape(const Size(420, 900)), isFalse);
+    expect(shouldImmersiveLandscape(const Size(344, 882)), isFalse);
   });
 
-  test('平板、桌面与宽屏保持原有方向', () {
+  test('接近方形的小屏横过来棋盘更大，才值得横屏', () {
+    expect(gridFitsBetterLandscape(const Size(460, 500)), isTrue);
+    expect(shouldImmersiveLandscape(const Size(460, 500)), isTrue);
+  });
+
+  test('已经是横屏、平板与桌面都不强制改变方向', () {
+    expect(shouldImmersiveLandscape(const Size(900, 420)), isFalse);
     expect(shouldImmersiveLandscape(const Size(800, 1280)), isFalse);
     expect(shouldImmersiveLandscape(const Size(1280, 900)), isFalse);
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
-    expect(shouldImmersiveLandscape(const Size(420, 900)), isFalse);
+    expect(shouldImmersiveLandscape(const Size(460, 500)), isFalse);
   });
 
-  testWidgets('棋盘页在窄屏下请求横屏，退出后恢复', (tester) async {
+  testWidgets('竖屏手机进入棋盘页不旋转，也不隐藏系统栏', (tester) async {
     final calls = <String>[];
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       SystemChannels.platform,
       (call) async {
-        if (call.method.startsWith('SystemChrome.')) calls.add(call.method);
+        if (call.method == 'SystemChrome.setPreferredOrientations' ||
+            call.method == 'SystemChrome.setEnabledSystemUIMode') {
+          calls.add(call.method);
+        }
         return null;
       },
     );
@@ -47,6 +59,39 @@ void main() {
     );
     await tester.pump();
     expect(find.text('棋盘'), findsOneWidget);
+    expect(calls, isEmpty);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('横屏确实更大时请求横屏全屏，退出后恢复', (tester) async {
+    final calls = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'SystemChrome.setPreferredOrientations' ||
+            call.method == 'SystemChrome.setEnabledSystemUIMode') {
+          calls.add(call.method);
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    tester.view.physicalSize = const Size(460, 500);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      const MaterialApp(home: BoardDisplayMode(child: Text('棋盘'))),
+    );
+    await tester.pump();
     expect(
       calls,
       containsAll([

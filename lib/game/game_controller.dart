@@ -13,7 +13,6 @@ import 'engine/board_utils.dart';
 import 'engine/rules.dart';
 import 'match_clock.dart';
 import 'notation.dart';
-import 'opening_book.dart';
 import 'puzzles.dart';
 
 /// 对局控制器：选择、落子、AI 回合、悔棋、棋钟与终局判定。
@@ -26,13 +25,12 @@ class GameController extends ChangeNotifier implements BoardView {
     HintMoveProvider? hintMove,
     XiangqiBoard? board,
     this.showHints = true,
-    this.showOpeningHints = true,
     TimeControl timeControl = TimeControl.none,
     this.puzzle,
   }) : timeControl = puzzle == null ? timeControl : TimeControl.none,
        board = board ?? _initialBoard(puzzle),
-       _aiMove = aiMove ?? AiPlayer.chooseMove,
-       _hintMove = hintMove ?? AiPlayer.hintMove;
+       _aiMove = aiMove,
+       _hintMove = hintMove;
 
   static XiangqiBoard _initialBoard(Puzzle? puzzle) => puzzle == null
       ? XiangqiBoard.initial()
@@ -43,15 +41,17 @@ class GameController extends ChangeNotifier implements BoardView {
   final int humanSide;
   @override
   final bool showHints;
-  final bool showOpeningHints;
 
   /// 本局的时间方案，残局固定为不限时。
   final TimeControl timeControl;
   final Puzzle? puzzle;
   @override
   final XiangqiBoard board;
-  final AiMoveProvider _aiMove;
-  final HintMoveProvider _hintMove;
+  final AiMoveProvider? _aiMove;
+  final HintMoveProvider? _hintMove;
+
+  /// 默认搜索器：独立 isolate 中思考，页面关闭时可以立即回收。
+  final AiSearch _search = AiSearch();
 
   /// 限时对局的计时簿记，不限时或残局为 null。
   late final ClockTracker? _tracker = timeControl.isTimed
@@ -100,12 +100,6 @@ class GameController extends ChangeNotifier implements BoardView {
   @override
   List<MoveRecord> get history => board.history;
 
-  /// 当前开局提示，残局与关闭提示时为 null。
-  OpeningInfo? get opening {
-    if (!showOpeningHints || mode == GameMode.puzzle) return null;
-    return OpeningBook.lookup(board);
-  }
-
   /// 人类已落子的步数，残局按此计算剩余步数。
   int get humanMoves =>
       board.history.where((record) => sideOf(record.piece) == humanSide).length;
@@ -138,7 +132,12 @@ class GameController extends ChangeNotifier implements BoardView {
 
     int? move;
     try {
-      move = await _hintMove(Uint8List.fromList(board.cells), side);
+      move = await (_hintMove ?? _search.hintMove)(
+        Uint8List.fromList(board.cells),
+        side,
+      );
+    } on AiSearchCancelled {
+      return;
     } catch (error, stack) {
       LogService.error('提示搜索失败', error, stack);
     }
@@ -362,7 +361,13 @@ class GameController extends ChangeNotifier implements BoardView {
     final stopwatch = Stopwatch()..start();
     AiReply? reply;
     try {
-      reply = await _aiMove(Uint8List.fromList(board.cells), side, difficulty);
+      reply = await (_aiMove ?? _search.chooseMove)(
+        Uint8List.fromList(board.cells),
+        side,
+        difficulty,
+      );
+    } on AiSearchCancelled {
+      return;
     } catch (e, stack) {
       LogService.error('AI 搜索失败', e, stack);
     }
@@ -404,6 +409,8 @@ class GameController extends ChangeNotifier implements BoardView {
     _hintSerial++;
     _hintTimer?.cancel();
     _hintTimer = null;
+    // 页面关闭时直接回收在途搜索，不在后台残留 isolate。
+    _search.cancel();
     super.dispose();
   }
 }

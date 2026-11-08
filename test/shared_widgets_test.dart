@@ -9,6 +9,7 @@ import 'package:chinese_chess/pages/widgets/move_panel.dart';
 import 'package:chinese_chess/pages/widgets/play_layout.dart';
 import 'package:chinese_chess/pages/widgets/status_chip.dart';
 import 'package:chinese_chess/theme/app_theme.dart';
+import 'package:chinese_chess/utils/board_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

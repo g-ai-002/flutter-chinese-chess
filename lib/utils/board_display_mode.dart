@@ -2,13 +2,19 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// 手机与折叠屏折叠态等窄屏设备：进入棋盘页时横屏全屏，把屏幕让给棋盘。
+import 'board_layout.dart';
+
+/// 手机等窄屏设备是否值得为棋盘横屏全屏。
 ///
-/// 平板、桌面与 Web 不改变方向与系统栏，避免突然旋转。
+/// 棋盘是 9:10 的竖向网格，横屏会把屏幕高度对折给棋盘，多数手机上棋盘反而
+/// 更小，因此按实际可用的棋盘面积比较：横屏更大才旋转并隐藏系统栏，否则
+/// 保持用户当前的竖屏方向。平板、桌面与 Web 从不改变方向。
 bool shouldImmersiveLandscape(Size size) =>
     !kIsWeb &&
     defaultTargetPlatform == TargetPlatform.android &&
-    size.shortestSide < 600;
+    size.height > size.width &&
+    size.shortestSide < 600 &&
+    gridFitsBetterLandscape(size);
 
 /// 棋盘页显示模式：满足 [shouldImmersiveLandscape] 时切到横屏并隐藏系统栏，
 /// 离开后恢复系统栏与自动旋转。多个棋盘页叠放时按引用计数只在最后一个退出时恢复。

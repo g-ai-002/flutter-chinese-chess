@@ -48,6 +48,7 @@ class _GamePageState extends State<GamePage> {
   late DateTime _startedAt;
   late String _gameId;
   bool _resultShown = false;
+  bool _statsRecorded = false;
   int _seenMoves = 0;
 
   @override
@@ -60,7 +61,6 @@ class _GamePageState extends State<GamePage> {
       difficulty: widget.difficulty,
       humanSide: widget.humanSide,
       showHints: settings.showHints,
-      showOpeningHints: settings.showOpeningHints,
       timeControl: settings.timeControl,
       puzzle: widget.puzzle,
     );
@@ -105,7 +105,10 @@ class _GamePageState extends State<GamePage> {
     _resultShown = true;
     SoundService.play(MoveFeedback.end);
     final puzzle = widget.puzzle;
-    if (puzzle == null) _archiveGame(result);
+    if (puzzle == null) {
+      _archiveGame(result);
+      _recordStatistics(result);
+    }
     final cleared = puzzle != null && _controller.puzzleCleared;
     final moves = _controller.humanMoves;
     if (puzzle != null && cleared) {
@@ -164,6 +167,7 @@ class _GamePageState extends State<GamePage> {
   void _resetGameIdentity() {
     _startedAt = DateTime.now();
     _gameId = 'game_${_startedAt.microsecondsSinceEpoch}';
+    _statsRecorded = false;
   }
 
   String get _gameTitle => widget.mode == GameMode.twoPlayers
@@ -186,6 +190,16 @@ class _GamePageState extends State<GamePage> {
         ),
       ),
     );
+  }
+
+  /// 人机对局结束后累计战绩；一局只记一次，悔棋重判不重复计数。
+  void _recordStatistics(GameResult result) {
+    if (widget.mode != GameMode.vsAi || _statsRecorded) return;
+    _statsRecorded = true;
+    final won = result.winner == null
+        ? null
+        : result.winner == widget.humanSide;
+    unawaited(context.read<SettingsProvider>().recordHumanResult(won));
   }
 
   /// 终局后进入复盘，棋谱快照与开局布局一并带过去。
@@ -308,7 +322,8 @@ class _GamePageState extends State<GamePage> {
 
   @override
   Widget build(BuildContext context) {
-    // 没有 AppBar 与上下状态条，棋盘独占整块安全区；提示信息以悬浮卡片挂在四周。
+    // 没有 AppBar 与上下状态条，棋盘居中；提示信息浮在棋盘上方或左侧，
+    // 控制按钮统一浮在棋盘下方。
     return BoardDisplayMode(
       child: Scaffold(
         body: SafeArea(
@@ -318,11 +333,11 @@ class _GamePageState extends State<GamePage> {
               board: board!,
               topStart: _buildTitle(),
               topEnd: _buildTools(),
-              bottomStart: GameStatusBar(
+              info: GameStatusBar(
                 controller: _controller,
                 humanSide: widget.humanSide,
               ),
-              bottomEnd: _buildActions(),
+              controls: _buildActions(),
             ),
             child: _buildBoard(),
           ),

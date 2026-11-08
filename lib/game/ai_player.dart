@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:isolate';
+
 import 'package:flutter/foundation.dart';
 
 import '../models/game_models.dart';
@@ -43,15 +46,31 @@ class AiInsight {
 class AiPlayer {
   AiPlayer._();
 
-  /// 在独立 isolate 中搜索（Web 上自动退化为同线程执行）。
-  static Future<AiReply> chooseMove(
-    Uint8List cells,
-    int side,
-    Difficulty difficulty,
-  ) {
-    final limits = limitsFor(difficulty);
-    return compute(
-      _runSearch,
+  /// 实际搜索深度与时限：三端使用同一套难度参数，Web 不再降档。
+  @visibleForTesting
+  static ({int depth, int timeLimitMillis}) limitsFor(Difficulty difficulty) =>
+      (depth: difficulty.depth, timeLimitMillis: difficulty.timeLimitMillis);
+}
+
+/// AI 搜索被取消（对局页已关闭）时抛出，调用方直接忽略即可。
+class AiSearchCancelled implements Exception {
+  const AiSearchCancelled();
+
+  @override
+  String toString() => 'AI 搜索已取消';
+}
+
+/// 可取消的 AI 搜索：在独立 isolate 中计算，离开对局页时立即回收，
+/// 不会让一次思考在后台残留。
+class AiSearch {
+  Isolate? _isolate;
+  ReceivePort? _port;
+  final Completer<void> _cancelled = Completer<void>();
+  bool _closed = false;
+
+  Future<AiReply> chooseMove(Uint8List cells, int side, Difficulty difficulty) {
+    final limits = AiPlayer.limitsFor(difficulty);
+    return _run(
       _AiRequest(
         Uint8List.fromList(cells),
         side,
@@ -63,25 +82,59 @@ class AiPlayer {
   }
 
   /// 人机对战的走子提示：浅层搜索，不引入随机性，返回编码后的着法。
-  static Future<int?> hintMove(Uint8List cells, int side) async {
-    const limits = (depth: 3, timeLimitMillis: 800);
-    final reply = await compute(
-      _runSearch,
-      _AiRequest(
-        Uint8List.fromList(cells),
-        side,
-        limits.depth,
-        0,
-        limits.timeLimitMillis,
-      ),
+  Future<int?> hintMove(Uint8List cells, int side) async {
+    final reply = await _run(
+      _AiRequest(Uint8List.fromList(cells), side, 3, 0, 800),
     );
     return reply.move >= 0 ? reply.move : null;
   }
 
-  /// 实际搜索深度与时限：三端使用同一套难度参数，Web 不再降档。
-  @visibleForTesting
-  static ({int depth, int timeLimitMillis}) limitsFor(Difficulty difficulty) =>
-      (depth: difficulty.depth, timeLimitMillis: difficulty.timeLimitMillis);
+  /// 结束在途搜索并立即回收 isolate。
+  void cancel() {
+    _closed = true;
+    if (!_cancelled.isCompleted) _cancelled.complete();
+    _kill();
+  }
+
+  Future<AiReply> _run(_AiRequest request) async {
+    if (_closed) throw const AiSearchCancelled();
+    if (kIsWeb) return _search(request);
+    final port = ReceivePort();
+    final pending = Completer<AiReply>();
+    _port = port;
+    port.listen((message) {
+      if (pending.isCompleted) return;
+      if (message is SearchResult) {
+        pending.complete(message);
+      } else {
+        pending.completeError(StateError('AI 搜索失败: $message'));
+      }
+    });
+    _isolate = await Isolate.spawn(searchInIsolate, (
+      request,
+      port.sendPort,
+    ), onError: port.sendPort);
+    if (_closed) {
+      _kill();
+      throw const AiSearchCancelled();
+    }
+    try {
+      // 与取消信号赛跑：页面关闭后立刻返回，不等 isolate 跑完。
+      return await Future.any([
+        pending.future,
+        _cancelled.future.then<AiReply>((_) => throw const AiSearchCancelled()),
+      ]);
+    } finally {
+      _kill();
+    }
+  }
+
+  void _kill() {
+    _isolate?.kill(priority: Isolate.immediate);
+    _isolate = null;
+    _port?.close();
+    _port = null;
+  }
 }
 
 class _AiRequest {
@@ -100,7 +153,13 @@ class _AiRequest {
   final int timeLimitMillis;
 }
 
-SearchResult _runSearch(_AiRequest request) => XiangqiSearch.bestMove(
+/// 隔离区入口：跑完搜索后把结果发回主 isolate。
+void searchInIsolate((_AiRequest, SendPort) message) {
+  final (request, send) = message;
+  send.send(_search(request));
+}
+
+SearchResult _search(_AiRequest request) => XiangqiSearch.bestMove(
   cells: request.cells,
   side: request.side,
   depth: request.depth,

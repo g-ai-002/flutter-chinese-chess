@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../game/game_statistics.dart';
 import '../game/logic_rate.dart';
 import '../models/game_models.dart';
 import '../services/music_service.dart';
@@ -56,10 +57,6 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> setShowHints(bool value) =>
       _update(() => _storage.setShowHints(value));
 
-  bool get showOpeningHints => _storage.showOpeningHints;
-  Future<void> setShowOpeningHints(bool value) =>
-      _update(() => _storage.setShowOpeningHints(value));
-
   TimeControl get timeControl => _storage.timeControl;
   Future<void> setTimeControl(TimeControl value) =>
       _update(() => _storage.setTimeControl(value));
@@ -73,6 +70,10 @@ class SettingsProvider extends ChangeNotifier {
 
   Future<void> recordPuzzleCleared(String id, int moves) =>
       _update(() => _storage.recordPuzzleCleared(id, moves));
+
+  GameStatistics get statistics => _storage.gameStatistics;
+  Future<void> recordHumanResult(bool? won) =>
+      _update(() => _storage.recordHumanResult(won));
 
   void _syncFeedback() =>
       SoundService.configure(sound: soundEnabled, haptics: hapticsEnabled);

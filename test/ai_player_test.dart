@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:chinese_chess/game/ai_player.dart';
+import 'package:chinese_chess/game/engine/board_utils.dart';
 import 'package:chinese_chess/models/game_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -13,5 +16,27 @@ void main() {
         reason: difficulty.name,
       );
     }
+  });
+
+  test('离开对局页时取消搜索，立即结束并回收 isolate', () async {
+    final search = AiSearch();
+    final pending = search.chooseMove(
+      Uint8List.fromList(initialCells()),
+      red,
+      Difficulty.expert,
+    );
+
+    search.cancel();
+    await expectLater(pending, throwsA(isA<AiSearchCancelled>()));
+
+    // 取消后再次请求直接失败，不会再起新的后台任务。
+    await expectLater(
+      search.chooseMove(
+        Uint8List.fromList(initialCells()),
+        red,
+        Difficulty.expert,
+      ),
+      throwsA(isA<AiSearchCancelled>()),
+    );
   });
 }

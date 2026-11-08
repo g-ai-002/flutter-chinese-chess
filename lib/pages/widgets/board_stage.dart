@@ -1,26 +1,8 @@
-import 'dart:math' as math;
-
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
 import '../../flame/xiangqi_game.dart';
-
-/// 棋盘显示的最大宽度，再宽只会拉长视线，不增加有效面积。
-const double kBoardMaxWidth = 820;
-
-/// 棋盘尺寸：保持 9:10 的宽高比，在可用空间内取最大尺寸。
-Size boardFitSize(Size available, [double maxWidth = kBoardMaxWidth]) {
-  final limit = math.max(0.0, available.width);
-  final ceiling = math.max(0.0, available.height);
-  if (limit <= 0 || ceiling <= 0) return Size.zero;
-  var width = math.min(limit, maxWidth);
-  var height = width * 10 / 9;
-  if (height > ceiling) {
-    height = ceiling;
-    width = height * 9 / 10;
-  }
-  return Size(width, height);
-}
+import '../../utils/board_layout.dart';
 
 /// 棋盘舞台：统一圆角、投影与 Flame 容器，对局页与复盘页共用。
 ///

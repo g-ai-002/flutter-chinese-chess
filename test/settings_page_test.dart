@@ -33,7 +33,6 @@ void main() {
     expect(find.text('设置'), findsOneWidget);
     expect(find.text('AI 难度'), findsOneWidget);
     expect(find.text('显示可走位置'), findsOneWidget);
-    expect(find.text('开局提示'), findsOneWidget);
 
     // 开关按 Key 定位，避免列表懒加载导致索引漂移。
     await tester.ensureVisible(find.byKey(const ValueKey('switch-hints')));
@@ -42,11 +41,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(settings.showHints, isFalse);
     expect(storage.showHints, isFalse);
-
-    await tester.tap(find.byKey(const ValueKey('switch-opening')));
-    await tester.pumpAndSettle();
-    expect(settings.showOpeningHints, isFalse);
-    expect(storage.showOpeningHints, isFalse);
 
     await tester.ensureVisible(find.byKey(const ValueKey('switch-music')));
     await tester.pumpAndSettle();
