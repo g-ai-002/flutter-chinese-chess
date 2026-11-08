@@ -333,10 +333,7 @@ class _GamePageState extends State<GamePage> {
               board: board!,
               topStart: _buildTitle(),
               topEnd: _buildTools(),
-              info: GameStatusBar(
-                controller: _controller,
-                humanSide: widget.humanSide,
-              ),
+              info: GameStatusBar(controller: _controller),
               controls: _buildActions(),
             ),
             child: _buildBoard(),
@@ -385,15 +382,14 @@ class _GamePageState extends State<GamePage> {
   }
 
   /// 右上角工具卡：棋钟与规则入口，未设棋钟时只留规则按钮。
+  /// 用 [Wrap] 排布，侧栏这类窄空间里棋钟与规则按钮自动错开而不是横向溢出。
   Widget _buildTools() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        if (_controller.clock != null) ...[
-          // 侧栏较窄时棋钟自行折行，避免把卡片撑破。
-          Flexible(child: ClockBar(controller: _controller)),
-          const SizedBox(width: 6),
-        ],
+        if (_controller.clock != null) ClockBar(controller: _controller),
         IconButton(
           tooltip: '行棋规则',
           onPressed: _showRules,

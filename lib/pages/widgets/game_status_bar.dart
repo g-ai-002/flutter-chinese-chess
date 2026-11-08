@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../game/engine/board_utils.dart';
 import '../../game/game_controller.dart';
 import '../../models/game_models.dart';
-import '../../models/move_record.dart';
 import '../../theme/app_theme.dart';
 import 'board_hud.dart';
 import 'status_chip.dart';
@@ -11,19 +10,15 @@ import 'status_chip.dart';
 /// 走子提示与「寻找提示」共用的金色。
 const Color _hintColor = Color(0xFFC08A2E);
 
-/// 对局状态区：行棋方、上一手、将军提示、走子提示与引擎摘要。
+/// 对局状态区：行棋方、将军提示、走子提示与引擎摘要。
 ///
-/// 用 [Wrap] 排布，窄屏或侧栏里自动换行，不会因为提示变长而溢出；
+/// 只放此刻最需要知道的信息，执子与难度交给标题副标题，上一手交给棋谱；
+/// 用 [Wrap] 排布，窄屏或侧栏里自动换行，不会因为提示变长而溢出。
 /// 紧凑模式下只保留行棋方与一条最需要立刻知道的信息。
 class GameStatusBar extends StatelessWidget {
-  const GameStatusBar({
-    super.key,
-    required this.controller,
-    required this.humanSide,
-  });
+  const GameStatusBar({super.key, required this.controller});
 
   final GameController controller;
-  final int humanSide;
 
   @override
   Widget build(BuildContext context) {
@@ -32,8 +27,6 @@ class GameStatusBar extends StatelessWidget {
     final colors = theme.colorScheme;
     final side = controller.board.sideToMove;
     final sideColor = sideColorOf(side);
-    final history = controller.history;
-    final lastMove = history.isEmpty ? null : history.last;
     final puzzle = controller.puzzle;
 
     return Wrap(
@@ -66,7 +59,6 @@ class GameStatusBar extends StatelessWidget {
           ),
         ),
         _status(context),
-        if (lastMove != null) _LastMoveChip(record: lastMove),
         if (puzzle != null)
           StatusChip(
             accent: colors.primaryContainer,
@@ -77,15 +69,6 @@ class GameStatusBar extends StatelessWidget {
                 color: colors.onPrimaryContainer,
                 fontWeight: FontWeight.w600,
               ),
-            ),
-          )
-        else
-          Text(
-            controller.mode == GameMode.vsAi
-                ? (humanSide == red ? '你执红' : '你执黑')
-                : '同屏对弈',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: colors.onSurfaceVariant,
             ),
           ),
       ],
@@ -191,42 +174,6 @@ class GameStatusBar extends StatelessWidget {
     final puzzle = controller.puzzle;
     if (puzzle != null) return '剩 ${controller.remainingMoves ?? 0} 步';
     return null;
-  }
-}
-
-/// 上一手的中文记法，让不打开棋谱也能确认对手刚走了什么。
-class _LastMoveChip extends StatelessWidget {
-  const _LastMoveChip({required this.record});
-
-  final MoveRecord record;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    return StatusChip(
-      accent: colors.onSurfaceVariant,
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '上一手',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: colors.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            record.notation,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: colors.onSurface,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

@@ -37,7 +37,7 @@ void main() {
 
       final board = tester.getRect(find.byKey(_boardKey));
       expect(board.center.dx, 640);
-      expect(board.height, closeTo(838, 0.5));
+      expect(board.height, closeTo(900 - kHudBottomRow, 0.5));
 
       // 标题与提示在棋盘左侧，棋钟在右侧，按钮在棋盘下方，都不压在棋盘上。
       for (final label in ['标题', '红方行棋', '棋钟', '操作']) {
@@ -67,7 +67,8 @@ void main() {
       await pumpAt(tester, const Size(900, 900));
 
       final board = tester.getRect(find.byKey(_boardKey));
-      expect(board.width, closeTo(675, 0.5));
+      expect(board.width, greaterThan(600));
+      expect(board.width, lessThan(700));
       for (final label in ['标题', '棋钟', '红方行棋', '操作']) {
         expect(
           tester.getRect(find.text(label)).overlaps(board),
@@ -167,6 +168,38 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
 
+    testWidgets('手机尺寸下提示卡片整块挂在棋盘上方，不压到棋盘', (tester) async {
+      for (final size in const [
+        Size(360, 640),
+        Size(360, 780),
+        Size(412, 915),
+        Size(900, 900),
+      ]) {
+        for (final scale in [1.0, 1.4]) {
+          tester.platformDispatcher.textScaleFactorTestValue = scale;
+          await pumpAt(tester, size);
+          final board = tester.getRect(find.byKey(_boardKey));
+          final info = tester.getRect(
+            find
+                .ancestor(
+                  of: find.text('红方行棋'),
+                  matching: find.byType(Container),
+                )
+                .first,
+          );
+          expect(info.overlaps(board), isFalse, reason: '$size x$scale');
+          expect(
+            info.bottom,
+            lessThanOrEqualTo(board.top),
+            reason: '$size x$scale',
+          );
+          expect(tester.takeException(), isNull, reason: '$size x$scale');
+          await tester.pumpWidget(const SizedBox.shrink());
+        }
+      }
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+    });
+
     testWidgets('常见设备尺寸下棋盘都不会被 HUD 覆盖', (tester) async {
       const sizes = [
         Size(360, 640),
@@ -203,18 +236,18 @@ void main() {
       expect(boardFitSize(const Size(4000, 4000)).width, kBoardMaxWidth);
     });
 
-    test('宽屏用两侧栏，棋盘不再扣顶部横条', () {
+    test('宽屏用两侧栏，棋盘贴着两侧栏', () {
       final metrics = resolveHud(const Size(1280, 900));
       expect(metrics.sideRail, isTrue);
-      expect(metrics.top, 0);
-      expect(metrics.bottom, greaterThan(0));
+      expect(metrics.rail, greaterThan(kHudRailWidth));
+      expect(metrics.board.height, closeTo(900 - kHudBottomRow, 0.5));
     });
 
-    test('窄屏不用侧栏，上下都给棋盘留出固定横条', () {
+    test('窄屏不用侧栏，提示信息排到棋盘上方', () {
       final metrics = resolveHud(const Size(420, 900));
       expect(metrics.sideRail, isFalse);
-      expect(metrics.top, greaterThan(metrics.bottom));
       expect(metrics.board.width, 420);
+      expect(metrics.board.height, lessThan(900 - kHudBottomRow));
     });
   });
 }

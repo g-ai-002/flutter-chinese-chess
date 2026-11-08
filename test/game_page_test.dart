@@ -57,7 +57,7 @@ void main() {
     expect(find.byType(AppBar), findsNothing);
     expect(
       tester.getSize(find.byKey(const ValueKey('xiangqi-board'))).height,
-      closeTo(838, 0.5),
+      closeTo(836, 0.5),
     );
 
     await tester.tap(find.text('棋谱'));
@@ -132,7 +132,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
 
     final board = tester.getRect(find.byKey(const ValueKey('xiangqi-board')));
-    for (final label in ['红方行棋', '你执红', '悔棋', '棋谱']) {
+    for (final label in ['红方行棋', '悔棋', '棋谱']) {
       expect(
         tester.getRect(find.text(label)).overlaps(board),
         isFalse,
@@ -167,7 +167,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
 
-    expect(find.text('你执红'), findsOneWidget);
+    expect(find.text('入门 · 执红'), findsOneWidget);
+    expect(find.text('你执红'), findsNothing);
     expect(find.text('认输'), findsOneWidget);
     expect(find.text('提示'), findsOneWidget);
 
@@ -209,9 +210,14 @@ void main() {
     await tester.tapAt(center(5, 0));
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('兵九进一'), findsOneWidget);
-    expect(find.text('上一手'), findsOneWidget);
+    // 状态区只保留行棋方，上一手在棋谱里查看。
     expect(find.text('黑方行棋'), findsOneWidget);
+    expect(find.text('上一手'), findsNothing);
+
+    await tester.tap(find.text('棋谱'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('兵九进一'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
@@ -250,7 +256,7 @@ void main() {
     await tester.tapAt(center(7, 4));
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('上一手'), findsOneWidget);
+    expect(find.text('黑方行棋'), findsOneWidget);
     expect(tester.getRect(board), before);
 
     await tester.pumpWidget(const SizedBox.shrink());
@@ -313,9 +319,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: buildLightTheme(),
-        home: Scaffold(
-          body: GameStatusBar(controller: controller, humanSide: red),
-        ),
+        home: Scaffold(body: GameStatusBar(controller: controller)),
       ),
     );
 
@@ -349,7 +353,7 @@ void main() {
         home: Scaffold(
           body: SizedBox(
             width: 320,
-            child: GameStatusBar(controller: controller, humanSide: black),
+            child: GameStatusBar(controller: controller),
           ),
         ),
       ),

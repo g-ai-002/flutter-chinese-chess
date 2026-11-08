@@ -23,11 +23,12 @@ class HudScope extends InheritedWidget {
   bool updateShouldNotify(HudScope oldWidget) => oldWidget.compact != compact;
 }
 
-/// 对局页的悬浮骨架：棋盘居中，标题、棋钟与提示信息浮在棋盘上方与左侧，
+/// 对局页的悬浮骨架：棋盘居中，标题、棋钟与提示信息浮在棋盘上方与两侧，
 /// 控制按钮浮在棋盘下方。
 ///
-/// 卡片不参与棋盘的尺寸计算，提示信息出现、消失或变长都不会让棋盘移位；
-/// 左右留白不够时提示信息改排到棋盘上方，同样预留固定高度。
+/// 上下两条边条按真实内容高度占位，棋盘只吃剩下的空间，所以提示信息再长、
+/// 字号再大也不会盖到棋盘上；提示信息行高度固定，文字变长只在行内横向滑动，
+/// 不会让棋盘移位。
 class BoardHud extends StatelessWidget {
   const BoardHud({
     super.key,
@@ -37,7 +38,7 @@ class BoardHud extends StatelessWidget {
     this.info,
     this.controls,
     this.maxBoardWidth = kBoardMaxWidth,
-    this.padding = const EdgeInsets.all(8),
+    this.padding = const EdgeInsets.all(kHudPadding),
     this.gap = kHudRowGap,
   });
 
@@ -49,7 +50,7 @@ class BoardHud extends StatelessWidget {
   /// 右上角：棋钟与规则入口。
   final Widget? topEnd;
 
-  /// 行棋方、将军、走子提示与开局等信息：浮在棋盘左侧或上方。
+  /// 行棋方、将军与走子提示等信息：浮在棋盘上方或左侧。
   final Widget? info;
 
   /// 悔棋、重开、棋谱等控制按钮：浮在棋盘下方。
@@ -74,46 +75,75 @@ class BoardHud extends StatelessWidget {
           maxWidth: maxBoardWidth,
           textScale: _textScale(context),
         );
-        if (metrics.sideRail) return _railLayout(metrics);
-        return _bandLayout(metrics);
+        final compact =
+            metrics.compact ||
+            (metrics.sideRail &&
+                math.min(metrics.rail, _maxRailWidth) < _compactRailWidth);
+        return Column(
+          children: [
+            Expanded(
+              child: metrics.sideRail
+                  ? _railBody(metrics, compact)
+                  : _bandBody(context, compact),
+            ),
+            if (controls != null)
+              Padding(
+                padding: padding,
+                child: Center(
+                  child: HudScope(compact: compact, child: controls!),
+                ),
+              ),
+          ],
+        );
       },
     );
   }
 
-  /// 两侧栏：标题在左栏顶部、提示信息在左栏垂直居中，棋钟在右栏顶部，棋盘居中。
-  Widget _railLayout(HudMetrics metrics) {
+  /// 两侧栏：标题与提示信息挂在左栏，棋钟挂在右栏，棋盘在两侧栏之间居中。
+  Widget _railBody(HudMetrics metrics, bool compact) {
     final railWidth = math.min(metrics.rail, _maxRailWidth);
-    final compact = metrics.compact || railWidth < _compactRailWidth;
-    final left = metrics.rail - railWidth;
+    final inset = metrics.rail - railWidth;
     return Stack(
       children: [
+        // 棋盘宽度按两侧留白收窄，挂在栏里的卡片不会压到棋盘。
         Positioned.fill(
-          bottom: metrics.bottom,
-          child: Center(
-            child: SizedBox.fromSize(size: metrics.board, child: board),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final size = boardFitSize(
+                Size(constraints.maxWidth - metrics.rail * 2, constraints.maxHeight),
+                maxBoardWidth,
+              );
+              return Center(child: SizedBox.fromSize(size: size, child: board));
+            },
           ),
         ),
-        if (info != null)
+        if (topStart != null || info != null)
           Positioned(
-            left: left,
+            left: inset,
             top: 0,
-            bottom: metrics.bottom,
+            bottom: 0,
             width: railWidth,
             child: Padding(
               padding: padding,
-              child: Center(child: _card(info!, compact)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (topStart != null) _card(topStart!, compact),
+                  if (info != null)
+                    Expanded(
+                      child: Center(
+                        child: SingleChildScrollView(
+                          child: _card(info!, compact),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-        if (topStart != null)
-          Positioned(
-            left: left,
-            top: 0,
-            width: railWidth,
-            child: Padding(padding: padding, child: _card(topStart!, compact)),
           ),
         if (topEnd != null)
           Positioned(
-            left: metrics.rail + metrics.board.width,
+            right: inset,
             top: 0,
             width: railWidth,
             child: Padding(
@@ -124,97 +154,67 @@ class BoardHud extends StatelessWidget {
               ),
             ),
           ),
-        ?_controlsBand(compact),
       ],
     );
   }
 
-  /// 上下横条：标题与棋钟在上，提示信息紧随其后，控制按钮贴底。
-  Widget _bandLayout(HudMetrics metrics) {
-    final compact = metrics.compact;
-    final stacked = metrics.stacked;
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: Padding(
-            padding: EdgeInsets.only(top: metrics.top, bottom: metrics.bottom),
-            child: Center(
-              child: SizedBox.fromSize(size: metrics.board, child: board),
-            ),
-          ),
-        ),
-        if (topStart != null || topEnd != null || info != null)
-          Positioned(
-            left: 0,
-            right: 0,
-            top: 0,
-            child: Padding(
-              padding: padding,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (topStart != null || topEnd != null)
-                    _topRows(compact: compact, stacked: stacked),
-                  if ((topStart != null || topEnd != null) && info != null)
-                    SizedBox(height: gap),
-                  // 横条空间有限，提示排成一行横向滑动，不因文字变长而改变高度。
-                  if (info != null)
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: _card(info!, compact),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ?_controlsBand(compact),
-      ],
-    );
-  }
-
-  /// 底部控制条：所有操作按钮都浮在棋盘下方，横向居中。
-  Widget? _controlsBand(bool compact) {
-    final controls = this.controls;
-    if (controls == null) return null;
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      child: Padding(
-        padding: padding,
-        child: HudScope(
-          compact: compact,
-          child: Center(child: controls),
-        ),
-      ),
-    );
-  }
-
-  /// 标题与棋钟：宽度够时并排一行，窄屏上棋钟换到第二行靠右。
-  Widget _topRows({required bool compact, required bool stacked}) {
-    if (!stacked) {
-      return Row(
-        children: [
-          if (topStart != null) Flexible(child: _card(topStart!, compact)),
-          if (topStart != null && topEnd != null) SizedBox(width: gap),
-          if (topEnd != null) _card(topEnd!, compact),
-        ],
-      );
-    }
+  /// 上下横条：标题与棋钟在上，提示信息紧随棋盘上方，棋盘吃剩下的高度。
+  Widget _bandBody(BuildContext context, bool compact) {
+    final hasTop = topStart != null || topEnd != null;
     return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (hasTop || info != null)
+          Padding(
+            padding: padding,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (hasTop) _topWrap(compact),
+                if (hasTop && info != null) SizedBox(height: gap),
+                if (info != null)
+                  SizedBox(
+                    height: _infoRowHeight(context, compact),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: _card(info!, compact),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final size = boardFitSize(constraints.biggest, maxBoardWidth);
+              return Center(child: SizedBox.fromSize(size: size, child: board));
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 标题与棋钟并排：放不下时后一个自动换到下一行，不会横向溢出。
+  Widget _topWrap(bool compact) {
+    return Wrap(
+      spacing: gap,
+      runSpacing: gap,
+      alignment: WrapAlignment.spaceBetween,
       children: [
         if (topStart != null) _card(topStart!, compact),
-        if (topStart != null && topEnd != null) SizedBox(height: gap),
-        if (topEnd != null)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [_card(topEnd!, compact)],
-          ),
+        if (topEnd != null) _card(topEnd!, compact),
       ],
     );
+  }
+
+  /// 提示信息行的高度按固定基数与字号缩放，内容变化不会推动棋盘。
+  double _infoRowHeight(BuildContext context, bool compact) {
+    final base = compact ? kHudCompactInfoRow : kHudInfoRow;
+    return base * _textScale(context);
   }
 
   double _textScale(BuildContext context) =>
