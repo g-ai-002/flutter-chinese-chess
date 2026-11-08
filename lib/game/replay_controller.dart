@@ -56,6 +56,10 @@ class ReplayController extends ChangeNotifier implements BoardView {
 
   int get total => moves.length;
 
+  /// 每手棋前停顿 0.32 秒：先在起点高亮将要走动的棋子，棋子不再突然起走。
+  @override
+  Duration get moveLeadIn => const Duration(milliseconds: 320);
+
   bool get canPrevious => _cursor > 0;
 
   bool get canNext => _cursor < moves.length;

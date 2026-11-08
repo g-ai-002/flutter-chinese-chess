@@ -37,6 +37,9 @@ class _FakeView implements BoardView {
   int? hintTo;
 
   @override
+  Duration moveLeadIn = Duration.zero;
+
+  @override
   void tapCell(int index) {}
 
   void addMove({
@@ -186,6 +189,29 @@ void main() {
     final board = _build(view);
     board.update(0.016);
 
+    _render(board);
+  });
+
+  testWidgets('走子前的停顿会延后动画，光环只画在起点', (tester) async {
+    final view = _FakeView()..moveLeadIn = const Duration(milliseconds: 320);
+    final board = _build(view);
+    board.update(0.016);
+
+    view.addMove(
+      from: indexOf(6, 0),
+      to: indexOf(5, 0),
+      piece: pieceOf(red, typePawn),
+    );
+    // 停顿期间棋子还没起走，整段动画的收尾也随之顺延。
+    board.update(0.20);
+    expect(board.isAnimating, isTrue);
+    _render(board);
+    board.update(0.50);
+    expect(board.isAnimating, isTrue);
+    _render(board);
+
+    board.update(0.40);
+    expect(board.isAnimating, isFalse);
     _render(board);
   });
 }

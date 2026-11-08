@@ -130,6 +130,8 @@ class BoardComponent extends PositionComponent with TapCallbacks {
     }
 
     final steps = <_MoveAnim>[?_anim, ..._pending];
+    final leadIn =
+        -view.moveLeadIn.inMicroseconds / Duration.microsecondsPerSecond;
     for (var index = _seenMoves; index < count; index++) {
       final record = history[index];
       steps.add(
@@ -138,6 +140,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
           to: record.to,
           piece: record.piece,
           captured: record.captured,
+          start: leadIn,
         ),
       );
     }
@@ -511,6 +514,18 @@ class BoardComponent extends PositionComponent with TapCallbacks {
     final to = _center(anim.to, cell);
     final progress = anim.travel;
     final eased = _ease(progress);
+    // 复盘走子前先在起点画一圈呼吸光环，把目光先引到将要走动的棋子上。
+    if (anim.elapsed < 0) {
+      final pulse = 0.5 + 0.5 * math.sin(_time * 9);
+      canvas.drawCircle(
+        from,
+        cell * (0.47 + 0.04 * pulse),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = cell * 0.05
+          ..color = _hintColor.withValues(alpha: 0.35 + 0.45 * pulse),
+      );
+    }
     if (anim.captured != 0 && !anim.landed) {
       _drawPiece(canvas, to, anim.captured, cell);
     }
@@ -708,14 +723,18 @@ class _MoveAnim {
     required this.to,
     required this.piece,
     required this.captured,
-  }) : powder = captured == 0 ? const [] : _buildPowder(from, to, captured);
+    double start = 0,
+  }) : elapsed = start,
+       powder = captured == 0 ? const [] : _buildPowder(from, to, captured);
 
   final int from;
   final int to;
   final int piece;
   final int captured;
   final List<_Powder> powder;
-  double elapsed = 0;
+
+  /// 已经过的时间；负数表示仍在走子前的停顿里。
+  double elapsed;
 
   /// 这一手落子之后的棋面，排队播放时用它绘制背景棋子。
   Uint8List cells = Uint8List(cellCount);

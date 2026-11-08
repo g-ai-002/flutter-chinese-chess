@@ -72,16 +72,6 @@ const List<String> _initialLayout = [
 ];
 
 /// 布局字符与棋子类型的对应：大写为红方、小写为黑方，`.` 表示空位。
-const Map<String, int> _symbolToType = {
-  'K': typeKing,
-  'A': typeAdvisor,
-  'E': typeElephant,
-  'H': typeHorse,
-  'R': typeRook,
-  'C': typeCannon,
-  'P': typePawn,
-};
-
 const Map<int, String> _typeToSymbol = {
   typeKing: 'k',
   typeAdvisor: 'a',
@@ -90,6 +80,12 @@ const Map<int, String> _typeToSymbol = {
   typeRook: 'r',
   typeCannon: 'c',
   typePawn: 'p',
+};
+
+/// 反查表由 [_typeToSymbol] 生成，保证解析与序列化始终用同一份符号表。
+final Map<String, int> _symbolToType = {
+  for (final entry in _typeToSymbol.entries)
+    entry.value.toUpperCase(): entry.key,
 };
 
 /// 把 `K`/`k` 这类布局字符解析为棋子编码，`.` 表示空位，其余字符抛错。

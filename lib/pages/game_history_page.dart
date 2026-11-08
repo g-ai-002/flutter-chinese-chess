@@ -7,6 +7,7 @@ import '../services/game_history_service.dart';
 import '../services/log_service.dart';
 import '../utils/formatters.dart';
 import 'review_page.dart';
+import 'widgets/game_dialogs.dart';
 
 /// 棋谱库：最近 20 局回放，可导入、导出、删除或进入复盘。
 class GameHistoryPage extends StatelessWidget {
@@ -50,7 +51,7 @@ class GameHistoryPage extends StatelessWidget {
   }
 
   Future<void> _delete(BuildContext context, SavedGame game) async {
-    final confirmed = await _confirm(
+    final confirmed = await confirmAction(
       context,
       title: '删除这局棋谱？',
       message: '「${game.title}」的回放将从棋谱库移除。',
@@ -64,7 +65,7 @@ class GameHistoryPage extends StatelessWidget {
   }
 
   Future<void> _clear(BuildContext context) async {
-    final confirmed = await _confirm(
+    final confirmed = await confirmAction(
       context,
       title: '清空棋谱？',
       message: '最近的对局回放将全部删除，此操作无法撤销。',
@@ -130,32 +131,6 @@ class GameHistoryPage extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Future<bool> _confirm(
-    BuildContext context, {
-    required String title,
-    required String message,
-    required String confirmLabel,
-  }) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(confirmLabel),
-          ),
-        ],
-      ),
-    );
-    return confirmed ?? false;
   }
 }
 

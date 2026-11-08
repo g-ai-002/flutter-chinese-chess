@@ -87,7 +87,8 @@ class _ReviewPageState extends State<ReviewPage> {
       return;
     }
     if (_replay.finished) _replay.first();
-    _timer = Timer.periodic(const Duration(milliseconds: 700), (timer) {
+    // 每手棋前面有 0.32 秒的高亮停顿，自动回放留足一整手动画的时间。
+    _timer = Timer.periodic(const Duration(milliseconds: 950), (timer) {
       if (!mounted || _replay.finished) {
         _stop();
         return;

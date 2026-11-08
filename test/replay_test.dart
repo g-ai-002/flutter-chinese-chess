@@ -92,6 +92,12 @@ void main() {
     replay.dispose();
   });
 
+  test('复盘每手棋前留有高亮停顿，让目光先落到要走动的棋子上', () {
+    final replay = replayOf(opening);
+    expect(replay.moveLeadIn, const Duration(milliseconds: 320));
+    replay.dispose();
+  });
+
   test('非法的着法序列在构造时抛出异常', () {
     final records = play(['炮二平五']);
     final broken = MoveRecord(

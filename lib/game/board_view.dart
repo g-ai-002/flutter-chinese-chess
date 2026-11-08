@@ -20,5 +20,8 @@ abstract class BoardView {
 
   List<MoveRecord> get history;
 
+  /// 落子动画开始前的停顿：复盘时先停一下并高亮将要走动的棋子。
+  Duration get moveLeadIn;
+
   void tapCell(int index);
 }

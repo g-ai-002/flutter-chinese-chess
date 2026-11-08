@@ -106,10 +106,10 @@ void main() {
 
     await tester.tap(find.byTooltip('自动回放'));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 720));
+    await tester.pump(const Duration(milliseconds: 980));
     expect(find.text('第 1 / 4 手'), findsOneWidget);
 
-    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(seconds: 4));
     expect(find.text('第 4 / 4 手'), findsOneWidget);
     expect(find.byTooltip('自动回放'), findsOneWidget);
 

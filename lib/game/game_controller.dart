@@ -100,6 +100,10 @@ class GameController extends ChangeNotifier implements BoardView {
   @override
   List<MoveRecord> get history => board.history;
 
+  /// 对局中的落子立即起走，不做复盘那样的停顿。
+  @override
+  Duration get moveLeadIn => Duration.zero;
+
   /// 人类已落子的步数，残局按此计算剩余步数。
   int get humanMoves =>
       board.history.where((record) => sideOf(record.piece) == humanSide).length;
