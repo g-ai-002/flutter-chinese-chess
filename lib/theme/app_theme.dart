@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../game/engine/board_utils.dart';
+import '../utils/system_ui.dart';
 
 export 'board_skin.dart';
 
@@ -99,6 +100,7 @@ ThemeData _buildBase({
       scrolledUnderElevation: 0,
       centerTitle: true,
       surfaceTintColor: Colors.transparent,
+      systemOverlayStyle: systemOverlayStyleFor(scaffoldColor),
       toolbarHeight: 52,
       titleTextStyle: TextStyle(
         fontSize: 17,
