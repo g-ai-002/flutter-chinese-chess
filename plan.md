@@ -68,7 +68,7 @@
 
 ### v0.8.4 (PATCH) — 2026-11-12
 
-- **状态**: 构建发布中 🚧（[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.8.4)）
+- **状态**: 已发布 ✅（[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.8.4)）
 - **目标**: 性能与流畅度优化：减少 AI 搜索的重复整盘扫描、避免复盘逐帧重算将军状态、
   在棋盘静止时停掉 Flame 渲染循环，降低空闲 CPU 占用与耗电。
 - **任务**:
