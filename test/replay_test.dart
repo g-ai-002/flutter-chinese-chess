@@ -98,6 +98,43 @@ void main() {
     replay.dispose();
   });
 
+  test('缓存的将军状态随跳转更新，后退后恢复', () {
+    final layout = [
+      '....k....',
+      '.........',
+      '.........',
+      '.........',
+      '.........',
+      '.........',
+      '.........',
+      '..R......',
+      '.........',
+      '...K.....',
+    ];
+    final replay = ReplayController(
+      moves: [
+        MoveRecord(
+          from: indexOf(7, 2),
+          to: indexOf(7, 4),
+          piece: pieceOf(red, typeRook),
+          captured: 0,
+          notation: '车八平六',
+          givesCheck: true,
+          noCaptureBefore: 0,
+        ),
+      ],
+      layout: layout,
+    );
+    expect(replay.inCheck, isFalse);
+
+    replay.next();
+    expect(replay.inCheck, isTrue);
+
+    replay.previous();
+    expect(replay.inCheck, isFalse);
+    replay.dispose();
+  });
+
   test('非法的着法序列在构造时抛出异常', () {
     final records = play(['炮二平五']);
     final broken = MoveRecord(

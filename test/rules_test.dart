@@ -25,7 +25,7 @@ void main() {
       final cells = initialCells();
       expect(XiangqiRules.isKingInCheck(cells, red), isFalse);
       expect(XiangqiRules.isKingInCheck(cells, black), isFalse);
-      expect(XiangqiRules.kingsFacing(cells), isFalse);
+      expect(XiangqiRules.isKingInCheck(cells, red), isFalse);
     });
   });
 
@@ -153,7 +153,7 @@ void main() {
   group('将/帅', () {
     test('将帅对脸判为非法', () {
       final cells = boardWith([('K', 9, 4), ('k', 0, 4)]);
-      expect(XiangqiRules.kingsFacing(cells), isTrue);
+      expect(XiangqiRules.isKingInCheck(cells, red), isTrue);
       expect(
         XiangqiRules.isLegalMove(cells, red, indexOf(9, 4), indexOf(8, 4)),
         isFalse,

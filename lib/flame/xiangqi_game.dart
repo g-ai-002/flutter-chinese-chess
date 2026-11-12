@@ -12,14 +12,25 @@ class XiangqiGame extends FlameGame {
     required this.view,
     BoardSkin skin = kDefaultBoardSkin,
     this.logicRate = LogicRate.hz60,
-  }) : _skin = ValueNotifier(skin);
+    this.changes,
+  }) : _skin = ValueNotifier(skin) {
+    _skin.addListener(_wake);
+    changes?.addListener(_wake);
+  }
+
+  /// 棋盘静止 [idlePauseSeconds] 后停掉渲染循环，落子、提示与页面变化再唤醒。
+  static const double idlePauseSeconds = 0.75;
 
   final BoardView view;
 
   /// 棋盘逻辑更新速率，见 [LogicRate]。
   final LogicRate logicRate;
+
+  /// 对局或复盘控制器，状态变化时唤醒可能已休眠的渲染循环。
+  final Listenable? changes;
   final ValueNotifier<BoardSkin> _skin;
   BoardComponent? _board;
+  double _idle = 0;
 
   /// 当前棋盘皮肤，赋值后棋盘按新配色重绘。
   BoardSkin get skin => _skin.value;
@@ -30,10 +41,43 @@ class XiangqiGame extends FlameGame {
 
   @override
   Future<void> onLoad() async {
-    final board = BoardComponent(view: view, skin: _skin, logicRate: logicRate);
+    final board = BoardComponent(
+      view: view,
+      skin: _skin,
+      logicRate: logicRate,
+      onInput: _wake,
+    );
     _board = board;
     _fit(board);
     await add(board);
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    final board = _board;
+    if (paused || board == null) return;
+    // 落子动画与将军呼吸灯需要逐帧推进，其余静止画面没有必要重绘。
+    if (board.isAnimating || view.inCheck) {
+      _idle = 0;
+      return;
+    }
+    _idle += dt;
+    if (_idle < idlePauseSeconds) return;
+    _idle = 0;
+    pauseEngine();
+  }
+
+  void _wake() {
+    _idle = 0;
+    if (paused) resumeEngine();
+  }
+
+  @override
+  void onDispose() {
+    _skin.removeListener(_wake);
+    changes?.removeListener(_wake);
+    super.onDispose();
   }
 
   @override

@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:chinese_chess/flame/board_component.dart';
+import 'package:chinese_chess/flame/xiangqi_game.dart';
 import 'package:chinese_chess/game/board_state.dart';
 import 'package:chinese_chess/game/board_view.dart';
 import 'package:chinese_chess/game/engine/board_utils.dart';
@@ -11,7 +12,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _FakeView implements BoardView {
+class _FakeView extends ChangeNotifier implements BoardView {
   @override
   final XiangqiBoard board = XiangqiBoard.initial();
 
@@ -40,7 +41,7 @@ class _FakeView implements BoardView {
   Duration moveLeadIn = Duration.zero;
 
   @override
-  void tapCell(int index) {}
+  void tapCell(int index) => notifyListeners();
 
   void addMove({
     required int from,
@@ -213,5 +214,29 @@ void main() {
     board.update(0.40);
     expect(board.isAnimating, isFalse);
     _render(board);
+  });
+
+  testWidgets('棋盘静止后停掉渲染循环，状态变化与将军立即唤醒', (tester) async {
+    final view = _FakeView();
+    final game = XiangqiGame(view: view, changes: view);
+    game.onGameResize(Vector2(480, 540));
+    await game.onLoad();
+
+    game.update(0.5);
+    expect(game.paused, isFalse);
+    game.update(0.5);
+    expect(game.paused, isTrue);
+
+    view.tapCell(0);
+    expect(game.paused, isFalse);
+
+    game.update(1.0);
+    expect(game.paused, isTrue);
+    view.inCheck = true;
+    view.tapCell(0);
+    game.update(1.0);
+    expect(game.paused, isFalse);
+    game.onDispose();
+    view.dispose();
   });
 }

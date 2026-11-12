@@ -94,7 +94,6 @@ void main() {
           isNotNull,
           reason: '${puzzle.title} 缺少黑将',
         );
-        expect(XiangqiRules.kingsFacing(board.cells), isFalse);
         expect(XiangqiRules.isKingInCheck(board.cells, black), isFalse);
         expect(XiangqiRules.isKingInCheck(board.cells, red), isFalse);
         expect(XiangqiRules.legalMoves(board.cells, red), isNotEmpty);

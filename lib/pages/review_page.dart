@@ -62,6 +62,7 @@ class _ReviewPageState extends State<ReviewPage> {
     _game = XiangqiGame(
       view: _replay,
       logicRate: context.read<SettingsProvider>().logicRate,
+      changes: _replay,
     );
     LogService.info('进入复盘: ${widget.title}, 共 ${_replay.total} 手');
   }

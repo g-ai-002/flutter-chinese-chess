@@ -106,5 +106,52 @@ void main() {
 
       expect(board.unmake, throwsStateError);
     });
+
+    test('红帅走位后增量将位同步，照面判定立即生效', () {
+      final cells = cellsFromLayout([
+        '....k....',
+        '.........',
+        '.........',
+        '.........',
+        '.........',
+        '.........',
+        '.........',
+        '.........',
+        '.........',
+        '...K.....',
+      ]);
+      final board = SearchBoard(cells, red);
+      expect(board.isKingInCheck(red), isFalse);
+
+      board.make(encodeMove(indexOf(9, 3), indexOf(9, 4)));
+      expect(board.sideToMove, black);
+      expect(board.isKingInCheck(black), isTrue);
+
+      board.unmake();
+      expect(board.isKingInCheck(black), isFalse);
+    });
+
+    test('黑将走位与撤销后增量将位保持正确', () {
+      final cells = cellsFromLayout([
+        '....k....',
+        '.........',
+        '....R....',
+        '.........',
+        '.........',
+        '.........',
+        '.........',
+        '.........',
+        '.........',
+        '.....K...',
+      ]);
+      final board = SearchBoard(cells, black);
+      expect(board.isKingInCheck(black), isTrue);
+
+      board.make(encodeMove(indexOf(0, 4), indexOf(0, 3)));
+      expect(board.isKingInCheck(black), isFalse);
+
+      board.unmake();
+      expect(board.isKingInCheck(black), isTrue);
+    });
   });
 }

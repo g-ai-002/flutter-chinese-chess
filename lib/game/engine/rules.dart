@@ -6,7 +6,6 @@ import 'dart:typed_data';
 import '../../models/move_record.dart';
 import 'board_utils.dart';
 
-/// 一步棋编码为 `from * 90 + to`，便于在搜索中快速传递。
 int encodeMove(int from, int to) => from * cellCount + to;
 int moveFrom(int move) => move ~/ cellCount;
 int moveTo(int move) => move % cellCount;
@@ -47,7 +46,6 @@ class XiangqiRules {
     return null;
   }
 
-  /// 生成伪合法着法（未过滤"送将"与"对脸"）。
   static List<int> pseudoMoves(Uint8List cells, int side) {
     final moves = <int>[];
     for (var index = 0; index < cellCount; index++) {
@@ -58,7 +56,6 @@ class XiangqiRules {
     return moves;
   }
 
-  /// 某个棋子可走的位置（伪合法）。
   static List<int> pseudoMovesFrom(Uint8List cells, int from) {
     final piece = cells[from];
     if (piece == 0) return const [];
@@ -175,35 +172,11 @@ class XiangqiRules {
     moves.add(encodeMove(from, indexOf(row, col)));
   }
 
-  /// 将帅照面（同列且中间无子）。
-  static bool kingsFacing(Uint8List cells) {
-    final redPiece = pieceOf(red, typeKing);
-    final blackPiece = pieceOf(black, typeKing);
-    int? redKing;
-    int? blackKing;
-    for (var index = 0; index < cellCount; index++) {
-      final piece = cells[index];
-      if (piece == redPiece) {
-        redKing = index;
-      } else if (piece == blackPiece) {
-        blackKing = index;
-      }
-      if (redKing != null && blackKing != null) break;
-    }
-    if (redKing == null || blackKing == null) return false;
-    if (colOf(redKing) != colOf(blackKing)) return false;
-    final col = colOf(redKing);
-    final top = rowOf(blackKing);
-    final bottom = rowOf(redKing);
-    for (var row = top + 1; row < bottom; row++) {
-      if (cells[indexOf(row, col)] != 0) return false;
-    }
-    return true;
-  }
-
   /// 当前行动方的将/帅是否被将军（含将帅照面）。
-  static bool isKingInCheck(Uint8List cells, int side) {
-    final king = findKing(cells, side);
+  ///
+  /// [king] 为将/帅下标时直接判定，供增量维护将位的搜索使用。
+  static bool isKingInCheck(Uint8List cells, int side, [int? king]) {
+    king ??= findKing(cells, side);
     if (king == null) return false;
     final kr = rowOf(king);
     final kc = colOf(king);
@@ -263,11 +236,11 @@ class XiangqiRules {
     return false;
   }
 
-  /// 走子后的局面是否对 [side] 安全：不将帅照面，也不被将军。
+  /// 走子后的局面是否对 [side] 安全：将帅照面也算被将军。
   ///
   /// 搜索在落子后、恢复棋盘前调用它，避免重复实现同一套判定。
   static bool isPositionSafe(Uint8List cells, int side) =>
-      !kingsFacing(cells) && !isKingInCheck(cells, side);
+      !isKingInCheck(cells, side);
 
   /// 试走一步并判断是否合法（不送将、不对脸），结束后恢复棋盘。
   static bool isLegalMove(Uint8List cells, int side, int from, int to) {

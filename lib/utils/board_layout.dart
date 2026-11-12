@@ -19,10 +19,8 @@ const double kHudStackedWidth = 480;
 /// 可用高度不足该值时改用紧凑卡片，状态并入标题行。
 const double kHudCompactHeight = 520;
 
-/// 卡片与屏幕边缘的留白。
 const double kHudPadding = 8;
 
-/// 标题行、提示信息行与操作行的估算高度（含卡片内边距）。
 const double kHudTitleRow = 58;
 const double kHudInfoRow = 48;
 const double kHudCompactTitleRow = 54;
@@ -45,7 +43,6 @@ Size boardFitSize(Size available, [double maxWidth = kBoardMaxWidth]) {
   return Size(width, height);
 }
 
-/// 一次 HUD 排版的决策结果。
 class HudMetrics {
   const HudMetrics({
     required this.board,
@@ -54,16 +51,12 @@ class HudMetrics {
     required this.sideRail,
   });
 
-  /// 棋盘尺寸估算，只用于横竖屏比较；实际尺寸由布局时剩余空间决定。
   final Size board;
 
-  /// 棋盘左右留白宽度。
   final double rail;
 
-  /// 是否使用紧凑卡片。
   final bool compact;
 
-  /// 是否把标题、棋钟与提示信息挂到棋盘两侧。
   final bool sideRail;
 }
 

@@ -68,6 +68,7 @@ class _GamePageState extends State<GamePage> {
       view: _controller,
       skin: settings.boardSkin,
       logicRate: settings.logicRate,
+      changes: _controller,
     );
     _controller.addListener(_onControllerChanged);
     final puzzle = widget.puzzle;

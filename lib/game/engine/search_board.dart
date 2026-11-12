@@ -16,9 +16,12 @@ class SearchBoard {
     final hash = Zobrist.hashOf(this.cells, side);
     _low = hash.low;
     _high = hash.high;
+    for (var index = 0; index < cellCount; index++) {
+      final piece = this.cells[index];
+      if (typeOf(piece) == typeKing) _setKing(sideOf(piece), index);
+    }
   }
 
-  /// 撤销栈初始容量，够覆盖「搜索层数 + 静态搜索层数」。
   static const int _initialStack = 64;
 
   final Uint8List cells;
@@ -26,19 +29,36 @@ class SearchBoard {
 
   late int _low;
   late int _high;
+  int? _redKing;
+  int? _blackKing;
 
   Int32List _undoMoves = Int32List(_initialStack);
   Int32List _undoCaptured = Int32List(_initialStack);
   int _depth = 0;
 
-  /// 局面键低半，供置换表索引。
   int get hashLow => _low;
 
-  /// 局面键高半，供置换表校验。
   int get hashHigh => _high;
 
-  /// 已试走的步数，撤销回零即回到构造时的局面。
   int get depth => _depth;
+
+  void _setKing(int side, int? index) {
+    if (side == red) {
+      _redKing = index;
+    } else {
+      _blackKing = index;
+    }
+  }
+
+  /// 走子后的局面是否对 [side] 安全：将帅照面已包含在将军判定里。
+  bool isPositionSafe(int side) => !isKingInCheck(side);
+
+  /// 当前行动方是否被将军，直接使用增量维护的将位。
+  bool isKingInCheck(int side) => XiangqiRules.isKingInCheck(
+    cells,
+    side,
+    side == red ? _redKing : _blackKing,
+  );
 
   /// 试走着法，返回被吃的棋子（空位为 0）。
   int make(int move) {
@@ -57,6 +77,10 @@ class SearchBoard {
     cells[to] = piece;
     cells[from] = 0;
     sideToMove = opponentOf(sideOf(piece));
+    if (typeOf(piece) == typeKing) _setKing(sideOf(piece), to);
+    if (captured != 0 && typeOf(captured) == typeKing) {
+      _setKing(sideOf(captured), null);
+    }
     _push(move, captured);
     return captured;
   }
@@ -70,6 +94,10 @@ class SearchBoard {
     final from = moveFrom(move);
     final to = moveTo(move);
     final piece = cells[to];
+    if (typeOf(piece) == typeKing) _setKing(sideOf(piece), from);
+    if (captured != 0 && typeOf(captured) == typeKing) {
+      _setKing(sideOf(captured), to);
+    }
     _low ^= Zobrist.sideLowKey;
     _high ^= Zobrist.sideHighKey;
     _low ^= Zobrist.lowKey(piece, from) ^ Zobrist.lowKey(piece, to);

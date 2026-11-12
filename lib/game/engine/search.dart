@@ -16,12 +16,10 @@ class SearchResult {
     required this.depth,
   });
 
-  /// 编码后的着法，无棋可走时为 -1。
   final int move;
   final int score;
   final int nodes;
 
-  /// 实际完成搜索的层数，可能小于请求的层数。
   final int depth;
 }
 
@@ -30,10 +28,8 @@ class SearchBudget {
   SearchBudget({required this.maxNodes, required this.timeLimitMillis})
     : _watch = Stopwatch()..start();
 
-  /// 默认节点预算。
   static const int defaultMaxNodes = 700000;
 
-  /// 默认思考时限（毫秒）。
   static const int defaultTimeLimitMillis = 4000;
 
   final int maxNodes;
@@ -77,7 +73,6 @@ class XiangqiSearch {
   ).run(maxDepth: depth, randomness: randomness, seed: seed);
 }
 
-/// 根节点一轮搜索的结果；[complete] 为 false 表示预算耗尽、只搜了一部分着法。
 class _RootPass {
   const _RootPass({
     required this.move,
@@ -97,13 +92,10 @@ class _Searcher {
 
   static const int _infinity = 1 << 30;
 
-  /// 杀手着法按层记录，两层足够覆盖大多数截断。
   static const int _killerPlies = 64;
 
-  /// 历史启发的上限，保证不会盖过杀手着法与吃子着法的权重。
   static const int _historyCap = 1 << 16;
 
-  /// 着法排序权重：置换表着法 > 吃子 > 杀手着法 > 历史启发 > 其余静默着法。
   static const int _ttMoveWeight = 1 << 20;
   static const int _captureWeight = 1 << 18;
   static const int _killerWeight = 100000;
@@ -115,7 +107,6 @@ class _Searcher {
   final Int32List _killers = Int32List(_killerPlies * 2);
   final Int32List _history = Int32List(cellCount * cellCount);
 
-  /// 着法排序的临时缓冲区，只在一个节点的生成阶段使用，不跨递归。
   Int32List _sortedMoves = Int32List(96);
   Int32List _sortedScores = Int32List(96);
 
@@ -167,7 +158,6 @@ class _Searcher {
     );
   }
 
-  /// 随机档在接近最优的一批着法里随机挑选，其余档位直接用最优着法。
   int _chooseRoot(
     int bestMove,
     Map<int, int> scores,
@@ -186,7 +176,6 @@ class _Searcher {
     return candidates[random.nextInt(candidates.length)];
   }
 
-  /// 搜索一层根节点：逐个展开根着法，返回本轮最优着法与全部得分。
   _RootPass _searchRoot(int depth, List<int> ordered, int randomness) {
     final scores = <int, int>{};
     var alpha = -_infinity;
@@ -224,7 +213,6 @@ class _Searcher {
     );
   }
 
-  /// 下一层先搜本轮得分高的着法，让 Alpha-Beta 更早截断。
   void _sortRoot(List<int> ordered, Map<int, int> scores) {
     if (scores.length < 2) return;
     ordered.sort(
@@ -255,7 +243,7 @@ class _Searcher {
     for (final move in moves) {
       final quiet = _board.cells[moveTo(move)] == 0;
       _board.make(move);
-      if (!XiangqiRules.isPositionSafe(_board.cells, side)) {
+      if (!_board.isPositionSafe(side)) {
         _board.unmake();
         continue;
       }
@@ -291,7 +279,6 @@ class _Searcher {
     return best;
   }
 
-  /// 条目能否直接裁剪：下界需达到 beta，上界需低于等于 alpha，精确值直接用。
   static bool _cutoffAllowed(TtEntry entry, int alpha, int beta) {
     switch (entry.bound) {
       case TranspositionTable.lower:
@@ -310,7 +297,7 @@ class _Searcher {
     if (qdepth >= 8) return _evaluate();
 
     final side = _board.sideToMove;
-    final inCheck = XiangqiRules.isKingInCheck(_board.cells, side);
+    final inCheck = _board.isKingInCheck(side);
     if (!inCheck) {
       final standPat = _evaluate();
       if (standPat >= beta) return beta;
@@ -330,7 +317,7 @@ class _Searcher {
     var best = -_infinity;
     for (final move in candidates) {
       _board.make(move);
-      if (!XiangqiRules.isPositionSafe(_board.cells, side)) {
+      if (!_board.isPositionSafe(side)) {
         _board.unmake();
         continue;
       }
@@ -348,7 +335,6 @@ class _Searcher {
   int _evaluate() =>
       XiangqiEvaluation.evaluateForSide(_board.cells, _board.sideToMove);
 
-  /// 记录截断着法：静默着法进杀手表与历史表，供同类局面优先搜索。
   void _recordCutoff(int move, int ply, int depth) {
     if (ply >= _killerPlies) return;
     final index = ply * 2;
@@ -360,7 +346,6 @@ class _Searcher {
     _history[move] = weighted > _historyCap ? _historyCap : weighted;
   }
 
-  /// 着法排序：置换表着法 > 吃子 > 杀手着法 > 历史启发 > 其余静默着法。
   void _orderMoves(List<int> moves, int ply, int ttMove) {
     final count = moves.length;
     if (count < 2) return;

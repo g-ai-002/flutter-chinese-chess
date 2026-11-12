@@ -42,7 +42,6 @@ class GameController extends ChangeNotifier implements BoardView {
   @override
   final bool showHints;
 
-  /// 本局的时间方案，残局固定为不限时。
   final TimeControl timeControl;
   final Puzzle? puzzle;
   @override
@@ -53,12 +52,10 @@ class GameController extends ChangeNotifier implements BoardView {
   /// 默认搜索器：独立 isolate 中思考，页面关闭时可以立即回收。
   final AiSearch _search = AiSearch();
 
-  /// 限时对局的计时簿记，不限时或残局为 null。
   late final ClockTracker? _tracker = timeControl.isTimed
       ? ClockTracker(timeControl)
       : null;
 
-  /// 限时对局的棋钟，供界面展示双方剩余时间。
   MatchClock? get clock => _tracker?.clock;
 
   @override
@@ -70,7 +67,6 @@ class GameController extends ChangeNotifier implements BoardView {
   bool inCheck = false;
   GameResult? result;
 
-  /// 最近一次 AI 搜索摘要，供界面展示引擎层数与用时。
   AiInsight? aiInsight;
 
   /// 走子提示的起止索引与记法，超时后自动清除。

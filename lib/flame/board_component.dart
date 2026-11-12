@@ -25,22 +25,24 @@ const Color _hintColor = Color(0xFF8C5A0F);
 const Color _hintOutline = Color(0xE62A1C08);
 
 /// Flame 棋盘组件：绘制棋盘、棋子、走子提示与落子动画，并处理点击。
-///
-/// 皮肤通过 [skin] 监听，切换皮肤时清空文字缓存并按新配色重绘。
 class BoardComponent extends PositionComponent with TapCallbacks {
   BoardComponent({
     required this.view,
     required this.skin,
+    this.onInput,
     LogicRate logicRate = LogicRate.hz60,
   }) : _stepper = FixedStepClock(logicRate.step);
 
   final BoardView view;
   final ValueListenable<BoardSkin> skin;
+
+  /// 点击棋盘时先唤醒休眠的渲染循环，再交给 [view] 处理选择与落子。
+  final VoidCallback? onInput;
   final FixedStepClock _stepper;
 
   BoardSkin get _skin => skin.value;
 
-  @visibleForTesting
+  /// 是否还有落子动画或排队动画未播完。
   bool get isAnimating => _anim != null || _pending.isNotEmpty;
 
   double _cell = 0;
@@ -425,7 +427,6 @@ class BoardComponent extends PositionComponent with TapCallbacks {
     }
   }
 
-  /// 提示箭头画在棋子之上，保证被提示的起点与落点清晰可见。
   void _drawHint(Canvas canvas, double cell) {
     final from = view.hintFrom;
     final to = view.hintTo;
@@ -435,8 +436,6 @@ class BoardComponent extends PositionComponent with TapCallbacks {
   }
 
   /// 提示箭头：从起点圈向落点圈引一条带箭头的实线，采用与红黑提示都区分开的金色。
-  ///
-  /// 先铺一层深色描边再画金色主体，浅色与深色棋盘上都能看清。
   void _drawHintArrow(Canvas canvas, double cell, int from, int to) {
     final outline = Paint()
       ..style = PaintingStyle.stroke
@@ -564,7 +563,6 @@ class BoardComponent extends PositionComponent with TapCallbacks {
     }
   }
 
-  /// 落点涟漪：一圈由内向外扩散的细环，移动与吃子都会出现。
   void _drawLanding(Canvas canvas, Offset center, double cell, _MoveAnim anim) {
     final t = anim.landing;
     if (t >= 1) return;
@@ -584,7 +582,6 @@ class BoardComponent extends PositionComponent with TapCallbacks {
     );
   }
 
-  /// 被吃棋子碎裂：落点闪白后向四周飞散木质粉末，受重力逐渐下坠。
   void _drawPowder(Canvas canvas, Offset center, double cell, _MoveAnim anim) {
     final t = anim.shatter;
     if (t <= 0) return;
@@ -638,7 +635,6 @@ class BoardComponent extends PositionComponent with TapCallbacks {
     canvas.restore();
   }
 
-  /// 单枚棋子录成小图，落子动画期间只做平移缩放，避免逐帧重建渐变与文字。
   ui.Picture _pieceSprite(int piece, double cell) {
     final cached = _sprites[piece];
     if (cached != null) return cached;
@@ -698,6 +694,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
   @override
   void onTapDown(TapDownEvent event) {
     if (_cell <= 0) return;
+    onInput?.call();
     final local = event.localPosition;
     final col = ((local.x - _cell * 0.5) / _cell).round();
     final row = ((local.y - _cell * 0.5) / _cell).round();
@@ -733,29 +730,24 @@ class _MoveAnim {
   final int captured;
   final List<_Powder> powder;
 
-  /// 已经过的时间；负数表示仍在走子前的停顿里。
   double elapsed;
 
-  /// 这一手落子之后的棋面，排队播放时用它绘制背景棋子。
   Uint8List cells = Uint8List(cellCount);
 
   double get totalDuration =>
       _moveDurationSeconds +
       (captured == 0 ? _landingDurationSeconds : _shatterDurationSeconds);
 
-  /// 棋子从起点到落点的进度。
   double get travel => (elapsed / _moveDurationSeconds).clamp(0.0, 1.0);
 
   bool get landed => elapsed >= _moveDurationSeconds;
 
-  /// 落点涟漪进度。
   double get landing =>
       ((elapsed - _moveDurationSeconds) / _landingDurationSeconds).clamp(
         0.0,
         1.0,
       );
 
-  /// 粉末飞散进度。
   double get shatter =>
       ((elapsed - _moveDurationSeconds) / _shatterDurationSeconds).clamp(
         0.0,

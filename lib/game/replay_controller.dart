@@ -15,6 +15,7 @@ class ReplayController extends ChangeNotifier implements BoardView {
   }) : moves = List.unmodifiable(moves) {
     _validate();
     _board = _initialBoard();
+    _refreshCheck();
   }
 
   /// 开局布局（十行），用于重建每一步的局面。
@@ -26,6 +27,7 @@ class ReplayController extends ChangeNotifier implements BoardView {
 
   late XiangqiBoard _board;
   int _cursor = 0;
+  bool _inCheck = false;
 
   @override
   XiangqiBoard get board => _board;
@@ -39,9 +41,9 @@ class ReplayController extends ChangeNotifier implements BoardView {
   @override
   bool get showHints => false;
 
+  /// 棋盘逐帧读取将军状态，缓存在跳转时算好，避免每帧扫描整盘。
   @override
-  bool get inCheck =>
-      XiangqiRules.isKingInCheck(_board.cells, _board.sideToMove);
+  bool get inCheck => _inCheck;
 
   @override
   int? get hintFrom => null;
@@ -91,7 +93,12 @@ class ReplayController extends ChangeNotifier implements BoardView {
       _applyTo(_board, _cursor);
       _cursor++;
     }
+    _refreshCheck();
     notifyListeners();
+  }
+
+  void _refreshCheck() {
+    _inCheck = XiangqiRules.isKingInCheck(_board.cells, _board.sideToMove);
   }
 
   @override
