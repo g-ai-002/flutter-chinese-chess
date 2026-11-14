@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../providers/settings_provider.dart';
 import '../../theme/board_painting.dart';

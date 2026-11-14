@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// 复盘页的棋盘布局骨架，对局页改用悬浮 HUD 后不再需要预留占位。
 ///

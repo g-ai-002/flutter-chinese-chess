@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// 棋盘与 HUD 的几何规则：对局页排版、棋盘舞台与横竖屏判定共用一份尺寸计算。
 ///

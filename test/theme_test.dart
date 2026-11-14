@@ -2,8 +2,8 @@ import 'dart:math' as math;
 
 import 'package:chinese_chess/game/engine/board_utils.dart';
 import 'package:chinese_chess/theme/app_theme.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 double _contrast(Color fg, Color bg) {
   final a = fg.computeLuminance();

@@ -10,8 +10,8 @@ import 'package:chinese_chess/pages/widgets/play_layout.dart';
 import 'package:chinese_chess/pages/widgets/status_chip.dart';
 import 'package:chinese_chess/theme/app_theme.dart';
 import 'package:chinese_chess/utils/board_layout.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 MoveRecord _move(String notation, {int from = 0, int to = 0}) => MoveRecord(
   from: from,

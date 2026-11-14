@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// 首页与设置页共用的胶囊选项按钮。
 class ChoicePill extends StatelessWidget {
