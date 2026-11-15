@@ -154,11 +154,15 @@ class SoundService {
       await _ensureLoaded();
       final source = _sources[feedback];
       if (source == null) return;
-      final soloud = SoLoud.instance;
-      soloud.stopAudioSource(source);
-      soloud.play(source);
+      // 每次落子都新开一路声部，不再先停掉同名声部：连续走子时前一声不会被掐断，
+      // 对手回棋也不会因为共享同一音源而听不到。
+      final handle = SoLoud.instance.play(source);
+      if (!SoLoud.instance.getIsValidVoiceHandle(handle)) {
+        LogService.warning('音效播放未生效: ${feedback.name}');
+      }
     } catch (error) {
       debugPrint('[SoundService] 播放失败: $error');
+      LogService.warning('音效播放失败: $error');
     }
   }
 

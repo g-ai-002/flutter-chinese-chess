@@ -100,6 +100,11 @@ class BoardComponent extends PositionComponent with TapCallbacks {
     final anim = _anim;
     if (anim == null) return;
     anim.elapsed += span;
+    // 音效跟棋子的实际起步对齐：复盘要等前导停顿结束，排队的回棋也不会提前响。
+    if (!anim.soundPlayed && anim.elapsed >= 0) {
+      anim.soundPlayed = true;
+      SoundService.play(anim.feedback);
+    }
     // 上一手还没播完就来了下一手（例如 AI 立刻回棋）时接着播，不把动画顶掉。
     while (_anim != null && _anim!.elapsed >= _anim!.totalDuration) {
       final overflow = _anim!.elapsed - _anim!.totalDuration;
@@ -136,6 +141,11 @@ class BoardComponent extends PositionComponent with TapCallbacks {
           to: record.to,
           piece: record.piece,
           captured: record.captured,
+          feedback: record.givesCheck
+              ? MoveFeedback.check
+              : record.isCapture
+              ? MoveFeedback.capture
+              : MoveFeedback.move,
           start: leadIn,
         ),
       );
@@ -708,6 +718,7 @@ class _MoveAnim {
     required this.to,
     required this.piece,
     required this.captured,
+    required this.feedback,
     double start = 0,
   }) : elapsed = start,
        powder = captured == 0 ? const [] : _buildPowder(from, to, captured);
@@ -716,9 +727,13 @@ class _MoveAnim {
   final int to;
   final int piece;
   final int captured;
+  final MoveFeedback feedback;
   final List<_Powder> powder;
 
   double elapsed;
+
+  /// 起走音效只播一次；复盘的前导停顿期间不响。
+  bool soundPlayed = false;
 
   Uint8List cells = Uint8List(cellCount);
 

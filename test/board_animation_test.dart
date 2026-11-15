@@ -7,6 +7,7 @@ import 'package:chinese_chess/game/board_view.dart';
 import 'package:chinese_chess/game/engine/board_utils.dart';
 import 'package:chinese_chess/game/logic_rate.dart';
 import 'package:chinese_chess/models/move_record.dart';
+import 'package:chinese_chess/services/sound_service.dart';
 import 'package:chinese_chess/theme/board_skin.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart';
@@ -139,6 +140,57 @@ void main() {
     board.update(1.0);
     expect(board.isAnimating, isFalse);
     _render(board);
+  });
+
+  testWidgets('对手回棋排在身后时，各自起步才响一次', (tester) async {
+    final played = <MoveFeedback>[];
+    SoundService.sink = played.add;
+    addTearDown(SoundService.reset);
+    final view = _FakeView();
+    final board = _build(view);
+    board.update(0.016);
+
+    // 我方落子后 AI 立刻吃子回棋：两手棋的动画与音效都应按顺序分开。
+    view.addMove(
+      from: indexOf(6, 0),
+      to: indexOf(5, 0),
+      piece: pieceOf(red, typePawn),
+    );
+    view.addMove(
+      from: indexOf(3, 0),
+      to: indexOf(4, 0),
+      piece: pieceOf(black, typePawn),
+      captured: pieceOf(red, typePawn),
+    );
+    board.update(0.016);
+    expect(played, [MoveFeedback.move]);
+
+    // 第一手还没播完，对手的吃子音不会提前响。
+    board.update(0.62);
+    expect(played, [MoveFeedback.move]);
+
+    // 轮到对手的棋子起步，吃子音效随之播放。
+    board.update(0.02);
+    expect(played, [MoveFeedback.move, MoveFeedback.capture]);
+  });
+
+  testWidgets('复盘停顿期间不响，棋子起走时才播放落子音', (tester) async {
+    final played = <MoveFeedback>[];
+    SoundService.sink = played.add;
+    addTearDown(SoundService.reset);
+    final view = _FakeView()..moveLeadIn = const Duration(milliseconds: 320);
+    final board = _build(view);
+    board.update(0.016);
+
+    view.addMove(
+      from: indexOf(6, 0),
+      to: indexOf(5, 0),
+      piece: pieceOf(red, typePawn),
+    );
+    board.update(0.20);
+    expect(played, isEmpty);
+    board.update(0.20);
+    expect(played, [MoveFeedback.move]);
   });
 
   testWidgets('悔棋回退历史后立即回到静止图层', (tester) async {

@@ -50,7 +50,6 @@ class _GamePageState extends State<GamePage> {
   late String _gameId;
   bool _resultShown = false;
   bool _statsRecorded = false;
-  int _seenMoves = 0;
 
   @override
   void initState() {
@@ -96,7 +95,6 @@ class _GamePageState extends State<GamePage> {
 
   void _onControllerChanged() {
     if (!mounted) return;
-    _syncMoveFeedback();
     final result = _controller.result;
     if (result == null) {
       // 悔棋或重开后回到对局中，下一次终局仍需弹出结果。
@@ -138,26 +136,6 @@ class _GamePageState extends State<GamePage> {
         onNext: cleared ? _nextPuzzleBuilder(puzzle) : null,
       );
     });
-  }
-
-  /// 新增着法时按将军、吃子、普通落子给出反馈；悔棋或重开后重置计数。
-  void _syncMoveFeedback() {
-    final history = _controller.history;
-    if (history.length <= _seenMoves) {
-      _seenMoves = history.length;
-      return;
-    }
-    for (var i = _seenMoves; i < history.length; i++) {
-      final record = history[i];
-      SoundService.play(
-        record.givesCheck
-            ? MoveFeedback.check
-            : record.isCapture
-            ? MoveFeedback.capture
-            : MoveFeedback.move,
-      );
-    }
-    _seenMoves = history.length;
   }
 
   void _restart() {
