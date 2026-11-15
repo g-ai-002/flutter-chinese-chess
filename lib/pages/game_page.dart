@@ -14,6 +14,7 @@ import '../services/game_history_service.dart';
 import '../services/log_service.dart';
 import '../services/sound_service.dart';
 import '../utils/board_display_mode.dart';
+import '../utils/ui_actions.dart';
 import 'review_page.dart';
 import 'widgets/board_hud.dart';
 import 'widgets/board_stage.dart';
@@ -206,15 +207,14 @@ class _GamePageState extends State<GamePage> {
   /// 终局后进入复盘，棋谱快照与开局布局一并带过去。
   void _openReview() {
     final result = _controller.result;
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => ReviewPage(
-          title: _gameTitle,
-          result: result == null ? null : '${result.title}（${result.reason}）',
-          moves: List.of(_controller.history),
-          layout: _controller.board.startLayout,
-          startSide: _controller.board.startSide,
-        ),
+    openPage(
+      context,
+      ReviewPage(
+        title: _gameTitle,
+        result: result == null ? null : '${result.title}（${result.reason}）',
+        moves: List.of(_controller.history),
+        layout: _controller.board.startLayout,
+        startSide: _controller.board.startSide,
       ),
     );
   }
@@ -224,18 +224,15 @@ class _GamePageState extends State<GamePage> {
     final index = kPuzzles.indexWhere((item) => item.id == current.id);
     if (index < 0 || index + 1 >= kPuzzles.length) return null;
     final next = kPuzzles[index + 1];
-    return () {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute<void>(
-          builder: (_) => GamePage(
-            mode: GameMode.puzzle,
-            difficulty: widget.difficulty,
-            humanSide: kPuzzleHumanSide,
-            puzzle: next,
-          ),
-        ),
-      );
-    };
+    return () => replacePage(
+      context,
+      GamePage(
+        mode: GameMode.puzzle,
+        difficulty: widget.difficulty,
+        humanSide: kPuzzleHumanSide,
+        puzzle: next,
+      ),
+    );
   }
 
   void _showPuzzleHint() {
@@ -299,8 +296,6 @@ class _GamePageState extends State<GamePage> {
       ),
     );
   }
-
-  void _showRules() => showRulesDialog(context);
 
   /// 副标题：残局看步数，常规对局看难度与执子，限时对局补上棋钟。
   String _subtitle(Puzzle? puzzle) {
@@ -393,7 +388,7 @@ class _GamePageState extends State<GamePage> {
         if (_controller.clock != null) ClockBar(controller: _controller),
         IconButton(
           tooltip: '行棋规则',
-          onPressed: _showRules,
+          onPressed: () => showRulesDialog(context),
           icon: const Icon(Icons.help_outline, size: 20),
           padding: EdgeInsets.zero,
           visualDensity: VisualDensity.compact,
@@ -409,46 +404,34 @@ class _GamePageState extends State<GamePage> {
 
   Widget _buildActions() {
     final isAi = widget.mode == GameMode.vsAi;
+    final actions = <(IconData, String, VoidCallback?)>[
+      (Icons.undo_rounded, '悔棋', _controller.canUndo ? _controller.undo : null),
+      (Icons.refresh_rounded, '重开', _restart),
+      if (widget.puzzle != null)
+        (Icons.lightbulb_outline, '提示', _showPuzzleHint),
+      if (isAi)
+        (
+          Icons.lightbulb_outline,
+          _controller.hintLoading ? '思考中' : '提示',
+          _controller.canInteractive && !_controller.hintLoading
+              ? _controller.requestHint
+              : null,
+        ),
+      if (isAi)
+        (
+          Icons.flag_outlined,
+          '认输',
+          _controller.result == null ? _confirmResign : null,
+        ),
+      (Icons.format_list_bulleted_rounded, '棋谱', _showMoveSheet),
+    ];
     return Wrap(
       alignment: WrapAlignment.end,
       spacing: 2,
       runSpacing: 2,
       children: [
-        _ActionButton(
-          icon: Icons.undo_rounded,
-          label: '悔棋',
-          onPressed: _controller.canUndo ? _controller.undo : null,
-        ),
-        _ActionButton(
-          icon: Icons.refresh_rounded,
-          label: '重开',
-          onPressed: _restart,
-        ),
-        if (widget.puzzle != null)
-          _ActionButton(
-            icon: Icons.lightbulb_outline,
-            label: '提示',
-            onPressed: _showPuzzleHint,
-          ),
-        if (isAi)
-          _ActionButton(
-            icon: Icons.lightbulb_outline,
-            label: _controller.hintLoading ? '思考中' : '提示',
-            onPressed: _controller.canInteractive && !_controller.hintLoading
-                ? _controller.requestHint
-                : null,
-          ),
-        if (isAi)
-          _ActionButton(
-            icon: Icons.flag_outlined,
-            label: '认输',
-            onPressed: _controller.result == null ? _confirmResign : null,
-          ),
-        _ActionButton(
-          icon: Icons.format_list_bulleted_rounded,
-          label: '棋谱',
-          onPressed: _showMoveSheet,
-        ),
+        for (final (icon, label, onPressed) in actions)
+          _ActionButton(icon: icon, label: label, onPressed: onPressed),
       ],
     );
   }

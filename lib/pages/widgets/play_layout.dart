@@ -12,7 +12,6 @@ class PlayLayout extends StatelessWidget {
     this.status,
     this.actions,
     this.compactBottom,
-    this.compactStatusPadding = const EdgeInsets.fromLTRB(16, 2, 16, 8),
   });
 
   final Widget board;
@@ -26,8 +25,6 @@ class PlayLayout extends StatelessWidget {
 
   /// 窄屏棋盘下方的区域，缺省时使用 [actions]。
   final Widget? compactBottom;
-
-  final EdgeInsets compactStatusPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +60,10 @@ class PlayLayout extends StatelessWidget {
     return Column(
       children: [
         if (status != null)
-          Padding(padding: compactStatusPadding, child: status!),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
+            child: status!,
+          ),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),

@@ -8,22 +8,16 @@ import '../../utils/board_layout.dart';
 ///
 /// 棋盘保持 9:10 的宽高比，按可用空间取最大尺寸。
 class BoardStage extends StatelessWidget {
-  const BoardStage({
-    super.key,
-    required this.game,
-    required this.gameKey,
-    this.maxWidth = kBoardMaxWidth,
-  });
+  const BoardStage({super.key, required this.game, required this.gameKey});
 
   final XiangqiGame game;
   final Key gameKey;
-  final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final size = boardFitSize(constraints.biggest, maxWidth);
+        final size = boardFitSize(constraints.biggest);
         return Center(
           child: Container(
             width: size.width,

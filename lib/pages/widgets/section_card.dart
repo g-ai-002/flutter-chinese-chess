@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 
-/// 设置页与首页等信息卡片的统一容器。
+import '../../theme/app_theme.dart';
+
+/// 设置页、残局页等信息卡片的统一容器。
 class SectionCard extends StatelessWidget {
   const SectionCard({
     super.key,
@@ -9,7 +11,7 @@ class SectionCard extends StatelessWidget {
     this.icon,
     this.trailing,
     this.radius = 14,
-    this.color,
+    this.padding = const EdgeInsets.fromLTRB(16, 14, 16, 16),
   });
 
   final String title;
@@ -17,21 +19,15 @@ class SectionCard extends StatelessWidget {
   final IconData? icon;
   final Widget? trailing;
   final double radius;
-
-  /// 卡片底色，缺省为当前主题的 surface；渐变背景上用半透明底色。
-  final Color? color;
+  final EdgeInsets padding;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-      decoration: BoxDecoration(
-        color: color ?? colors.surface,
-        borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: colors.outline.withValues(alpha: 0.7)),
-      ),
+      padding: padding,
+      decoration: panelDecoration(colors, radius: radius),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

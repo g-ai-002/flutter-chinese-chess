@@ -21,16 +21,14 @@ class GameController extends ChangeNotifier implements BoardView {
     required this.mode,
     required this.difficulty,
     required this.humanSide,
-    AiMoveProvider? aiMove,
-    HintMoveProvider? hintMove,
+    this.aiMove,
+    this.hintMove,
     XiangqiBoard? board,
     this.showHints = true,
     TimeControl timeControl = TimeControl.none,
     this.puzzle,
   }) : timeControl = puzzle == null ? timeControl : TimeControl.none,
-       board = board ?? _initialBoard(puzzle),
-       _aiMove = aiMove,
-       _hintMove = hintMove;
+       board = board ?? _initialBoard(puzzle);
 
   static XiangqiBoard _initialBoard(Puzzle? puzzle) => puzzle == null
       ? XiangqiBoard.initial()
@@ -46,8 +44,8 @@ class GameController extends ChangeNotifier implements BoardView {
   final Puzzle? puzzle;
   @override
   final XiangqiBoard board;
-  final AiMoveProvider? _aiMove;
-  final HintMoveProvider? _hintMove;
+  final AiMoveProvider? aiMove;
+  final HintMoveProvider? hintMove;
 
   /// 默认搜索器：独立 isolate 中思考，页面关闭时可以立即回收。
   final AiSearch _search = AiSearch();
@@ -127,20 +125,12 @@ class GameController extends ChangeNotifier implements BoardView {
     _hintTimer = null;
     _notify();
     // Web 端搜索与界面同线程，先让「正在寻找提示」完成一帧绘制。
-    if (kIsWeb) await Future<void>.delayed(Duration.zero);
-    if (_disposed || serial != _hintSerial) return;
-
-    int? move;
-    try {
-      move = await (_hintMove ?? _search.hintMove)(
-        Uint8List.fromList(board.cells),
-        side,
-      );
-    } on AiSearchCancelled {
-      return;
-    } catch (error, stack) {
-      LogService.error('提示搜索失败', error, stack);
-    }
+    final move = await _runSearch<int?>(
+      isCurrent: () => !_disposed && serial == _hintSerial,
+      search: () =>
+          (hintMove ?? _search.hintMove)(Uint8List.fromList(board.cells), side),
+      errorLabel: '提示搜索失败',
+    );
     if (_disposed || serial != _hintSerial) return;
 
     hintLoading = false;
@@ -355,22 +345,17 @@ class GameController extends ChangeNotifier implements BoardView {
     final serial = ++_serial;
     _notify();
     // Web 端搜索与界面同线程，先让「AI 思考中」完成一帧绘制。
-    if (kIsWeb) await Future<void>.delayed(Duration.zero);
-    if (_disposed || serial != _serial) return;
     final side = board.sideToMove;
     final stopwatch = Stopwatch()..start();
-    AiReply? reply;
-    try {
-      reply = await (_aiMove ?? _search.chooseMove)(
+    final reply = await _runSearch<AiReply>(
+      isCurrent: () => !_disposed && serial == _serial,
+      search: () => (aiMove ?? _search.chooseMove)(
         Uint8List.fromList(board.cells),
         side,
         difficulty,
-      );
-    } on AiSearchCancelled {
-      return;
-    } catch (e, stack) {
-      LogService.error('AI 搜索失败', e, stack);
-    }
+      ),
+      errorLabel: 'AI 搜索失败',
+    );
     if (_disposed || serial != _serial) return;
 
     thinking = false;
@@ -396,6 +381,26 @@ class GameController extends ChangeNotifier implements BoardView {
       return;
     }
     _play(moveFrom(move), moveTo(move));
+  }
+
+  /// 统一一次搜索的等待与异常处理：取消、被新请求顶掉或出错都返回 null。
+  ///
+  /// Web 端搜索与界面同线程，先让状态文案完成一帧绘制再开始计算。
+  Future<T?> _runSearch<T>({
+    required bool Function() isCurrent,
+    required Future<T> Function() search,
+    required String errorLabel,
+  }) async {
+    if (kIsWeb) await Future<void>.delayed(Duration.zero);
+    if (!isCurrent()) return null;
+    try {
+      return await search();
+    } on AiSearchCancelled {
+      return null;
+    } catch (error, stack) {
+      LogService.error(errorLabel, error, stack);
+      return null;
+    }
   }
 
   void _notify() {

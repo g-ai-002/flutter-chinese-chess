@@ -10,8 +10,40 @@ const Color appRed = Color(0xFFA63A2B);
 const Color appBlack = Color(0xFF39433F);
 const Color appWood = Color(0xFF8B6239);
 
+/// 走子提示色：棋盘箭头用深金保证线条对比，状态文字用浅金更易读。
+const Color appHintInk = Color(0xFF8C5A0F);
+const Color appHintAccent = Color(0xFFC08A2E);
+const Color appHintOutline = Color(0xE62A1C08);
+
 /// 红黑双方在界面上的代表色。
 Color sideColorOf(int side) => side == red ? appRed : appBlack;
+
+/// 卡片统一底色、细边与可选浅投影，页面里不再各写一份 [BoxDecoration]。
+///
+/// [borderAlpha] 控制描边浓度，[shadowAlpha] 大于 0 时用于浮在棋盘上的卡片。
+BoxDecoration panelDecoration(
+  ColorScheme colors, {
+  double radius = 14,
+  Color? color,
+  double borderAlpha = 0.7,
+  double shadowAlpha = 0,
+}) {
+  final shadow = Colors.black.withValues(alpha: shadowAlpha);
+  return BoxDecoration(
+    color: color ?? colors.surface,
+    borderRadius: BorderRadius.circular(radius),
+    border: Border.all(color: colors.outline.withValues(alpha: borderAlpha)),
+    boxShadow: shadowAlpha <= 0
+        ? null
+        : [
+            BoxShadow(
+              color: shadow,
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+  );
+}
 
 ThemeData buildLightTheme({String? fontFamily}) {
   const scheme = ColorScheme.light(

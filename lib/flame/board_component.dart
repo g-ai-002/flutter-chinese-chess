@@ -14,15 +14,12 @@ import '../game/logic_rate.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/board_painting.dart';
-import '../theme/board_skin.dart';
 
 const double _moveDurationSeconds = 0.24;
 const double _landingDurationSeconds = 0.34;
 const double _shatterDurationSeconds = 0.55;
 const double _trailGap = 0.10;
 const int _maxAnimSteps = 2;
-const Color _hintColor = Color(0xFF8C5A0F);
-const Color _hintOutline = Color(0xE62A1C08);
 
 /// Flame 棋盘组件：绘制棋盘、棋子、走子提示与落子动画，并处理点击。
 class BoardComponent extends PositionComponent with TapCallbacks {
@@ -63,27 +60,24 @@ class BoardComponent extends PositionComponent with TapCallbacks {
 
   @override
   Future<void> onLoad() async {
-    skin.addListener(_clearTextCaches);
+    skin.addListener(_clearCaches);
   }
 
   @override
   void onRemove() {
-    skin.removeListener(_clearTextCaches);
-    _clearTextCaches();
+    skin.removeListener(_clearCaches);
+    _clearCaches();
     super.onRemove();
   }
 
-  void _clearTextCaches() {
+  /// 皮肤或尺寸变化时统一丢弃文字、棋子小图与静态图层，下一帧按新参数重录。
+  void _clearCaches() {
     _piecePainters.clear();
     _textPainters.clear();
     for (final sprite in _sprites.values) {
       sprite.dispose();
     }
     _sprites.clear();
-    _invalidateLayers();
-  }
-
-  void _invalidateLayers() {
     _boardLayer?.dispose();
     _pieceLayer?.dispose();
     _boardLayer = null;
@@ -181,13 +175,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
     );
     if ((_cacheCell - cell).abs() > 0.5) {
       _cacheCell = cell;
-      _piecePainters.clear();
-      _textPainters.clear();
-      for (final sprite in _sprites.values) {
-        sprite.dispose();
-      }
-      _sprites.clear();
-      _invalidateLayers();
+      _clearCaches();
     }
 
     canvas.save();
@@ -441,12 +429,12 @@ class BoardComponent extends PositionComponent with TapCallbacks {
       ..style = PaintingStyle.stroke
       ..strokeWidth = cell * 0.095
       ..strokeCap = StrokeCap.round
-      ..color = _hintOutline;
+      ..color = appHintOutline;
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = cell * 0.052
       ..strokeCap = StrokeCap.round
-      ..color = _hintColor.withValues(alpha: 0.96);
+      ..color = appHintInk.withValues(alpha: 0.96);
     final start = _center(from, cell);
     final end = _center(to, cell);
     final radius = cell * 0.46;
@@ -522,7 +510,7 @@ class BoardComponent extends PositionComponent with TapCallbacks {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = cell * 0.05
-          ..color = _hintColor.withValues(alpha: 0.35 + 0.45 * pulse),
+          ..color = appHintInk.withValues(alpha: 0.35 + 0.45 * pulse),
       );
     }
     if (anim.captured != 0 && !anim.landed) {

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
 
+import '../../theme/app_theme.dart';
 import '../../utils/board_layout.dart';
 
 /// 侧栏窄于该宽度时改用紧凑卡片：隐藏次要文字，操作只留图标。
@@ -110,10 +111,15 @@ class BoardHud extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final size = boardFitSize(
-                Size(constraints.maxWidth - metrics.rail * 2, constraints.maxHeight),
+                Size(
+                  constraints.maxWidth - metrics.rail * 2,
+                  constraints.maxHeight,
+                ),
                 maxBoardWidth,
               );
-              return Center(child: SizedBox.fromSize(size: size, child: board));
+              return Center(
+                child: SizedBox.fromSize(size: size, child: board),
+              );
             },
           ),
         ),
@@ -190,7 +196,9 @@ class BoardHud extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final size = boardFitSize(constraints.biggest, maxBoardWidth);
-              return Center(child: SizedBox.fromSize(size: size, child: board));
+              return Center(
+                child: SizedBox.fromSize(size: size, child: board),
+              );
             },
           ),
         ),
@@ -233,17 +241,12 @@ class BoardHud extends StatelessWidget {
             padding: compact
                 ? const EdgeInsets.symmetric(horizontal: 8, vertical: 6)
                 : const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
+            decoration: panelDecoration(
+              colors,
+              radius: compact ? 14 : 16,
               color: colors.surface.withValues(alpha: isDark ? 0.90 : 0.94),
-              borderRadius: BorderRadius.circular(compact ? 14 : 16),
-              border: Border.all(color: colors.outline.withValues(alpha: 0.9)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              borderAlpha: 0.9,
+              shadowAlpha: 0.05,
             ),
             child: child,
           ),

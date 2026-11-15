@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../models/move_record.dart';
+import '../../theme/app_theme.dart';
 import 'move_list.dart';
 
 /// 棋谱侧栏：标题、手数、棋谱列表与底部说明，复盘页使用。
@@ -26,11 +27,7 @@ class MovePanel extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     return Container(
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.outline.withValues(alpha: 0.7)),
-      ),
+      decoration: panelDecoration(colors, radius: 16),
       child: Column(
         children: [
           Padding(

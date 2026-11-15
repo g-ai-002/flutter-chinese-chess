@@ -10,6 +10,7 @@ import '../providers/settings_provider.dart';
 import '../theme/app_theme.dart';
 import '../theme/board_painting.dart';
 import '../utils/constants.dart';
+import '../utils/ui_actions.dart';
 import 'game_history_page.dart';
 import 'game_page.dart';
 import 'puzzle_page.dart';
@@ -106,27 +107,22 @@ class HomePage extends StatelessWidget {
     SettingsProvider settings,
     GameMode mode,
   ) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => GamePage(
-          mode: mode,
-          difficulty: settings.difficulty,
-          humanSide: mode == GameMode.vsAi ? settings.humanSide : red,
-        ),
+    openPage(
+      context,
+      GamePage(
+        mode: mode,
+        difficulty: settings.difficulty,
+        humanSide: mode == GameMode.vsAi ? settings.humanSide : red,
       ),
     );
   }
 
-  void _openPuzzles(BuildContext context) {
-    Navigator.of(context)
-        .push(MaterialPageRoute<void>(builder: (_) => const PuzzlePage()));
-  }
+  void _openPuzzles(BuildContext context) =>
+      openPage(context, const PuzzlePage());
 
   /// 棋谱库：最近 20 局回放与导入导出入口。
-  void _openArchives(BuildContext context) {
-    Navigator.of(context)
-        .push(MaterialPageRoute<void>(builder: (_) => const GameHistoryPage()));
-  }
+  void _openArchives(BuildContext context) =>
+      openPage(context, const GameHistoryPage());
 
   /// 首页四个模式入口，宽屏两列、窄屏堆叠都复用同一份定义。
   List<Widget> _modeCards(
@@ -249,9 +245,7 @@ class _TopBar extends StatelessWidget {
         ),
         IconButton(
           tooltip: '设置',
-          onPressed: () => Navigator.of(
-            context,
-          ).push(MaterialPageRoute<void>(builder: (_) => const SettingsPage())),
+          onPressed: () => openPage(context, const SettingsPage()),
           icon: const Icon(Icons.settings_outlined, size: 21),
         ),
       ],

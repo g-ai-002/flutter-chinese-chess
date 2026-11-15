@@ -6,6 +6,7 @@ import '../services/file_system_service.dart';
 import '../services/log_service.dart';
 import '../utils/constants.dart';
 import '../utils/platform_info.dart';
+import '../utils/ui_actions.dart';
 import 'widgets/preference_pickers.dart';
 import 'widgets/section_card.dart';
 import 'widgets/skin_picker.dart';
@@ -136,11 +137,7 @@ class SettingsPage extends StatelessWidget {
                               final ok = await FileSystemService.instance
                                   .openDirectory(path);
                               if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(ok ? '已打开日志目录' : '无法打开日志目录'),
-                                ),
-                              );
+                              showMessage(context, ok ? '已打开日志目录' : '无法打开日志目录');
                             },
                             icon: const Icon(Icons.folder_open, size: 17),
                             label: const Text('打开目录'),

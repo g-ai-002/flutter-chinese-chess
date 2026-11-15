@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 import '../game/puzzles.dart';
 import '../models/game_models.dart';
 import '../providers/settings_provider.dart';
+import '../utils/ui_actions.dart';
 import 'game_page.dart';
 import 'widgets/entry_tile.dart';
+import 'widgets/section_card.dart';
 
 /// 残局关卡列表：展示通关进度、最佳步数，点击进入挑战。
 class PuzzlePage extends StatelessWidget {
@@ -78,14 +80,13 @@ class PuzzlePage extends StatelessWidget {
   }
 
   void _open(BuildContext context, Puzzle puzzle, Difficulty difficulty) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => GamePage(
-          mode: GameMode.puzzle,
-          difficulty: difficulty,
-          humanSide: kPuzzleHumanSide,
-          puzzle: puzzle,
-        ),
+    openPage(
+      context,
+      GamePage(
+        mode: GameMode.puzzle,
+        difficulty: difficulty,
+        humanSide: kPuzzleHumanSide,
+        puzzle: puzzle,
       ),
     );
   }
@@ -129,49 +130,33 @@ class _ProgressCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final ratio = total == 0 ? 0.0 : solved / total;
-    return Container(
+    return SectionCard(
+      title: '闯关进度',
+      icon: Icons.flag_outlined,
+      radius: 16,
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.outline.withValues(alpha: 0.8)),
+      trailing: Text(
+        '$solved / $total',
+        style: theme.textTheme.titleSmall?.copyWith(color: colors.primary),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.flag_outlined, size: 18, color: colors.primary),
-              const SizedBox(width: 8),
-              Text('闯关进度', style: theme.textTheme.titleSmall),
-              const Spacer(),
-              Text(
-                '$solved / $total',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: colors.primary,
-                ),
-              ),
-            ],
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: ratio,
+            minHeight: 6,
+            backgroundColor: colors.outline.withValues(alpha: 0.5),
+            color: colors.primary,
           ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: ratio,
-              minHeight: 6,
-              backgroundColor: colors.outline.withValues(alpha: 0.5),
-              color: colors.primary,
-            ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          ratio >= 1 ? '全部通关，杀法已成。' : '一步杀入门，三步杀见功力。',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colors.onSurfaceVariant,
           ),
-          const SizedBox(height: 10),
-          Text(
-            ratio >= 1 ? '全部通关，杀法已成。' : '一步杀入门，三步杀见功力。',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: colors.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

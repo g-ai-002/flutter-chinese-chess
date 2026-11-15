@@ -16,6 +16,7 @@ import '../services/file_system_service.dart';
 import '../services/log_service.dart';
 import '../utils/board_display_mode.dart';
 import '../utils/formatters.dart';
+import '../utils/ui_actions.dart';
 import 'widgets/board_stage.dart';
 import 'widgets/move_list.dart';
 import 'widgets/move_panel.dart';
@@ -105,16 +106,11 @@ class _ReviewPageState extends State<ReviewPage> {
     if (mounted) setState(() {});
   }
 
-  void _snack(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  Future<void> _copyArchive() async {
+  void _copyArchive() async {
     await Clipboard.setData(ClipboardData(text: _archiveText()));
     if (!mounted) return;
     LogService.info('导出棋谱: 复制到剪贴板, 共 ${widget.moves.length} 手');
-    _snack('棋谱已复制到剪贴板');
+    showMessage(context, '棋谱已复制到剪贴板');
   }
 
   Future<void> _saveArchive() async {
@@ -128,11 +124,11 @@ class _ReviewPageState extends State<ReviewPage> {
     );
     if (!mounted) return;
     if (path == null) {
-      _snack('棋谱保存失败');
+      showMessage(context, '棋谱保存失败');
       return;
     }
     LogService.info('导出棋谱: 已保存到 $path');
-    _snack('棋谱已保存到 $path');
+    showMessage(context, '棋谱已保存到 $path');
   }
 
   String _archiveText() => GameArchive.encode(
@@ -213,14 +209,11 @@ class _ReviewPageState extends State<ReviewPage> {
     footer: _summaryText(),
   );
 
-  String _summaryText() {
-    final parts = [
-      if (widget.result != null && widget.result!.isNotEmpty) widget.result!,
-      '共 ${_replay.total} 手',
-      '点击棋谱可跳转到对应手数',
-    ];
-    return parts.join(' · ');
-  }
+  String _summaryText() => [
+    if (widget.result != null && widget.result!.isNotEmpty) widget.result!,
+    '共 ${_replay.total} 手',
+    '点击棋谱可跳转到对应手数',
+  ].join(' · ');
 
   Widget _buildBoard() =>
       BoardStage(game: _game, gameKey: const ValueKey('review-board'));

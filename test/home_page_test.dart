@@ -96,6 +96,46 @@ void main() {
     expect(duel.dy, greaterThan(ai.dy));
   });
 
+  testWidgets('首页背景铺满整屏，内容在可用高度内垂直居中', (tester) async {
+    tester.view.physicalSize = const Size(800, 1280);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final storage = await StorageService.instance;
+    final settings = SettingsProvider(storage);
+    await tester.pumpWidget(wrap(settings));
+    await tester.pump();
+
+    // 渐变底铺满整个窗口（Android 15+ 由框架强制 edge-to-edge）。
+    final background = tester.getRect(
+      find
+          .descendant(
+            of: find.byType(Scaffold),
+            matching: find.byType(Container),
+          )
+          .first,
+    );
+    expect(background.size, const Size(800, 1280));
+
+    // 内容垂直居中：品牌与版本号到上下边缘的留白基本一致。
+    final logo = tester.getRect(
+      find.ancestor(of: find.text('象'), matching: find.byType(Container)).first,
+    );
+    final version = tester.getRect(
+      find.textContaining('v${AppConstants.version}'),
+    );
+    final topGap = logo.top;
+    final bottomGap = 1280 - version.bottom;
+    expect(topGap, greaterThan(0));
+    expect(bottomGap, greaterThan(0));
+    expect((topGap - bottomGap).abs(), lessThan(24));
+
+    // 主视觉水平居中。
+    expect(tester.getCenter(find.text('楚 河 · 漢 界')).dx, closeTo(400, 1));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('深色模式按钮切换主题偏好', (tester) async {
     final storage = await StorageService.instance;
     final settings = SettingsProvider(storage);

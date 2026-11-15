@@ -5,8 +5,11 @@ import '../models/saved_game.dart';
 import '../services/file_system_service.dart';
 import '../services/game_history_service.dart';
 import '../services/log_service.dart';
+import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
+import '../utils/ui_actions.dart';
 import 'review_page.dart';
+import 'widgets/entry_tile.dart';
 import 'widgets/game_dialogs.dart';
 
 /// 棋谱库：最近 20 局回放，可导入、导出、删除或进入复盘。
@@ -14,16 +17,15 @@ class GameHistoryPage extends StatelessWidget {
   const GameHistoryPage({super.key});
 
   void _openReview(BuildContext context, SavedGame game) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => ReviewPage(
-          title: game.title,
-          result: game.result,
-          moves: game.moves,
-          layout: game.layout,
-          startSide: game.startSide,
-          date: game.endedAt,
-        ),
+    openPage(
+      context,
+      ReviewPage(
+        title: game.title,
+        result: game.result,
+        moves: game.moves,
+        layout: game.layout,
+        startSide: game.startSide,
+        date: game.endedAt,
       ),
     );
   }
@@ -39,8 +41,7 @@ class GameHistoryPage extends StatelessWidget {
     final archive = GameArchive.decode(text);
     if (!context.mounted) return;
     if (archive == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('棋谱无法解析，请检查文本是否完整')));
+      showMessage(context, '棋谱无法解析，请检查文本是否完整');
       return;
     }
     final game = SavedGame.fromArchive(archive);
@@ -60,8 +61,7 @@ class GameHistoryPage extends StatelessWidget {
     if (!confirmed) return;
     await GameHistoryService.instance.remove(game.id);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('棋谱已删除')));
+    showMessage(context, '棋谱已删除');
   }
 
   Future<void> _clear(BuildContext context) async {
@@ -74,8 +74,7 @@ class GameHistoryPage extends StatelessWidget {
     if (!confirmed) return;
     await GameHistoryService.instance.clear();
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('棋谱已清空')));
+    showMessage(context, '棋谱已清空');
   }
 
   @override
@@ -202,25 +201,13 @@ class _SavedGameTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         child: Container(
           padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: scheme.outline),
-          ),
+          decoration: panelDecoration(scheme, borderAlpha: 1),
           child: Row(
             children: [
-              Container(
-                width: 38,
-                height: 38,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: scheme.primary.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  Icons.menu_book_outlined,
-                  size: 20,
-                  color: scheme.primary,
-                ),
+              EntryBadge(
+                icon: Icons.menu_book_outlined,
+                accent: scheme.primary,
+                size: 38,
               ),
               const SizedBox(width: 12),
               Expanded(
