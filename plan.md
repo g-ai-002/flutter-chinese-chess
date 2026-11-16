@@ -72,7 +72,7 @@
 
 ### v0.8.7 (PATCH) — 2026-11-16
 
-- **状态**: 待发布 ⏳
+- **状态**: 已发布 ✅（[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.8.7)）
 - **目标**: 将音频引擎 flutter_soloud 从 5.2.3 升级到 5.3.0，跟进上游对 Android/Windows
   生命周期与退出流程的修复，以及混音、重采样与滤波的 SIMD 加速，降低播放占用、减少卡顿。
 - **任务**:
