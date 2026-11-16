@@ -39,13 +39,13 @@
 
 ## 下载
 
-v0.8.6（最新发布）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.8.6)
+v0.8.7（最新发布）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-chinese-chess/releases/tag/v0.8.7)
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64) | `flutter-chinese-chess-0.8.6-android-aarch64.apk` |
-| Windows (x64, Win10+) | `flutter-chinese-chess-0.8.6-windows-x86_64.zip` |
-| Web | `flutter-chinese-chess-0.8.6-web.zip`（解压后起静态服务器） |
+| Android (arm64) | `flutter-chinese-chess-0.8.7-android-aarch64.apk` |
+| Windows (x64, Win10+) | `flutter-chinese-chess-0.8.7-windows-x86_64.zip` |
+| Web | `flutter-chinese-chess-0.8.7-web.zip`（解压后起静态服务器） |
 
 ## 开发
 
@@ -84,16 +84,17 @@ lib/
 
 | 版本 | 说明 |
 | --- | --- |
+| v0.8.7 | 升级 flutter_soloud 至 5.3.0，跟进上游退出/后台修复与 SIMD 音频性能优化 |
 | v0.8.6 | 修复 Issue #8：落子音效跟随棋子起步，对手回棋、吃子与将军同样有声，连续走子不再互相掐断 |
 | v0.8.5 | 重构优化：导航、短消息、卡片容器、状态推导与搜索收尾收敛，并复核首页全屏沉浸居中 |
 | v0.8.4 | 性能优化：搜索将位增量维护、复盘将军状态缓存、棋盘静止后自动停帧降低空闲耗电 |
 | v0.8.3 | 修复 Issue #7：状态提示条整块挂在棋盘上方不再压住棋盘，去掉「上一手」「你执红」避免过宽 |
-| v0.8.2 | 修复 Issue #6：复盘每手棋先停顿高亮要走动的棋子，棋子不再突然起走 |
 
 ### 更早版本
 
 | 版本 | 说明 |
 | --- | --- |
+| v0.8.2 | 修复 Issue #6：复盘每手棋先停顿并高亮要走动的棋子，棋子不再突然起走 |
 | v0.8.1 | 修复横屏判定随宽高互换翻转导致的来回旋转，锁定横屏后判定保持不变 |
 | v0.8.0 | 对齐最新界面规范：棋盘居中、提示在上/左、按钮在下，按面积决定横屏；退出对局不残留后台任务；新增人机战绩 |
 | v0.7.4 | 性能优化：棋盘逻辑改为固定步长推进，可选 30 / 60 / 120Hz 逻辑刷新率，默认 60Hz |
